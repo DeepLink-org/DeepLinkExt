@@ -20,15 +20,15 @@ def get_ext():
     dipu_root = os.getenv('DIPU_ROOT')
     diopi_path = os.getenv('DIOPI_PATH')
     vendor_include_dirs = os.getenv('VENDOR_INCLUDE_DIRS')
+    nccl_include_dirs = os.getenv('NCCL_INCLUDE_DIRS')     # nv所需
     include_dirs.append(dipu_root)
     include_dirs.append(dipu_root + "/dist/include")
     include_dirs.append(diopi_path + "/include")
     include_dirs.append(vendor_include_dirs)
+    if nccl_include_dirs:
+        include_dirs.append(nccl_include_dirs)
     library_dirs += [dipu_root]
     libraries += ['torch_dipu']
-
-    library_dirs += ['./ops/build/']
-    libraries += ['bmm']
 
     extra_compile_args = {'cxx': []}
     extra_compile_args['cxx'] = ['-std=c++14']

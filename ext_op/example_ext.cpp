@@ -2,7 +2,8 @@
 
 #include <iostream>
 
-#include "ops.h"
+#include <diopi/functions.h>
+#include <diopi/functions_mmcv.h>
 
 #include "csrc_dipu/diopirt/diopirt_impl.h"
 #include "csrc_dipu/base/basedef.h"
@@ -32,11 +33,12 @@ torch::Tensor nms_diopi(torch::Tensor boxes, torch::Tensor scores, float iou_thr
         auto tensorhandle = reinterpret_cast<torch::Tensor*>(*outhandle);
         return *tensorhandle;
     }
-
+    throw "diopicalculate failed!";
+    return torch::Tensor();
 }
 
 // 判断是否有对应的diopi实现，如果有，则直接pybind上去。如果没有，则不注册，再到python层处理。
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     if(reinterpret_cast<void*>(diopiNmsMmcv) != nullptr)
-        m.def("m_nms", &nms_diopi "deeplink nms");
+        m.def("m_nms", &nms_diopi, "deeplink nms");
 }
