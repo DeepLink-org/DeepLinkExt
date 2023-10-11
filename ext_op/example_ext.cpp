@@ -11,9 +11,11 @@
 using dipu::diopi_helper::toDiopiScalar;
 using dipu::diopi_helper::toDiopiTensorHandle;
 
+
 void ext_apply_rotary(torch::Tensor output, const torch::Tensor input, const torch::Tensor cos, const torch::Tensor sin, const bool conj)
 {
     auto output_p = toDiopiTensorHandle(output);
+
     auto cos_p = toDiopiTensorHandle(cos);
     auto sin_p = toDiopiTensorHandle(sin);
     auto input_p = toDiopiTensorHandle(input);
@@ -21,6 +23,7 @@ void ext_apply_rotary(torch::Tensor output, const torch::Tensor input, const tor
     diopiGetTensorDevice(output_p, &device);
     diopiContext ctx(dipu::getCurrentDIPUStream().rawstream());
     diopiContextHandle_t ch = &ctx;
+
 
     if (device == diopi_host || input.device().type() != dipu::DIPU_DEVICE_TYPE)
     {
@@ -30,6 +33,7 @@ void ext_apply_rotary(torch::Tensor output, const torch::Tensor input, const tor
 
     auto ret =
         diopiRotaryEmbedding(ch, output_p, input_p, cos_p, sin_p, conj); // 此处更换为diopi内相应的函数
+
     if (ret == diopiSuccess)
     {
         // auto tensorhandle = reinterpret_cast<torch::Tensor*>(*outhandle);
