@@ -20,3 +20,4 @@ with torch.no_grad():
     res2 = dipu_apply(qkv1, cos1, sin1, cos_k, sin_k, interleaved)
 assert torch.allclose(res1,res2)
 print("pass the internlm rotary_emb test")
+
