@@ -31,6 +31,7 @@ std::tuple<at::Tensor, at::Tensor> ext_rms_norm(const torch::Tensor input, at::O
     auto weight_p = toDiopiTensorHandle(weight);
     auto normalized_shape_p = toDiopiSize(normalized_shape);
 
+
     diopiDevice_t device;
     diopiGetTensorDevice(input_p, &device);
     diopiContext ctx(dipu::getCurrentDIPUStream().rawstream());
@@ -121,7 +122,6 @@ void ext_apply_rotary(torch::Tensor output, const torch::Tensor input, const tor
 // 判断是否有对应的diopi实现，如果有，则直接pybind上去。如果没有，则不注册，再到python层处理。
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
-
     if(reinterpret_cast<void*>(diopiRMSNorm) != nullptr)
         m.def("rms_norm", &ext_rms_norm, "deeplink ext_rms_norm");
     if(reinterpret_cast<void*>(diopiRMSNormBackward) != nullptr)
