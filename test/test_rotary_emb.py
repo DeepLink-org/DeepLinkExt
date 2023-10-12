@@ -2,9 +2,7 @@ import torch
 import torch_dipu
 from einops import rearrange
 import dipu_ext.ext_
-
-# 添加apply文件夹到 python path中
-from ext_apply_rotary import TorchApplyRotaryEmbQKV_, DeeplLinkApplyRotaryEmbQKV_
+from ext_apply.ext_apply_rotary import TorchApplyRotaryEmbQKV_, DeeplLinkApplyRotaryEmbQKV_
 
 torch_apply = TorchApplyRotaryEmbQKV_.apply
 dipu_apply = DeeplLinkApplyRotaryEmbQKV_.apply
