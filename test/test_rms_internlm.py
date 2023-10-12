@@ -1,8 +1,8 @@
-from ext_apply.RMSNorm import InternLMRMSNorm, DeeplinkRMSNorm
+from ext_apply.internlm.RMSNorm import InternLMRMSNorm, DeeplinkRMSNorm
 import torch
 from torch import nn
 import torch_dipu
-
+import numpy as np
 
 
 
@@ -39,4 +39,6 @@ input_dipu_grad = input_dipu.grad
 print(input_dipu_grad)
 
 # 对比两者是否一致
-print("\nAre the gradients identical?:", torch.allclose(input_grad, input_dipu_grad))
+rtol = 1e-5
+atol = 1e-5
+print("\nAre the gradients identical?:", np.allclose(input_grad.detach().cpu().numpy(), input_dipu_grad.detach().cpu().numpy(), rtol, atol, True))
