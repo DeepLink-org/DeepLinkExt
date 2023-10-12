@@ -22,12 +22,6 @@ void ext_apply_rotary(torch::Tensor output, const torch::Tensor input, const tor
     diopiContext ctx(dipu::getCurrentDIPUStream().rawstream());
     diopiContextHandle_t ch = &ctx;
 
-    if (device == diopi_host || input.device().type() != dipu::DIPU_DEVICE_TYPE)
-    {
-        std::cout << "We only can run this op on dipu!" << std::endl;
-        throw "We only can run this op on dipu!";
-    }
-
     auto ret =
         diopiRotaryEmbedding(ch, output_p, input_p, cos_p, sin_p, conj); // 此处更换为diopi内相应的函数
     if (ret == diopiSuccess)
@@ -42,8 +36,6 @@ void ext_apply_rotary(torch::Tensor output, const torch::Tensor input, const tor
 // 判断是否有对应的diopi实现，如果有，则直接pybind上去。如果没有，则不注册，再到python层处理。
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
-    // if(reinterpret_cast<void*>(diopiNmsMmcv) != nullptr)
-    //     m.def("m_nms", &nms_diopi, "deeplink nms");
     if (reinterpret_cast<void *>(diopiRotaryEmbedding) != nullptr)
         m.def("apply_rotary", &ext_apply_rotary, "deeplink ext_apply_rotary");
 }
