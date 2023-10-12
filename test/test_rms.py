@@ -7,17 +7,17 @@ import pdb
 # 假设 deeplink_ext 是一个包含上述 RMS normalization 函数的模块
 
 # 定义输入张量
-input = torch.randn(5, 5, requires_grad=True).cuda() 
+input = torch.randn(5, 5, requires_grad=True).cuda()
 
 # 定义权重和偏差张量
-weight = torch.randn(5, requires_grad=True).cuda() 
-bias = torch.randn(5, requires_grad=True).cuda() 
+weight = torch.randn(5, requires_grad=True).cuda()
+bias = torch.randn(5, requires_grad=True).cuda()
 
 # 定义输出梯度张量
-grad_output = torch.randn(5, 5).cuda() 
+grad_output = torch.randn(5, 5).cuda()
 
 # 归一化的形状通常是输入张量的形状
-normalized_shape = torch.tensor([5, 5], dtype=torch.long).cuda() 
+normalized_shape = torch.tensor([5, 5], dtype=torch.long).cuda()
 
 # pdb.set_trace()
 
