@@ -11,6 +11,7 @@
 #include "m_pybind.h"
 
 
+
 using dipu::diopi_helper::toDiopiScalar;
 using dipu::diopi_helper::toDiopiTensorHandle;
 using dipu::diopi_helper::toDiopiSize;
@@ -35,9 +36,14 @@ std::tuple<at::Tensor, at::Tensor> ext_rms_norm(const torch::Tensor input, at::O
     diopiContext ctx(dipu::getCurrentDIPUStream().rawstream());
     diopiContextHandle_t ch = &ctx;
 
+    if (device == diopi_host || input.device().type() != dipu::DIPU_DEVICE_TYPE)
+    {
+        std::cout << "We only can run this op on dipu!" << std::endl;
+        throw "We only can run this op on dipu!";
+    }
 
-    std::cout<<input.device().type()<<std::endl;
-    std::cout<<dipu::DIPU_DEVICE_TYPE<<std::endl;
+    // std::cout<<input.device().type()<<std::endl;
+    // std::cout<<dipu::DIPU_DEVICE_TYPE<<std::endl;
 
     auto ret =
         diopiRMSNorm(ch, output_p, inv_rms_p, input_p, normalized_shape_p, weight_p, bias_p, eps);  // 此处更换为diopi内相应的函数
@@ -74,6 +80,12 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> ext_rms_norm_backward(const torch
     diopiContext ctx(dipu::getCurrentDIPUStream().rawstream());
     diopiContextHandle_t ch = &ctx;
 
+    if (device == diopi_host || input.device().type() != dipu::DIPU_DEVICE_TYPE)
+    {
+        std::cout << "We only can run this op on dipu!" << std::endl;
+        throw "We only can run this op on dipu!";
+    }
+
     auto ret =
         diopiRMSNormBackward(ch, grad_input_p, grad_weight_p, grad_bias_p, grad_output_p, input_p, weight_p, bias_p, inv_rms_p, normalized_shape_p, eps);  // 此处更换为diopi内相应的函数
     if (ret == diopiSuccess) {
@@ -97,6 +109,12 @@ void ext_apply_rotary(const torch::Tensor x1, const torch::Tensor x2, const torc
     diopiGetTensorDevice(out1_p, &device);
     diopiContext ctx(dipu::getCurrentDIPUStream().rawstream());
     diopiContextHandle_t ch = &ctx;
+
+    if (device == diopi_host || x1.device().type() != dipu::DIPU_DEVICE_TYPE)
+    {
+        std::cout << "We only can run this op on dipu!" << std::endl;
+        throw "We only can run this op on dipu!";
+    }
 
     auto ret =
         diopiRotaryEmbedding(ch, out1_p, out2_p, x1_p, x2_p, cos_p, sin_p, conj); // 此处更换为diopi内相应的函数

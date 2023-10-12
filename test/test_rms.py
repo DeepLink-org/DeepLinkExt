@@ -1,6 +1,7 @@
 import torch
 
 import dipu_ext.ext_ as deeplink_ext
+import torch_dipu
 import pdb
 # import debugat
 
@@ -23,6 +24,8 @@ normalized_shape = torch.tensor([5, 5], dtype=torch.long).cuda()
 
 # 使用 RMS normalization 前向传播
 # while True:
+
+print(input.is_dipu)
 output, inv_rms = deeplink_ext.rms_norm(
     input,
     None,
