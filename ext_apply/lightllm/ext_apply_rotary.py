@@ -5,6 +5,7 @@ from einops import rearrange
 
 # Rotary_emb
 # 本身就是基于pytorch的实现，所以不需要pytorch绕过代码
+
 try:
     import dipu_ext.ext_
     print("USE ext apply_rotary")
