@@ -2,7 +2,7 @@ import torch
 import torch_dipu
 from einops import rearrange
 import dipu_ext.ext_
-from ext_apply.lightllm.ext_apply_rotary import deeplink_rotary_emb
+from DipuExt_poc.ext_apply.lightllm.ext_apply_rotary import deeplink_rotary_emb
 
 # lightllm的实现
 def torch_rotary_emb(x, cos, sin):
