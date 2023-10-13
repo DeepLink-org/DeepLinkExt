@@ -10,27 +10,29 @@
 #include "csrc_dipu/base/basedef.h"
 #include "m_pybind.h"
 
-
+namespace dipu_ext {
 
 using dipu::diopi_helper::toDiopiScalar;
 using dipu::diopi_helper::toDiopiTensorHandle;
 using dipu::diopi_helper::toDiopiSize;
 
-
-
-std::tuple<at::Tensor, at::Tensor> ext_rms_norm(const torch::Tensor input, at::OptionalIntArrayRef normalized_shape, 
+std::tuple<at::Tensor, at::Tensor> ext_rms_norm(const torch::Tensor input, OptionalIntArray normalized_shape,
                     const torch::Tensor weight, const torch::Tensor bias, double eps) {
-    normalized_shape = weight.sizes();
+    at::OptionalIntArrayRef normalized_shape_at;
+    if (normalized_shape) {
+        normalized_shape_at = *normalized_shape;
+    } else {
+        normalized_shape_at = weight.sizes();
+    }
     auto inv_rms = at::empty_like(input);
     auto output = at::empty_like(input);
-    
+
     auto input_p = toDiopiTensorHandle(input);
     auto output_p = toDiopiTensorHandle(output);
     auto inv_rms_p = toDiopiTensorHandle(inv_rms);
     auto bias_p = toDiopiTensorHandle(bias);
     auto weight_p = toDiopiTensorHandle(weight);
-    auto normalized_shape_p = toDiopiSize(normalized_shape);
-
+    auto normalized_shape_p = toDiopiSize(normalized_shape_at);
 
     diopiDevice_t device;
     diopiGetTensorDevice(input_p, &device);
@@ -56,12 +58,14 @@ std::tuple<at::Tensor, at::Tensor> ext_rms_norm(const torch::Tensor input, at::O
 }
 
 std::tuple<at::Tensor, at::Tensor, at::Tensor> ext_rms_norm_backward(const torch::Tensor& input, const torch::Tensor& grad_output,
-                     const torch::Tensor& inv_rms, at::OptionalIntArrayRef normalized_shape, const torch::Tensor& weight, 
+                     const torch::Tensor& inv_rms, OptionalIntArray normalized_shape, const torch::Tensor& weight, 
                      const torch::Tensor& bias, double eps = 1e-6) {
-    
-    normalized_shape = weight.sizes();
-    // std::cout<<*normalized_shape<<std::endl;
-
+    at::OptionalIntArrayRef normalized_shape_at;
+    if (normalized_shape) {
+        normalized_shape_at = *normalized_shape;
+    } else {
+        normalized_shape_at = weight.sizes();
+    }
     auto grad_input = at::empty_like(grad_output);
     auto grad_weight = at::empty_like(weight);
     auto grad_bias = at::empty_like(bias);
@@ -71,7 +75,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> ext_rms_norm_backward(const torch
     auto inv_rms_p = toDiopiTensorHandle(inv_rms);
     auto bias_p = toDiopiTensorHandle(bias);
     auto weight_p = toDiopiTensorHandle(weight);
-    auto normalized_shape_p = toDiopiSize(normalized_shape);
+    auto normalized_shape_p = toDiopiSize(normalized_shape_at);
     auto grad_input_p = toDiopiTensorHandle(grad_input);
     auto grad_weight_p = toDiopiTensorHandle(grad_weight);
     auto grad_bias_p = toDiopiTensorHandle(grad_bias);
@@ -129,3 +133,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
     if(reinterpret_cast<void*>(diopiRotaryEmbedding) != nullptr)
         m.def("apply_rotary", &ext_apply_rotary, "deeplink ext_apply_rotary");
 }
+
+} // namespace dipu_ext
