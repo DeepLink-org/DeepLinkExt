@@ -1,4 +1,4 @@
-from ext_apply.internlm.RMSNorm import InternLMRMSNorm, DeeplinkRMSNorm, DeeplinkRMSNorm_WithNormalizedShape
+from DipuExt_poc.ext_apply.internlm.RMSNorm import InternLMRMSNorm, DeeplinkRMSNorm, DeeplinkRMSNorm_WithNormalizedShape
 import torch
 from torch import nn
 import torch_dipu
