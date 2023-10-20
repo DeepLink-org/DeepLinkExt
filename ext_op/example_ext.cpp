@@ -1,137 +1,84 @@
-#include <torch/extension.h>
+// Copyright (c) 2023, DeepLink.
+
+#include <algorithm>
+#include <tuple>
+#include <vector>
+
+#include <ATen/core/ATen_fwd.h>
+#include <ATen/core/TensorBody.h>
+#include <ATen/ops/empty_like.h>
 #include <c10/util/OptionalArrayRef.h>
+#include <torch/csrc/utils/pybind.h>  // IWYU pragma: keep
 
-#include <iostream>
+#include <pybind11/pybind11.h>
 
-#include <diopi/functions.h>
 #include <diopi/functions_ext.h>
 
-#include "csrc_dipu/diopirt/diopirt_impl.h"
-#include "csrc_dipu/base/basedef.h"
-#include "m_pybind.h"
+#include "diopi_helper.h"
+#include "pybind_type_cast.h"
 
+namespace dipu {
 namespace dipu_ext {
 
-using dipu::diopi_helper::toDiopiScalar;
-using dipu::diopi_helper::toDiopiTensorHandle;
-using dipu::diopi_helper::toDiopiSize;
-
-std::tuple<at::Tensor, at::Tensor> ext_rms_norm(const torch::Tensor input, OptionalIntArray normalized_shape,
-                    const torch::Tensor weight, const torch::Tensor bias, double eps) {
-    at::OptionalIntArrayRef normalized_shape_at;
-    if (normalized_shape) {
-        normalized_shape_at = *normalized_shape;
-    } else {
-        normalized_shape_at = weight.sizes();
-    }
-    auto inv_rms = at::empty_like(input);
-    auto output = at::empty_like(input);
-
-    auto input_p = toDiopiTensorHandle(input);
-    auto output_p = toDiopiTensorHandle(output);
-    auto inv_rms_p = toDiopiTensorHandle(inv_rms);
-    auto bias_p = toDiopiTensorHandle(bias);
-    auto weight_p = toDiopiTensorHandle(weight);
-    auto normalized_shape_p = toDiopiSize(normalized_shape_at);
-
-    diopiDevice_t device;
-    diopiGetTensorDevice(input_p, &device);
-    diopiContext ctx(dipu::getCurrentDIPUStream().rawstream());
-    diopiContextHandle_t ch = &ctx;
-
-    if (device == diopi_host || input.device().type() != dipu::DIPU_DEVICE_TYPE)
-    {
-        std::cout << "We only can run this op on dipu!" << std::endl;
-        throw "We only can run this op on dipu!";
-    }
-
-    // std::cout<<input.device().type()<<std::endl;
-    // std::cout<<dipu::DIPU_DEVICE_TYPE<<std::endl;
-
-    auto ret =
-        diopiRMSNorm(ch, output_p, inv_rms_p, input_p, normalized_shape_p, weight_p, bias_p, eps);  // 此处更换为diopi内相应的函数
-    if (ret == diopiSuccess) {
-        return std::tie(output, inv_rms);
-    }
-    throw "diopicalculate failed!";
-    return std::tie(output, inv_rms);
+std::tuple<at::Tensor, at::Tensor> extRmsNorm(const at::Tensor& input,
+                                              OptionalIntArray normalized_shape,
+                                              const at::Tensor& weight,
+                                              const at::Tensor& bias,
+                                              double eps) {
+  at::OptionalIntArrayRef normalized_shape_at;
+  if (normalized_shape) {
+    normalized_shape_at = *normalized_shape;
+  } else {
+    normalized_shape_at = weight.sizes();
+  }
+  auto inv_rms = at::empty_like(input);
+  auto output = at::empty_like(input);
+  callDiopi(diopiRMSNorm, output, inv_rms, input, normalized_shape_at, weight,
+            bias, eps);
+  return {output, inv_rms};
 }
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor> ext_rms_norm_backward(const torch::Tensor& input, const torch::Tensor& grad_output,
-                     const torch::Tensor& inv_rms, OptionalIntArray normalized_shape, const torch::Tensor& weight, 
-                     const torch::Tensor& bias, double eps = 1e-6) {
-    at::OptionalIntArrayRef normalized_shape_at;
-    if (normalized_shape) {
-        normalized_shape_at = *normalized_shape;
-    } else {
-        normalized_shape_at = weight.sizes();
-    }
-    auto grad_input = at::empty_like(grad_output);
-    auto grad_weight = at::empty_like(weight);
-    auto grad_bias = at::empty_like(bias);
-    
-    auto input_p = toDiopiTensorHandle(input);
-    auto grad_output_p = toDiopiTensorHandle(grad_output);
-    auto inv_rms_p = toDiopiTensorHandle(inv_rms);
-    auto bias_p = toDiopiTensorHandle(bias);
-    auto weight_p = toDiopiTensorHandle(weight);
-    auto normalized_shape_p = toDiopiSize(normalized_shape_at);
-    auto grad_input_p = toDiopiTensorHandle(grad_input);
-    auto grad_weight_p = toDiopiTensorHandle(grad_weight);
-    auto grad_bias_p = toDiopiTensorHandle(grad_bias);
-
-    diopiDevice_t device;
-    diopiGetTensorDevice(input_p, &device);
-    diopiContext ctx(dipu::getCurrentDIPUStream().rawstream());
-    diopiContextHandle_t ch = &ctx;
-
-    if (device == diopi_host || input.device().type() != dipu::DIPU_DEVICE_TYPE)
-    {
-        std::cout << "We only can run this op on dipu!" << std::endl;
-        throw "We only can run this op on dipu!";
-    }
-
-    auto ret =
-        diopiRMSNormBackward(ch, grad_input_p, grad_weight_p, grad_bias_p, grad_output_p, input_p, weight_p, bias_p, inv_rms_p, normalized_shape_p, eps);  // 此处更换为diopi内相应的函数
-    if (ret == diopiSuccess) {
-        return std::tie(grad_input, grad_weight, grad_bias);
-    }
-    throw "diopicalculate failed!";
-    return std::tie(grad_input, grad_weight, grad_bias);
+std::tuple<at::Tensor, at::Tensor, at::Tensor> extRmsNormBackward(
+    const at::Tensor& input, const at::Tensor& grad_output,
+    const at::Tensor& inv_rms, OptionalIntArray normalized_shape,
+    const at::Tensor& weight, const at::Tensor& bias, double eps) {
+  at::OptionalIntArrayRef normalized_shape_at;
+  if (normalized_shape) {
+    normalized_shape_at = *normalized_shape;
+  } else {
+    normalized_shape_at = weight.sizes();
+  }
+  auto grad_input = at::empty_like(grad_output);
+  auto grad_weight = at::empty_like(weight);
+  auto grad_bias = at::empty_like(bias);
+  callDiopi(diopiRMSNormBackward, grad_input, grad_weight, grad_bias,
+            grad_output, input, weight, bias, inv_rms, normalized_shape_at,
+            eps);
+  return {grad_input, grad_weight, grad_bias};
 }
 
-
-void ext_apply_rotary(torch::Tensor output, const torch::Tensor input, const torch::Tensor cos, const torch::Tensor sin, const bool conj)
-{
-    auto output_p = toDiopiTensorHandle(output);
-    auto cos_p = toDiopiTensorHandle(cos);
-    auto sin_p = toDiopiTensorHandle(sin);
-    auto input_p = toDiopiTensorHandle(input);
-    diopiDevice_t device;
-    diopiGetTensorDevice(output_p, &device);
-    diopiContext ctx(dipu::getCurrentDIPUStream().rawstream());
-    diopiContextHandle_t ch = &ctx;
-
-    auto ret =
-        diopiRotaryEmbedding(ch, output_p, input_p, cos_p, sin_p, conj); // 此处更换为diopi内相应的函数
-    if (ret == diopiSuccess)
-    {
-        // auto tensorhandle = reinterpret_cast<torch::Tensor*>(*outhandle);
-        return;
-    }
-    throw "diopicalculate failed!";
-    return;
+void extApplyRotary(at::Tensor output, const at::Tensor& input,
+                    const at::Tensor& cos, const at::Tensor& sin,
+                    const bool conj) {
+  callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj);
 }
 
-// 判断是否有对应的diopi实现，如果有，则直接pybind上去。如果没有，则不注册，再到python层处理。
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
-{
-    if(reinterpret_cast<void*>(diopiRMSNorm) != nullptr)
-        m.def("rms_norm", &ext_rms_norm, "deeplink ext_rms_norm");
-    if(reinterpret_cast<void*>(diopiRMSNormBackward) != nullptr)
-        m.def("rms_norm_backward", &ext_rms_norm_backward, "deeplink ext_rms_norm_backward");
-    if(reinterpret_cast<void*>(diopiRotaryEmbedding) != nullptr)
-        m.def("apply_rotary", &ext_apply_rotary, "deeplink ext_apply_rotary");
+// 判断是否有对应的 diopi 实现:
+//   如果有, 则直接 pybind 上去;
+//   否则不注册, 等到 python 层处理.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  if (&diopiRMSNorm != nullptr) {  // Check if weak symbol defined
+    m.def("rms_norm", &extRmsNorm, "deeplink ext_rms_norm");
+  }
+  if (&diopiRMSNormBackward != nullptr) {
+    m.def("rms_norm_backward", &extRmsNormBackward,
+          "deeplink ext_rms_norm_backward");
+  }
+  if (&diopiRotaryEmbedding != nullptr) {
+    m.def("apply_rotary", &extApplyRotary, "deeplink ext_apply_rotary");
+  }
 }
 
-} // namespace dipu_ext
+}  // namespace dipu_ext
+}  // namespace dipu
