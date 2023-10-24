@@ -63,6 +63,13 @@ void extApplyRotary(at::Tensor output, const at::Tensor& input,
   callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj);
 }
 
+at::Tensor extApplyPenalty(
+    at::Tensor& Logits, const at::Tensor& presence_penalty, const at::Tensor& frequency_penalty, const at::Tensor& p_token_ids,
+    const at::Tensor& p_token_counts, const at::Tensor& p_cumsum_seq_len, int p_max_len_in_batch) {
+      callDiopi(diopiApplyPenalty, Logits, presence_penalty, frequency_penalty, p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
+      return Logits;
+}
+
 // 判断是否有对应的 diopi 实现:
 //   如果有, 则直接 pybind 上去;
 //   否则不注册, 等到 python 层处理.
@@ -78,7 +85,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiRotaryEmbedding != nullptr) {
     m.def("apply_rotary", &extApplyRotary, "deeplink ext_apply_rotary");
   }
+  if (&diopiApplyPenalty != nullptr) {
+    m.def("apply_penalty", &extApplyPenalty, "deeplink ext_apply_penalty");
+  }
 }
-
 }  // namespace dipu_ext
 }  // namespace dipu
