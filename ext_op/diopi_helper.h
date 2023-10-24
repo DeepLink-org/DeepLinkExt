@@ -7,46 +7,100 @@
 #include <type_traits>
 #include <utility>
 
+#include <ATen/core/Generator.h>
+#include <ATen/core/TensorBody.h>
+#include <c10/util/Optional.h>
+#include <c10/util/OptionalArrayRef.h>
+
+#include <csrc_dipu/base/basedef.h>
 #include <csrc_dipu/diopirt/diopirt_impl.h>
 #include <csrc_dipu/runtime/device/basedef.h>
 
 namespace dipu {
 namespace dipu_ext {
 
-inline void checkTensorOnDipu(const at::Tensor& tensor) {
+namespace type_traits {
+
+template <class T>
+struct IsOptionalArithmetic : std::false_type {};
+
+template <class T>
+struct IsOptionalArithmetic<c10::optional<T>> : std::is_arithmetic<T> {};
+
+}  // namespace type_traits
+
+inline void checkTensorOnDIPU(const at::Tensor& tensor) {
   if (tensor.device().type() != dipu::DIPU_DEVICE_TYPE) {
     DIPU_LOGE("This op only runs on DIPU");
     throw std::runtime_error("This op only runs on DIPU");
   }
 }
 
-template <class T,
-          std::enable_if_t<!std::is_class<std::decay_t<T>>::value, int> = 0>
-decltype(auto) toDiopiType(T&& arg) {
-  return std::forward<T>(arg);
+inline void checkTensorOnDIPU(const c10::optional<at::Tensor>& tensor) {
+  if (tensor) {
+    checkTensorOnDIPU(*tensor);
+  }
 }
 
+// at::Tensor                 ->  diopiTensorHandle_t
+// const at::Tensor           ->  diopiConstTensorHandle_t
+// c10::optional<at::Tensor>  ->  diopiConstTensorHandle_t
 template <
-    class T,
-    std::enable_if_t<std::is_same<std::decay_t<T>, at::Tensor>::value, int> = 0>
-decltype(auto) toDiopiType(T&& tensor) {
-  checkTensorOnDipu(tensor);
+    class T, class U = std::decay_t<T>,
+    std::enable_if_t<std::is_same<U, at::Tensor>::value ||
+                         std::is_same<U, c10::optional<at::Tensor>>::value,
+                     int> = 0>
+decltype(auto) castToDiopiType(T&& tensor) {
+  checkTensorOnDIPU(tensor);
   return diopi_helper::toDiopiTensorHandle(std::forward<T>(tensor));
 }
 
+// at::OptionalArrayRef  ->  diopiSize_t
 template <
-    class T,
-    std::enable_if_t<
-        std::is_same<std::decay_t<T>, at::OptionalIntArrayRef>::value, int> = 0>
-decltype(auto) toDiopiType(T&& shape) {
+    class T, class U = std::decay_t<T>,
+    std::enable_if_t<std::is_same<U, at::OptionalIntArrayRef>::value, int> = 0>
+decltype(auto) castToDiopiType(T&& shape) {
   return diopi_helper::toDiopiSize(std::forward<T>(shape));
+}
+
+// at::Generator                 ->  diopiGeneratorHandle_t
+// c10::optional<at::Generator>  ->  diopiGeneratorHandle_t
+template <class T, class U = std::decay_t<T>,
+          std::enable_if_t<std::is_same<U, at::Generator>() ||
+                               std::is_same<U, c10::optional<at::Generator>>(),
+                           int> = 0>
+decltype(auto) castToDiopiType(T&& gen) {
+  return diopi_helper::toDiopiGeneratorHandle(std::forward<T>(gen));
+}
+
+// c10::optional<ArithmeticType>  ->  const ArithmeticType*
+template <
+    class T, class U = std::decay_t<T>,
+    std::enable_if_t<type_traits::IsOptionalArithmetic<U>::value, int> = 0>
+auto castToDiopiType(T&& opt) -> const typename U::value_type* {
+  if (opt) {
+    return &(*opt);
+  }
+  return nullptr;
+}
+
+// ArithmeticType  ->  ArithmeticType
+// Pointer         ->  Pointer
+template <
+    class T, class U = std::decay_t<T>,
+    std::enable_if_t<std::is_arithmetic<U>::value || std::is_pointer<U>::value,
+                     int> = 0>
+decltype(auto) castToDiopiType(T&& arg) {
+  return std::forward<T>(arg);
 }
 
 template <class DiopiFunc, class... Args>
 void callDiopi(DiopiFunc&& diopi_func, Args&&... args) {
+  static_assert(std::is_function<std::remove_reference_t<DiopiFunc>>::value,
+                "DiopiFunc must be a function");
   diopiContext ctx(dipu::getCurrentDIPUStream().rawstream());
   diopiError_t err_code =
-      diopi_func(&ctx, toDiopiType(std::forward<Args>(args))...);
+      diopi_func(&ctx, castToDiopiType(std::forward<Args>(args))...);
   if (err_code != diopiSuccess) {
     throw std::runtime_error("DIOPI call failed");
   }
