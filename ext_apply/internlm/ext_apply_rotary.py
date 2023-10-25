@@ -6,6 +6,7 @@ from einops import rearrange
 # Rotary_emb
 # torch绕过实现函数
 def torch_apply_rotary(x1, x2, cos, sin, conj):
+    data_dtype = x1.dtype
     x1 = x1.to(torch.float32)
     x2 = x2.to(torch.float32)
     cos = cos.to(torch.float32)
@@ -16,8 +17,8 @@ def torch_apply_rotary(x1, x2, cos, sin, conj):
     else:
         out1 = x1 * cos + x2 * sin
         out2 = -x1 * sin + x2 * cos
-    out1 = out1.to(torch.float16)
-    out2 = out2.to(torch.float16)
+    out1 = out1.to(data_dtype)
+    out2 = out2.to(data_dtype)
     return out1, out2
 
 class TorchApplyRotaryEmbQKV_(torch.autograd.Function):
