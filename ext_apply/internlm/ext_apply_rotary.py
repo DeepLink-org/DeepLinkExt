@@ -1,5 +1,4 @@
 import torch
-import dipu_ext.ext_
 from einops import rearrange
 
 
@@ -19,6 +18,7 @@ def torch_apply_rotary(x1, x2, cos, sin, conj):
     out1 = out1.to(torch.float16)
     out2 = out2.to(torch.float16)
     return out1, out2
+
 
 class TorchApplyRotaryEmbQKV_(torch.autograd.Function):
     @staticmethod
@@ -40,20 +40,41 @@ class TorchApplyRotaryEmbQKV_(torch.autograd.Function):
         assert seqlen <= rotary_seqlen
         cos_k = cos if cos_k is None else cos_k
         sin_k = sin if sin_k is None else sin_k
-        assert sin.shape == cos_k.shape == sin_k.shape == (rotary_seqlen, rotary_dim // 2)
+        assert (
+            sin.shape == cos_k.shape == sin_k.shape == (rotary_seqlen, rotary_dim // 2)
+        )
         q_ro = qkv[:, :, 0, :, :rotary_dim]
-        q1, q2 = q_ro.chunk(2, dim=-1) if not interleaved else (q_ro[..., ::2], q_ro[..., 1::2])
-        q1, q2 = torch_apply_rotary(q1, q2, rearrange(cos[:seqlen], 's d -> s 1 d'),
-                                rearrange(sin[:seqlen], 's d -> s 1 d'), False)
-        qkv[:, :, 0, :, :rotary_dim] = torch.cat((q1,q2),dim=-1)
+        q1, q2 = (
+            q_ro.chunk(2, dim=-1)
+            if not interleaved
+            else (q_ro[..., ::2], q_ro[..., 1::2])
+        )
+        q1, q2 = torch_apply_rotary(
+            q1,
+            q2,
+            rearrange(cos[:seqlen], "s d -> s 1 d"),
+            rearrange(sin[:seqlen], "s d -> s 1 d"),
+            False,
+        )
+        qkv[:, :, 0, :, :rotary_dim] = torch.cat((q1, q2), dim=-1)
         k_ro = qkv[:, :, 1, :, :rotary_dim]
-        k1, k2 = k_ro.chunk(2, dim=-1) if not interleaved else (k_ro[..., ::2], k_ro[..., 1::2])
-        k1, k2 = torch_apply_rotary(k1, k2, rearrange(cos[:seqlen], 's d -> s 1 d'),
-                                rearrange(sin[:seqlen], 's d -> s 1 d'), False)
-        qkv[:, :, 1, :, :rotary_dim] = torch.cat((k1,k2),dim=-1)
+        k1, k2 = (
+            k_ro.chunk(2, dim=-1)
+            if not interleaved
+            else (k_ro[..., ::2], k_ro[..., 1::2])
+        )
+        k1, k2 = torch_apply_rotary(
+            k1,
+            k2,
+            rearrange(cos[:seqlen], "s d -> s 1 d"),
+            rearrange(sin[:seqlen], "s d -> s 1 d"),
+            False,
+        )
+        qkv[:, :, 1, :, :rotary_dim] = torch.cat((k1, k2), dim=-1)
         ctx.save_for_backward(cos, sin, cos_k, sin_k)
         ctx.interleaved = interleaved
         return qkv
+
     @staticmethod
     def backward(ctx, dqkv):
         cos, sin, cos_k, sin_k = ctx.saved_tensors
@@ -61,22 +82,42 @@ class TorchApplyRotaryEmbQKV_(torch.autograd.Function):
         rotary_dim = cos.shape[-1]
         rotary_dim *= 2
         dq_ro = dqkv[:, :, 0, :, :rotary_dim]
-        dq1, dq2 = (dq_ro.chunk(2, dim=-1) if not ctx.interleaved
-                    else (dq_ro[..., ::2], dq_ro[..., 1::2]))
-        dq1, dq2 = torch_apply_rotary(dq1, dq2, rearrange(cos[:seqlen], 's d -> s 1 d'),
-                                rearrange(sin[:seqlen], 's d -> s 1 d'), True)
+        dq1, dq2 = (
+            dq_ro.chunk(2, dim=-1)
+            if not ctx.interleaved
+            else (dq_ro[..., ::2], dq_ro[..., 1::2])
+        )
+        dq1, dq2 = torch_apply_rotary(
+            dq1,
+            dq2,
+            rearrange(cos[:seqlen], "s d -> s 1 d"),
+            rearrange(sin[:seqlen], "s d -> s 1 d"),
+            True,
+        )
         dqkv[:, :, 0, :, :rotary_dim] = torch.cat((dq1, dq2), dim=-1)
         dk_ro = dqkv[:, :, 1, :, :rotary_dim]
-        dk1, dk2 = (dk_ro.chunk(2, dim=-1) if not ctx.interleaved
-                    else (dk_ro[..., ::2], dk_ro[..., 1::2]))
-        dk1,dk2 = torch_apply_rotary(dk1, dk2, rearrange(cos[:seqlen], 's d -> s 1 d'),
-                                rearrange(sin[:seqlen], 's d -> s 1 d'), True)
+        dk1, dk2 = (
+            dk_ro.chunk(2, dim=-1)
+            if not ctx.interleaved
+            else (dk_ro[..., ::2], dk_ro[..., 1::2])
+        )
+        dk1, dk2 = torch_apply_rotary(
+            dk1,
+            dk2,
+            rearrange(cos[:seqlen], "s d -> s 1 d"),
+            rearrange(sin[:seqlen], "s d -> s 1 d"),
+            True,
+        )
         dqkv[:, :, 1, :, :rotary_dim] = torch.cat((dk1, dk2), dim=-1)
         return dqkv, None, None, None, None, None
+
+
 try:
     import dipu_ext.ext_
-    print("USE ext apply_rotary")
-    class DeeplLinkApplyRotaryEmbQKV_(torch.autograd.Function):
+
+    print("using ext apply_rotary")
+
+    class DeepLinkApplyRotaryEmbQKV_(torch.autograd.Function):
         @staticmethod
         def forward(ctx, qkv, cos, sin, cos_k=None, sin_k=None, interleaved=False):
             batch, seqlen, three, nheads, headdim = qkv.shape
@@ -87,14 +128,32 @@ try:
             assert seqlen <= rotary_seqlen
             cos_k = cos if cos_k is None else cos_k
             sin_k = sin if sin_k is None else sin_k
-            assert sin.shape == cos_k.shape == sin_k.shape == (rotary_seqlen, rotary_dim // 2)
+            assert (
+                sin.shape
+                == cos_k.shape
+                == sin_k.shape
+                == (rotary_seqlen, rotary_dim // 2)
+            )
             q_ro = qkv[:, :, 0, :, :rotary_dim]
-            dipu_ext.ext_.apply_rotary(q_ro, q_ro,  rearrange(cos[:seqlen], "s d -> s 1 d"), rearrange(sin[:seqlen], "s d -> s 1 d"), False)
+            dipu_ext.ext_.apply_rotary(
+                q_ro,
+                q_ro,
+                rearrange(cos[:seqlen], "s d -> s 1 d"),
+                rearrange(sin[:seqlen], "s d -> s 1 d"),
+                False,
+            )
             k_ro = qkv[:, :, 1, :, :rotary_dim]
-            dipu_ext.ext_.apply_rotary(k_ro, k_ro,  rearrange(cos[:seqlen], "s d -> s 1 d"), rearrange(sin[:seqlen], "s d -> s 1 d"), False)
+            dipu_ext.ext_.apply_rotary(
+                k_ro,
+                k_ro,
+                rearrange(cos[:seqlen], "s d -> s 1 d"),
+                rearrange(sin[:seqlen], "s d -> s 1 d"),
+                False,
+            )
             ctx.save_for_backward(cos, sin, cos_k, sin_k)
             ctx.interleaved = interleaved
             return qkv
+
         @staticmethod
         def backward(ctx, dqkv):
             cos, sin, cos_k, sin_k = ctx.saved_tensors
@@ -102,10 +161,23 @@ try:
             rotary_dim = cos.shape[-1]
             rotary_dim *= 2
             dq_ro = dqkv[:, :, 0, :, :rotary_dim]
-            dipu_ext.ext_.apply_rotary(dq_ro, dq_ro,  rearrange(cos[:seqlen], "s d -> s 1 d"), rearrange(sin[:seqlen], "s d -> s 1 d"), True)
+            dipu_ext.ext_.apply_rotary(
+                dq_ro,
+                dq_ro,
+                rearrange(cos[:seqlen], "s d -> s 1 d"),
+                rearrange(sin[:seqlen], "s d -> s 1 d"),
+                True,
+            )
             dk_ro = dqkv[:, :, 1, :, :rotary_dim]
-            dipu_ext.ext_.apply_rotary(dk_ro, dk_ro,  rearrange(cos[:seqlen], "s d -> s 1 d"), rearrange(sin[:seqlen], "s d -> s 1 d"), True)
+            dipu_ext.ext_.apply_rotary(
+                dk_ro,
+                dk_ro,
+                rearrange(cos[:seqlen], "s d -> s 1 d"),
+                rearrange(sin[:seqlen], "s d -> s 1 d"),
+                True,
+            )
             return dqkv, None, None, None, None, None
+
 except:
-    print("NOT USING ext apply_rotary")
+    print("NOT using ext apply_rotary")
     pass
