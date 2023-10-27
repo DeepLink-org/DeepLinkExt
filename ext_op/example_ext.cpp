@@ -90,12 +90,12 @@ auto extMultiHeadAttention(const at::Tensor& q, const at::Tensor& k,
 
   auto gen = createDIPUGenerator();
 
-  const IntArray debug_attn_mask_size{batch_size, head_num, q_seq_len,
-                                      k_seq_len};
+  const auto debug_attn_mask_size =
+      return_debug_mask ? IntArray{batch_size, head_num, q_seq_len, k_seq_len}
+                        : IntArray{0};
   const auto debug_attn_mask_option = q.options().dtype(at::kBool);
-  auto debug_attn_mask = return_debug_mask ? at::empty(debug_attn_mask_size,
-                                                       debug_attn_mask_option)
-                                           : at::empty({0});
+  auto debug_attn_mask =
+      at::empty(debug_attn_mask_size, debug_attn_mask_option);
 
   callDiopi(diopiMultiHeadAttention, q, k, v, dropout_p, is_casual,
             return_debug_mask, scale, out, softmax_lse, gen, debug_attn_mask);
@@ -103,15 +103,19 @@ auto extMultiHeadAttention(const at::Tensor& q, const at::Tensor& k,
                          std::move(debug_attn_mask));
 }
 
+// grad_q, grad_k, grad_v are output args, and should be pre-allocated.
 auto extMultiHeadAttentionBackward(const at::Tensor& grad_out,
                                    const at::Tensor& q, const at::Tensor& k,
                                    const at::Tensor& v, const at::Tensor& out,
                                    const at::Tensor& softmax_lse,
                                    double dropout_p, bool is_casual,
-                                   at::Generator& gen, double scale) {
-  auto grad_q = at::empty_like(q);
-  auto grad_k = at::empty_like(k);
-  auto grad_v = at::empty_like(v);
+                                   at::Generator& gen, double scale,
+                                   c10::optional<at::Tensor>& grad_q_opt,
+                                   c10::optional<at::Tensor>& grad_k_opt,
+                                   c10::optional<at::Tensor>& grad_v_opt) {
+  auto grad_q = grad_q_opt.has_value() ? grad_q_opt.value() : at::empty_like(q);
+  auto grad_k = grad_k_opt.has_value() ? grad_k_opt.value() : at::empty_like(k);
+  auto grad_v = grad_v_opt.has_value() ? grad_v_opt.value() : at::empty_like(v);
   callDiopi(diopiMultiHeadAttentionBackward, grad_out, q, k, v, out,
             softmax_lse, dropout_p, is_casual, gen, scale, grad_q, grad_k,
             grad_v);
@@ -136,11 +140,12 @@ auto extMultiHeadAttentionVarLen(const at::Tensor& q, const at::Tensor& k,
 
   auto gen = createDIPUGenerator();
 
-  const IntArray debug_attn_mask_size{batch_size, head_num, max_q, max_k};
+  const auto debug_attn_mask_size =
+      return_debug_mask ? IntArray{batch_size, head_num, max_q, max_k}
+                        : IntArray{0};
   const auto debug_attn_mask_option = q.options().dtype(at::kBool);
-  auto debug_attn_mask = return_debug_mask ? at::empty(debug_attn_mask_size,
-                                                       debug_attn_mask_option)
-                                           : at::empty({0});
+  auto debug_attn_mask =
+      at::empty(debug_attn_mask_size, debug_attn_mask_option);
 
   callDiopi(diopiMultiHeadAttentionVarLen, q, k, v, cum_seq_q, cum_seq_k, max_q,
             max_k, dropout_p, is_casual, return_debug_mask, scale, out,
@@ -149,15 +154,18 @@ auto extMultiHeadAttentionVarLen(const at::Tensor& q, const at::Tensor& k,
                          std::move(debug_attn_mask));
 }
 
+// grad_q, grad_k, grad_v are output args, and should be pre-allocated.
 auto extMultiHeadAttentionVarLenBackward(
     const at::Tensor& grad_out, const at::Tensor& q, const at::Tensor& k,
     const at::Tensor& v, const at::Tensor& out, const at::Tensor& softmax_lse,
     const at::Tensor& cum_seq_q, const at::Tensor& cum_seq_k,
     std::int64_t max_q, std::int64_t max_k, double dropout_p, bool is_casual,
-    at::Generator& gen, double scale) {
-  auto grad_q = at::empty_like(q);
-  auto grad_k = at::empty_like(k);
-  auto grad_v = at::empty_like(v);
+    at::Generator& gen, double scale, c10::optional<at::Tensor>& grad_q_opt,
+    c10::optional<at::Tensor>& grad_k_opt,
+    c10::optional<at::Tensor>& grad_v_opt) {
+  auto grad_q = grad_q_opt.has_value() ? grad_q_opt.value() : at::empty_like(q);
+  auto grad_k = grad_k_opt.has_value() ? grad_k_opt.value() : at::empty_like(k);
+  auto grad_v = grad_v_opt.has_value() ? grad_v_opt.value() : at::empty_like(v);
   callDiopi(diopiMultiHeadAttentionVarLenBackward, grad_out, q, k, v, out,
             softmax_lse, cum_seq_q, cum_seq_k, max_q, max_k, dropout_p,
             is_casual, gen, scale, grad_q, grad_k, grad_v);
