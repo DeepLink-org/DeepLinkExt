@@ -59,14 +59,18 @@ class _DeeplinkRMSNormFunction_WithNormalizedShape(torch.autograd.Function):
     @staticmethod
     def forward(ctx, hidden_states, weight, bias, eps, normalized_shape):
         output, inv_rms = deeplink_ext.rms_norm(
-            hidden_states,
+            hidden_states.float(),
             normalized_shape,
-            weight,
-            bias,
+            weight.float(),
+            bias.float(),
             eps
         )
-
+        output = output.half()
+        inv_rms = inv_rms.half()
         ctx.save_for_backward(hidden_states, inv_rms, weight, bias, torch.tensor(eps))
+        hidden_states = hidden_states.half()
+        weight = weight.half()
+        bias = bias.half()
         ctx.intermediate_results = normalized_shape
         return output
 
@@ -75,6 +79,11 @@ class _DeeplinkRMSNormFunction_WithNormalizedShape(torch.autograd.Function):
         hidden_states, inv_rms, weight, bias, eps_tensor = ctx.saved_tensors
         eps = eps_tensor.item()
         normalized_shape = ctx.intermediate_results
+        hidden_states = hidden_states.float()
+        inv_rms = inv_rms.float()
+        weight = weight.float()
+        bias = bias.float()
+        grad_output = grad_output.float()
         grad_input, grad_weight, grad_bias = deeplink_ext.rms_norm_backward(
             hidden_states,
             grad_output,
@@ -84,6 +93,11 @@ class _DeeplinkRMSNormFunction_WithNormalizedShape(torch.autograd.Function):
             bias,
             eps
         )
+        grad_output = grad_output.half()
+        hidden_states = hidden_states.half()
+        inv_rms = inv_rms.half()
+        weight = weight.half()
+        bias = bias.half()
         return grad_input, grad_weight, grad_bias, None, None
 
 
@@ -93,7 +107,7 @@ class DeeplinkRMSNorm(nn.Module):
     def __init__(self, hidden_size, eps=1e-6):
         super().__init__()
         self.weight = nn.Parameter(torch.ones(hidden_size))
-        self.bias = nn.Parameter(torch.zeros(hidden_size))
+        self.bias = torch.zeros(hidden_size).cuda()
         self.variance_epsilon = eps
 
     def forward(self, hidden_states):
@@ -104,7 +118,7 @@ class DeeplinkRMSNorm_WithNormalizedShape(nn.Module):
     def __init__(self, hidden_size, eps=1e-6):
         super().__init__()
         self.weight = nn.Parameter(torch.ones(hidden_size))
-        self.bias = nn.Parameter(torch.zeros(hidden_size))
+        self.bias = torch.zeros(hidden_size).cuda()
         self.variance_epsilon = eps
 
     def forward(self, hidden_states):
