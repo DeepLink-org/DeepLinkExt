@@ -22,7 +22,7 @@ class DeepLinkMultiHeadAttentionVarLenFunc(torch.autograd.Function):
     ):
         if softmax_scale is None:
             softmax_scale = q.shape[-1] ** (-0.5)
-        out, softmax_lse, rng_state, S_dmask = dipu_ext.ext_.mha_varlen_fwd(
+        out, softmax_lse, rng, S_dmask = dipu_ext.ext_.mha_varlen_fwd(
             q,
             k,
             v,
@@ -36,7 +36,7 @@ class DeepLinkMultiHeadAttentionVarLenFunc(torch.autograd.Function):
             softmax_scale,
         )
         ctx.save_for_backward(
-            q, k, v, out, softmax_lse, cu_seqlens_q, cu_seqlens_k, rng_state
+            q, k, v, out, softmax_lse, cu_seqlens_q, cu_seqlens_k, rng.get_state()
         )
         ctx.dropout_p = dropout_p
         ctx.max_seqlen_q = max_seqlen_q
@@ -57,6 +57,8 @@ class DeepLinkMultiHeadAttentionVarLenFunc(torch.autograd.Function):
             cu_seqlens_k,
             rng_state,
         ) = ctx.saved_tensors
+        rng = torch.Generator(device=q.device)
+        rng.set_state(rng_state)
         dq, dk, dv = dipu_ext.ext_.mha_varlen_bwd(
             dout,
             q,
@@ -70,7 +72,7 @@ class DeepLinkMultiHeadAttentionVarLenFunc(torch.autograd.Function):
             ctx.max_seqlen_k,
             ctx.dropout_p,
             ctx.causal,
-            rng_state,
+            rng,
             ctx.softmax_scale,
             None,
             None,
