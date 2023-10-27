@@ -70,9 +70,8 @@ auto extRmsNormBackward(const at::Tensor& input, const at::Tensor& grad_output,
 
 void extApplyRotary(at::Tensor output, const at::Tensor& input,
                     const at::Tensor& cos, const at::Tensor& sin,
-                    const bool conj) {
-  callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj,
-            /*TODO: DIOPI are still unstable*/ false);
+                    const bool conj, const bool interleaved = false) {
+  callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj, interleaved);
 }
 
 auto extMultiHeadAttention(const at::Tensor& q, const at::Tensor& k,

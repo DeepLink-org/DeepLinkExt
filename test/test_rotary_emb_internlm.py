@@ -44,8 +44,6 @@ grad1 = qkv.grad
 grad2 = qkv1.grad
 backward_correct = torch.allclose(grad1, grad2)
 # 判断前向和反向传播结果是否都正确
-print("grad1", grad1)
-print("grad2", grad2)
 if forward_correct and backward_correct:
     print("Both forward and backward pass tests passed.")
 else:
