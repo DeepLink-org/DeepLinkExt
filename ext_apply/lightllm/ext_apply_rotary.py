@@ -8,7 +8,7 @@ from einops import rearrange
 
 try:
     import dipu_ext.ext_
-    print("USE ext apply_rotary")
+    print("using ext apply_rotary")
     def deeplink_rotary_emb(x, cos, sin):
         seq_len, h, dim = x.shape
         cos = cos.view((seq_len, 1, dim // 2))
@@ -17,5 +17,5 @@ try:
         dipu_ext.ext_.apply_rotary(output, x, cos, sin, False, False)
         return output
 except:
-    print("NOT USING ext apply_rotary")
+    print("NOT using ext apply_rotary")
     pass
