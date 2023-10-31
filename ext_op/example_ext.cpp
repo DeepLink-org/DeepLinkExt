@@ -1,6 +1,5 @@
 // Copyright (c) 2023, DeepLink.
 
-#include <algorithm>
 #include <cstdint>
 #include <tuple>
 #include <vector>
@@ -86,7 +85,8 @@ auto extMultiHeadAttention(const at::Tensor& q, const at::Tensor& k,
   auto out = at::empty_like(q);
 
   const IntArray softmax_lse_size{batch_size, head_num, q_seq_len};
-  auto softmax_lse = at::empty(softmax_lse_size, q.options());
+  const auto softmax_lse_option = q.options().dtype(at::kFloat);
+  auto softmax_lse = at::empty(softmax_lse_size, softmax_lse_option);
 
   auto gen = createDIPUGenerator();
 
@@ -136,7 +136,8 @@ auto extMultiHeadAttentionVarLen(const at::Tensor& q, const at::Tensor& k,
   auto out = at::empty_like(q);
 
   const IntArray softmax_lse_size{batch_size, head_num, max_q};
-  auto softmax_lse = at::empty(softmax_lse_size, q.options());
+  const auto softmax_lse_option = q.options().dtype(at::kFloat);
+  auto softmax_lse = at::empty(softmax_lse_size, softmax_lse_option);
 
   auto gen = createDIPUGenerator();
 
