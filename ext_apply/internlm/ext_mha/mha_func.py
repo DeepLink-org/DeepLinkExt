@@ -9,7 +9,7 @@ class DeepLinkMultiHeadAttentionFunc(torch.autograd.Function):
     def forward(ctx, q, k, v, dropout_p, softmax_scale, causal, return_softmax):
         if softmax_scale is None:
             softmax_scale = q.shape[-1] ** (-0.5)
-        out, softmax_lse, rng_state, S_dmask = dipu_ext.ext_.mha_fwd(
+        out, softmax_lse, rng, S_dmask = dipu_ext.ext_.mha_fwd(
             q,
             k,
             v,
@@ -18,7 +18,7 @@ class DeepLinkMultiHeadAttentionFunc(torch.autograd.Function):
             return_softmax and dropout_p > 0,
             softmax_scale,
         )
-        ctx.save_for_backward(q, k, v, out, softmax_lse, rng_state)
+        ctx.save_for_backward(q, k, v, out, softmax_lse, rng.get_state())
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.causal = causal
@@ -27,6 +27,8 @@ class DeepLinkMultiHeadAttentionFunc(torch.autograd.Function):
     @staticmethod
     def backward(ctx, dout):
         q, k, v, out, softmax_lse, rng_state = ctx.saved_tensors
+        rng = torch.Generator(device=q.device)
+        rng.set_state(rng_state)
         dq, dk, dv = dipu_ext.ext_.mha_bwd(
             dout,
             q,
@@ -36,7 +38,7 @@ class DeepLinkMultiHeadAttentionFunc(torch.autograd.Function):
             softmax_lse,
             ctx.dropout_p,
             ctx.causal,
-            rng_state,
+            rng,
             ctx.softmax_scale,
             None,
             None,
