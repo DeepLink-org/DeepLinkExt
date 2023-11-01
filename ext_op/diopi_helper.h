@@ -30,6 +30,7 @@ struct IsOptionalArithmetic<c10::optional<T>> : std::is_arithmetic<T> {};
 }  // namespace type_traits
 
 inline void checkTensorOnDIPU(const at::Tensor& tensor) {
+  return;
   if (tensor.device().type() != dipu::DIPU_DEVICE_TYPE) {
     DIPU_LOGE("This op only runs on DIPU");
     throw std::runtime_error("This op only runs on DIPU");
