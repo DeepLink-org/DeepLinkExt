@@ -2,10 +2,10 @@ import torch
 import torch_dipu
 from einops import rearrange
 import dipu_ext.ext_
-from DipuExt_poc.ext_apply.internlm.ext_apply_rotary import TorchApplyRotaryEmbQKV_, DeeplLinkApplyRotaryEmbQKV_
+from DipuExt_poc.ext_apply.internlm.ext_apply_rotary import TorchApplyRotaryEmbQKV_, DeepLinkApplyRotaryEmbQKV_
 
 torch_apply = TorchApplyRotaryEmbQKV_.apply
-dipu_apply = DeeplLinkApplyRotaryEmbQKV_.apply
+dipu_apply = DeepLinkApplyRotaryEmbQKV_.apply
 loss_fn = torch.nn.MSELoss()
 
 # 创建输入数据
@@ -44,8 +44,6 @@ grad1 = qkv.grad
 grad2 = qkv1.grad
 backward_correct = torch.allclose(grad1, grad2)
 # 判断前向和反向传播结果是否都正确
-print("grad1", grad1)
-print("grad2", grad2)
 if forward_correct and backward_correct:
     print("Both forward and backward pass tests passed.")
 else:

@@ -14,7 +14,7 @@ try:
         cos = cos.view((seq_len, 1, dim // 2))
         sin = sin.view((seq_len, 1, dim // 2))
         output = torch.empty_like(x)
-        dipu_ext.ext_.apply_rotary(output, x, cos, sin, False)
+        dipu_ext.ext_.apply_rotary(output, x, cos, sin, False, False)
         return output
 except:
     print("NOT USING ext apply_rotary")
