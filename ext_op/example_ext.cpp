@@ -203,6 +203,13 @@ auto extContextAttentionInference(const at::Tensor& q, const at::Tensor& k,
   return out;
 }
 
+at::Tensor extApplyPenalty(
+    at::Tensor& Logits, const at::Tensor& presence_penalty, const at::Tensor& frequency_penalty, const at::Tensor& p_token_ids,
+    const at::Tensor& p_token_counts, const at::Tensor& p_cumsum_seq_len, int p_max_len_in_batch) {
+      callDiopi(diopiApplyPenalty, Logits, presence_penalty, frequency_penalty, p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
+    return Logits;
+}
+
 // 判断是否有对应的 diopi 实现:
 //   如果有, 则直接 pybind 上去;
 //   否则不注册, 等到 python 层处理.
@@ -247,6 +254,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiContextAttentionInference != nullptr) {
     m.def("context_attention_inference", &extContextAttentionInference,
           "deeplink ext_context_attention_inference");
+  }
+  if (&diopiApplyPenalty != nullptr) {
+    m.def("apply_penalty", &extApplyPenalty, "deeplink ext_apply_penalty");
   }
 }
 
