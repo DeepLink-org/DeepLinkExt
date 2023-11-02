@@ -19,9 +19,9 @@ class DeepLinkMultiHeadAttentionVarLenQKVPackedFunc(torch.autograd.Function):
         if softmax_scale is None:
             softmax_scale = qkv.shape[-1] ** (-0.5)
         out, softmax_lse, rng, S_dmask = dipu_ext.ext_.mha_varlen_fwd(
-            qkv[:, :, 0],
-            qkv[:, :, 1],
-            qkv[:, :, 2],
+            qkv[:, 0],
+            qkv[:, 1],
+            qkv[:, 2],
             cu_seqlens,
             cu_seqlens,
             max_seqlen,
@@ -46,9 +46,9 @@ class DeepLinkMultiHeadAttentionVarLenQKVPackedFunc(torch.autograd.Function):
         rng.set_state(rng_state)
         dipu_ext.ext_.mha_varlen_bwd(
             dout,
-            qkv[:, :, 0],
-            qkv[:, :, 1],
-            qkv[:, :, 2],
+            qkv[:, 0],
+            qkv[:, 1],
+            qkv[:, 2],
             out,
             softmax_lse,
             cu_seqlens,
@@ -59,8 +59,8 @@ class DeepLinkMultiHeadAttentionVarLenQKVPackedFunc(torch.autograd.Function):
             ctx.causal,
             rng,
             ctx.softmax_scale,
-            dqkv[:, :, 0],
-            dqkv[:, :, 1],
-            dqkv[:, :, 2],
+            dqkv[:, 0],
+            dqkv[:, 1],
+            dqkv[:, 2],
         )
         return dqkv, None, None, None, None, None, None, None, None
