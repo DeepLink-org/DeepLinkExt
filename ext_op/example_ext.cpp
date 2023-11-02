@@ -123,8 +123,7 @@ auto extMultiHeadAttentionBackward(const at::Tensor& grad_out,
                          std::move(grad_v));
 }
 
-auto extMultiHeadAttentionVarLen(const at::Tensor& q, const at::Tensor& k,
-                                 const at::Tensor& v,
+auto extMultiHeadAttentionVarLen(at::Tensor& q, at::Tensor& k, at::Tensor& v,
                                  const at::Tensor& cum_seq_q,
                                  const at::Tensor& cum_seq_k,
                                  std::int64_t max_q, std::int64_t max_k,

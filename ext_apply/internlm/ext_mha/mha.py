@@ -17,11 +17,11 @@ class DeeplinkSelfAttention(nn.Module):
             scores. Default is 0.0.
     """
 
-    def __init__(self, causal=False, softmax_scale=None, dropout_p=0.0):
+    def __init__(self, causal=False, softmax_scale=None, attention_dropout=0.0):
         super().__init__()
         self.causal = causal
         self.softmax_scale = softmax_scale
-        self.dropout_p = dropout_p
+        self.dropout_p = attention_dropout
 
     def forward(self, qkv, causal=None, cu_seqlens=None, max_seqlen=None):
         """Performs self-attention on the input sequences.
