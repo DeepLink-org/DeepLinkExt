@@ -3,6 +3,8 @@
 import torch.nn as nn
 from .mha_qkvpacked_func import DeepLinkMultiHeadAttentionQKVPackedFunc
 from .mha_varlen_qkvpacked_func import DeepLinkMultiHeadAttentionVarLenQKVPackedFunc
+from .mha_kvpacked_func import DeepLinkMultiHeadAttentionKVPackedFunc
+from .mha_varlen_kvpacked_func import DeepLinkMultiHeadAttentionVarLenKVPackedFunc
 
 
 class DeeplinkSelfAttention(nn.Module):
@@ -42,13 +44,12 @@ class DeeplinkSelfAttention(nn.Module):
         Returns:
             torch.Tensor: Output tensor after applying self-attention.
         """
-        softmax_scale = self.softmax_scale or qkv.shape[-1] ** -0.5
         if cu_seqlens is None:
             # padded
             return DeepLinkMultiHeadAttentionQKVPackedFunc.apply(
                 qkv,
                 self.dropout_p,
-                softmax_scale,
+                self.softmax_scale,
                 causal if causal is not None else self.causal,
                 False,
             )
@@ -59,7 +60,50 @@ class DeeplinkSelfAttention(nn.Module):
                 cu_seqlens,
                 max_seqlen,
                 self.dropout_p,
-                softmax_scale,
+                self.softmax_scale,
+                causal if causal is not None else self.causal,
+                False,
+            )
+
+
+class DeepLinkCrossAttention(nn.Module):
+    def __init__(self, causal=False, softmax_scale=None, dropout_p=0.0):
+        super().__init__()
+        self.causal = causal
+        self.softmax_scale = softmax_scale
+        self.dropout_p = dropout_p
+
+    def forward(
+        self,
+        q,
+        kv,
+        causal=None,
+        cu_seqlens_q=None,
+        max_seqlen_q=None,
+        cu_seqlens_k=None,
+        max_seqlen_k=None,
+    ):
+        if cu_seqlens_q is None:
+            # padded
+            return DeepLinkMultiHeadAttentionKVPackedFunc.apply(
+                q,
+                kv,
+                self.dropout_p if self.training else 0.0,
+                self.softmax_scale,
+                causal if causal is not None else self.causal,
+                False,
+            )
+        else:
+            # unpadded
+            return DeepLinkMultiHeadAttentionVarLenKVPackedFunc.apply(
+                q,
+                kv,
+                cu_seqlens_q,
+                cu_seqlens_k,
+                max_seqlen_q,
+                max_seqlen_k,
+                self.dropout_p if self.training else 0.0,
+                self.softmax_scale,
                 causal if causal is not None else self.causal,
                 False,
             )
