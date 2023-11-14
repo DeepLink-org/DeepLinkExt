@@ -1,4 +1,8 @@
-from DipuExt_poc.ext_apply.internlm.RMSNorm import InternLMRMSNorm, DeeplinkRMSNorm, DeeplinkRMSNorm_WithNormalizedShape
+from DeepLinkExt.ext_apply.internlm.RMSNorm import (
+    InternLMRMSNorm,
+    DeeplinkRMSNorm,
+    DeeplinkRMSNorm_WithNormalizedShape,
+)
 import torch
 from torch import nn
 import torch_dipu
@@ -6,7 +10,6 @@ import numpy as np
 
 
 def test_forward_backward(Basenet, Testnet, rtol=1e-5, atol=1e-5):
-
     input = torch.randn(5, 5, requires_grad=True).cuda()
     input_dipu = input.clone()
     hidden_size = 5
@@ -18,7 +21,16 @@ def test_forward_backward(Basenet, Testnet, rtol=1e-5, atol=1e-5):
 
     y_label = torch.ones_like(y_intern)
 
-    print("Are the prediction identical?:", np.allclose(y_intern.detach().cpu().numpy(), y_dipu.detach().cpu().numpy(), rtol, atol, True))
+    print(
+        "Are the prediction identical?:",
+        np.allclose(
+            y_intern.detach().cpu().numpy(),
+            y_dipu.detach().cpu().numpy(),
+            rtol,
+            atol,
+            True,
+        ),
+    )
 
     loss_fn = torch.nn.MSELoss()
 
@@ -37,7 +49,16 @@ def test_forward_backward(Basenet, Testnet, rtol=1e-5, atol=1e-5):
     # print(input_dipu_grad)
 
     # 对比两者是否一致
-    print("Are the gradients identical?:", np.allclose(input_grad.detach().cpu().numpy(), input_dipu_grad.detach().cpu().numpy(), rtol, atol, True))
+    print(
+        "Are the gradients identical?:",
+        np.allclose(
+            input_grad.detach().cpu().numpy(),
+            input_dipu_grad.detach().cpu().numpy(),
+            rtol,
+            atol,
+            True,
+        ),
+    )
 
 
 print("\nTest case: normalized_shape == None:")
