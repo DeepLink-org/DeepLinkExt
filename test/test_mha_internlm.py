@@ -2,7 +2,7 @@
 
 import torch
 import torch_dipu
-import DipuExt_poc.ext_apply.internlm.ext_mha as ext_mha
+import DeepLinkExt.ext_apply.internlm.ext_mha as ext_mha
 
 
 def _run_self_attention(self_attn_module: type, qkv_data: torch.Tensor):
