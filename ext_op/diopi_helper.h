@@ -29,16 +29,16 @@ struct IsOptionalArithmetic<c10::optional<T>> : std::is_arithmetic<T> {};
 
 }  // namespace type_traits
 
-inline void checkTensorOnDIPU(const at::Tensor& tensor) {
-  if (tensor.device().type() != dipu::DIPU_DEVICE_TYPE) {
-    DIPU_LOGE("This op only runs on DIPU");
-    throw std::runtime_error("This op only runs on DIPU");
+inline void checkTensorOnDevice(const at::Tensor& tensor) {
+  if (tensor.device().type() == at::DeviceType::CPU) {
+    DIPU_LOGE("This op only runs on Device");
+    throw std::runtime_error("This op only runs on Device");
   }
 }
 
-inline void checkTensorOnDIPU(const c10::optional<at::Tensor>& tensor) {
+inline void checkTensorOnDevice(const c10::optional<at::Tensor>& tensor) {
   if (tensor) {
-    checkTensorOnDIPU(*tensor);
+    checkTensorOnDevice(*tensor);
   }
 }
 
@@ -51,7 +51,7 @@ template <
                          std::is_same<U, c10::optional<at::Tensor>>::value,
                      int> = 0>
 decltype(auto) castToDiopiType(T&& tensor) {
-  checkTensorOnDIPU(tensor);
+  checkTensorOnDevice(tensor);
   return diopi_helper::toDiopiTensorHandle(std::forward<T>(tensor));
 }
 
