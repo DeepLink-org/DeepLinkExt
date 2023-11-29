@@ -217,7 +217,7 @@ void extApplyPenalty(at::Tensor& Logits, const at::Tensor& presence_penalty,
 
 // For lightllm, rms_norm reuses the diopi implementation of internlm
 auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
-                        double eps) {
+                        float eps) {
   auto inv_rms = at::empty_like(x);
   auto out = at::empty_like(x);
   auto bias = at::empty_like(weight);
