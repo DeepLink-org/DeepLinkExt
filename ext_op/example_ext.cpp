@@ -221,7 +221,7 @@ auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
   auto inv_rms = at::empty_like(x);
   auto out = at::empty_like(x);
   auto bias = at::empty_like(weight);
-  auto normalized_shape = weight.sizes();
+  at::OptionalIntArrayRef normalized_shape = weight.sizes();
   callDiopi(diopiRMSNorm, out, inv_rms, x, normalized_shape, weight, bias, eps);
   return out;
 }
