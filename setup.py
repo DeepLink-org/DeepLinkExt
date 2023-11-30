@@ -13,6 +13,7 @@ def _getenv_or_die(env_name: str):
 
 def get_ext():
     ext_name = "dipu_ext.ext_"
+    os.makedirs('dipu_ext', exist_ok=True)
     # 包含所有算子文件
     op_files = glob.glob("./ext_op/*.cpp")
     include_dirs = []
