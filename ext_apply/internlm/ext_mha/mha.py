@@ -7,7 +7,7 @@ from .mha_kvpacked_func import DeepLinkMultiHeadAttentionKVPackedFunc
 from .mha_varlen_kvpacked_func import DeepLinkMultiHeadAttentionVarLenKVPackedFunc
 
 
-class DeeplinkSelfAttention(nn.Module):
+class DeepLinkSelfAttention(nn.Module):
     """Performs self-attention with support for both padded and unpadded sequences.
 
     Args:

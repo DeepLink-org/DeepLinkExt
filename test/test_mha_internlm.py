@@ -30,7 +30,7 @@ H = 2
 D = 8
 qkv = torch.randn(B, S, 3, H, D, dtype=torch.float16).cuda()
 output_gold, grad_gold = _run_self_attention(ext_mha.fallback.SelfAttention, qkv)
-output_ext, grad_ext = _run_self_attention(ext_mha.DeeplinkSelfAttention, qkv)
+output_ext, grad_ext = _run_self_attention(ext_mha.DeepLinkSelfAttention, qkv)
 assert torch.allclose(output_gold, output_ext, atol=1e-3)
 print("SelfAttention forward test pass")
 assert torch.allclose(grad_gold, grad_ext, atol=2e-3)

@@ -1,7 +1,7 @@
 from DeepLinkExt.ext_apply.internlm.RMSNorm import (
     InternLMRMSNorm,
-    DeeplinkRMSNorm,
-    DeeplinkRMSNorm_WithNormalizedShape,
+    DeepLinkRMSNorm,
+    DeepLinkRMSNorm_WithNormalizedShape,
 )
 import torch
 from torch import nn
@@ -62,6 +62,6 @@ def test_forward_backward(Basenet, Testnet, rtol=1e-5, atol=1e-5):
 
 
 print("\nTest case: normalized_shape == None:")
-test_forward_backward(InternLMRMSNorm, DeeplinkRMSNorm)
+test_forward_backward(InternLMRMSNorm, DeepLinkRMSNorm)
 print("\nTest case: normalized_shape == weight.size():")
-test_forward_backward(InternLMRMSNorm, DeeplinkRMSNorm_WithNormalizedShape)
+test_forward_backward(InternLMRMSNorm, DeepLinkRMSNorm_WithNormalizedShape)
