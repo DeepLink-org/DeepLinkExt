@@ -142,6 +142,7 @@ try:
                 rearrange(cos[:seqlen], "s d -> s 1 d"),
                 rearrange(sin[:seqlen], "s d -> s 1 d"),
                 False,
+                False
             )
             k_ro = qkv[:, :, 1, :, :rotary_dim]
             dipu_ext.ext_.apply_rotary(
@@ -150,6 +151,7 @@ try:
                 rearrange(cos[:seqlen], "s d -> s 1 d"),
                 rearrange(sin[:seqlen], "s d -> s 1 d"),
                 False,
+                False
             )
             ctx.save_for_backward(cos, sin, cos_k, sin_k)
             ctx.interleaved = interleaved
@@ -169,6 +171,7 @@ try:
                 rearrange(cos[:seqlen], "s d -> s 1 d"),
                 rearrange(sin[:seqlen], "s d -> s 1 d"),
                 True,
+                False
             )
             dk_ro = dqkv[:, :, 1, :, :rotary_dim]
             dipu_ext.ext_.apply_rotary(
@@ -177,6 +180,7 @@ try:
                 rearrange(cos[:seqlen], "s d -> s 1 d"),
                 rearrange(sin[:seqlen], "s d -> s 1 d"),
                 True,
+                False
             )
             return dqkv, None, None, None, None, None
 

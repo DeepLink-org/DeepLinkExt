@@ -73,10 +73,9 @@ void extApplyRotary(at::Tensor output, const at::Tensor& input,
   callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj, interleaved);
 }
 
-auto extMultiHeadAttention(const at::Tensor& q, const at::Tensor& k,
-                           const at::Tensor& v, double dropout_p,
-                           bool is_casual, bool return_debug_mask,
-                           double scale) {
+auto extMultiHeadAttention(at::Tensor& q, at::Tensor& k, at::Tensor& v,
+                           double dropout_p, bool is_casual,
+                           bool return_debug_mask, double scale) {
   const auto batch_size = q.sizes()[0];
   const auto q_seq_len = q.sizes()[1];
   const auto head_num = q.sizes()[2];
@@ -123,8 +122,7 @@ auto extMultiHeadAttentionBackward(const at::Tensor& grad_out,
                          std::move(grad_v));
 }
 
-auto extMultiHeadAttentionVarLen(const at::Tensor& q, const at::Tensor& k,
-                                 const at::Tensor& v,
+auto extMultiHeadAttentionVarLen(at::Tensor& q, at::Tensor& k, at::Tensor& v,
                                  const at::Tensor& cum_seq_q,
                                  const at::Tensor& cum_seq_k,
                                  std::int64_t max_q, std::int64_t max_k,
