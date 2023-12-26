@@ -2,6 +2,7 @@ from setuptools import setup, Extension
 from torch.utils.cpp_extension import BuildExtension, include_paths, library_paths
 import glob
 import os
+from termcolor import colored
 
 
 def _getenv_or_die(env_name: str):
@@ -30,12 +31,17 @@ def get_ext():
     system_include_dirs += [
         dipu_root,
         os.path.join(dipu_root, "dist/include"),
-        os.path.join(diopi_path, "include"),
+        os.path.join(diopi_path, "proto/include"),
+        os.path.join(dipu_root, "torch_dipu"),
+        "/usr/local/Ascend/ascend-toolkit/latest/include/",
         vendor_include_dirs,
     ]
+    print("Incs:", system_include_dirs)
+    print(colored(f"Incs: {vendor_include_dirs}", "green"))
     if nccl_include_dirs:
         system_include_dirs.append(nccl_include_dirs)
     library_dirs += [dipu_root]
+    library_dirs += [os.path.join(dipu_root, "torch_dipu")]
     libraries += ["torch_dipu"]
 
     extra_compile_args = {"cxx": []}
