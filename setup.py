@@ -26,14 +26,15 @@ def get_ext():
 
     dipu_root = _getenv_or_die("DIPU_ROOT")
     diopi_path = _getenv_or_die("DIOPI_PATH")
-    vendor_include_dirs = _getenv_or_die("VENDOR_INCLUDE_DIRS")
+    vendor_include_dirs = os.getenv("VENDOR_INCLUDE_DIRS")
     nccl_include_dirs = os.getenv("NCCL_INCLUDE_DIRS")  # nv所需
     system_include_dirs += [
         dipu_root,
         os.path.join(dipu_root, "dist/include"),
         os.path.join(diopi_path, "include"),
-        vendor_include_dirs,
     ]
+    if vendor_include_dirs:
+        system_include_dirs.append(vendor_include_dirs)
     if nccl_include_dirs:
         system_include_dirs.append(nccl_include_dirs)
     library_dirs += [dipu_root]
