@@ -4,6 +4,7 @@
 #include <tuple>
 #include <vector>
 
+#include <ATen/AccumulateType.h>
 #include <ATen/core/ATen_fwd.h>
 #include <ATen/core/Generator.h>
 #include <ATen/core/TensorBody.h>
@@ -218,7 +219,8 @@ void extApplyPenalty(at::Tensor& Logits, const at::Tensor& presence_penalty,
 // For lightllm, rms_norm reuses the diopi implementation of internlm
 auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
                         float eps) {
-  auto inv_rms = at::empty_like(x);
+  using accscalar_t = at::acc_type<at::Half, true>;
+  auto inv_rms = at::empty_like(x, at::CppTypeToScalarType<accscalar_t>::value);
   auto out = at::empty_like(x);
   auto bias = at::empty_like(weight);
   at::OptionalIntArrayRef normalized_shape = weight.sizes();
@@ -239,7 +241,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiRMSNorm != nullptr) {  // Check if weak symbol defined
     m.def("rms_norm", &extRmsNorm, "deeplink ext_rms_norm");
     m.def("rms_norm_lightllm", &extRmsNormLightllm,
-          "deeplink ext_rms_norm for lightllm");
+          "deeplink ext_rms_norm for lightllm", py::arg("x"), py::arg("weight"),
+          py::arg("eps"));
   }
   if (&diopiRMSNormBackward != nullptr) {
     m.def("rms_norm_backward", &extRmsNormBackward,
