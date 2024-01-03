@@ -220,7 +220,7 @@ auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
                         float eps) {
   at::ScalarType acc_type = x.scalar_type();
   if (x.scalar_type() == at::kBFloat16 || x.scalar_type() == at::kHalf) {
-    accType = at::kFloat;
+    acc_type = at::kFloat;
   }
   auto inv_rms = at::empty_like(x, acc_type);
   auto out = at::empty_like(x);
