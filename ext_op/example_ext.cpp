@@ -4,7 +4,6 @@
 #include <tuple>
 #include <vector>
 
-#include <ATen/AccumulateType.h>
 #include <ATen/core/ATen_fwd.h>
 #include <ATen/core/Generator.h>
 #include <ATen/core/TensorBody.h>
@@ -219,8 +218,11 @@ void extApplyPenalty(at::Tensor& Logits, const at::Tensor& presence_penalty,
 // For lightllm, rms_norm reuses the diopi implementation of internlm
 auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
                         float eps) {
-  using accscalar_t = at::acc_type<at::Half, true>;
-  auto inv_rms = at::empty_like(x, at::CppTypeToScalarType<accscalar_t>::value);
+  at::ScalarType accType = x.scalar_type();
+  if (x.scalar_type() == at::kBFloat16 || x.scalar_type() == at::kHalf) {
+    accType = at::kFloat;
+  }
+  auto inv_rms = at::empty_like(x, accType);
   auto out = at::empty_like(x);
   auto bias = at::empty_like(weight);
   at::OptionalIntArrayRef normalized_shape = weight.sizes();
