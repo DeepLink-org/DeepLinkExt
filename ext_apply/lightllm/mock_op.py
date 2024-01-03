@@ -3,8 +3,8 @@ import os
 try:
     import dipu_ext.ext_ as ext
     default_diopi_mock_op_list = ['dest_index_copy_kv', 'token_attention_inference',
-                                  'token_softmax_reducev_inference',
-                                  'context_attention_inference', 'apply_penalty']
+                                  'token_softmax_reducev_inference', 'context_attention_inference', 
+                                  'apply_penalty', 'rms_norm_lightllm', 'rotary_emb']
     diopi_mock_op_list = os.environ.get('diopi_mock_op_list').split(
         ',') if 'diopi_mock_op_list' in os.environ else default_diopi_mock_op_list
     print(f"diopi_mock_op_list:{diopi_mock_op_list}")

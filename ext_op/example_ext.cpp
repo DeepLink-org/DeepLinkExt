@@ -218,11 +218,11 @@ void extApplyPenalty(at::Tensor& Logits, const at::Tensor& presence_penalty,
 // For lightllm, rms_norm reuses the diopi implementation of internlm
 auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
                         float eps) {
-  at::ScalarType accType = x.scalar_type();
+  at::ScalarType acc_type = x.scalar_type();
   if (x.scalar_type() == at::kBFloat16 || x.scalar_type() == at::kHalf) {
     accType = at::kFloat;
   }
-  auto inv_rms = at::empty_like(x, accType);
+  auto inv_rms = at::empty_like(x, acc_type);
   auto out = at::empty_like(x);
   auto bias = at::empty_like(weight);
   at::OptionalIntArrayRef normalized_shape = weight.sizes();
@@ -232,7 +232,11 @@ auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
 
 // For lightllm, rotary_embedding reuses the diopi implementation of internlm
 void extRotaryEmb(at::Tensor& q, const at::Tensor& cos, const at::Tensor& sin) {
-  callDiopi(diopiRotaryEmbedding, q, q, cos, sin, false, false);
+  auto seq_len = q.size(0);
+  auto dim = q.size(-1);
+  auto cos_view = cos.view({seq_len, 1, dim / 2});
+  auto sin_view = sin.view({seq_len, 1, dim / 2});
+  callDiopi(diopiRotaryEmbedding, q, q, cos_view, sin_view, false, false);
 }
 
 // 判断是否有对应的 diopi 实现:
