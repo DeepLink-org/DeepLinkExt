@@ -22,7 +22,6 @@ def get_ext():
     extra_objects = []
     library_dirs = library_paths()
     libraries = ["c10", "torch", "torch_cpu", "torch_python"]
-    print(library_dirs)
     for i in library_dirs:
         extra_link_args = ['-Wl,-rpath,' + i]
 
