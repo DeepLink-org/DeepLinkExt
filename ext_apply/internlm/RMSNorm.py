@@ -100,8 +100,7 @@ class _DeepLinkRMSNormFunction_WithNormalizedShape(torch.autograd.Function):
         if isinstance(others, (tuple, list)) and len(others) == 2:
             grad_weight, grad_bias = others
         else:
-            grad_weight = others[0]
-            grad_bias = None
+            grad_weight = others[0], None
 
         grad_output = grad_output.half()
         hidden_states = hidden_states.half()
