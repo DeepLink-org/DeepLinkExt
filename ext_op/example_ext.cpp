@@ -43,7 +43,10 @@ auto extRmsNorm(const at::Tensor& input,
                 const at::Tensor& weight, const at::Tensor& bias, double eps) {
   at::OptionalIntArrayRef normalized_shape_at =
       optionalIntArrayToIntArrayRefOrDefault(normalized_shape, weight.sizes());
-  auto inv_rms = at::empty_like(input);
+  auto input_shape = input.sizes();
+  std::vector<int64_t> input_size(input_shape.size(), 1);
+  std::copy(input_shape.begin(), input_shape.end() - 1, input_size.begin());
+  auto inv_rms = at::empty(input_size, input.options());
   auto output = at::empty_like(input);
   callDiopi(diopiRMSNorm, output, inv_rms, input, normalized_shape_at, weight,
             bias, eps);

@@ -44,7 +44,7 @@ class _DeeplinkRMSNormFunction(torch.autograd.Function):
     def backward(ctx, grad_output):
         hidden_states, inv_rms, weight, bias, eps_tensor = ctx.saved_tensors
         eps = eps_tensor.item()
-        grad_input, grad_weight, grad_bias = deeplink_ext.rms_norm_backward(
+        grad_input, *others = deeplink_ext.rms_norm_backward(
             hidden_states,
             grad_output,
             inv_rms,
@@ -53,6 +53,10 @@ class _DeeplinkRMSNormFunction(torch.autograd.Function):
             bias,
             eps
         )
+        if isinstance(others, (list, tuple)) and len(others) == 2:
+            grad_weight, grad_bias = others
+        else:
+            grad_weight, grad_bias = others[0], None
         return grad_input, grad_weight, grad_bias, None
     
 class _DeeplinkRMSNormFunction_WithNormalizedShape(torch.autograd.Function):
@@ -84,7 +88,7 @@ class _DeeplinkRMSNormFunction_WithNormalizedShape(torch.autograd.Function):
         weight = weight.float()
         bias = bias.float()
         grad_output = grad_output.float()
-        grad_input, grad_weight, grad_bias = deeplink_ext.rms_norm_backward(
+        grad_input, *others = deeplink_ext.rms_norm_backward(
             hidden_states,
             grad_output,
             inv_rms,
@@ -93,6 +97,12 @@ class _DeeplinkRMSNormFunction_WithNormalizedShape(torch.autograd.Function):
             bias,
             eps
         )
+        if isinstance(others, (tuple, list)) and len(others) == 2:
+            grad_weight, grad_bias = others
+        else:
+            grad_weight = others[0]
+            grad_bias = None
+
         grad_output = grad_output.half()
         hidden_states = hidden_states.half()
         inv_rms = inv_rms.half()
