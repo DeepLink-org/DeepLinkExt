@@ -26,7 +26,7 @@ class InternLMRMSNorm(nn.Module):
 
 
 # 定义自定义的autograd函数
-class _DeeplinkRMSNormFunction(torch.autograd.Function):
+class _DeepLinkRMSNormFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, hidden_states, weight, bias, eps):
         output, inv_rms = deeplink_ext.rms_norm(
@@ -59,7 +59,7 @@ class _DeeplinkRMSNormFunction(torch.autograd.Function):
             grad_weight, grad_bias = others[0], None
         return grad_input, grad_weight, grad_bias, None
     
-class _DeeplinkRMSNormFunction_WithNormalizedShape(torch.autograd.Function):
+class _DeepLinkRMSNormFunction_WithNormalizedShape(torch.autograd.Function):
     @staticmethod
     def forward(ctx, hidden_states, weight, bias, eps, normalized_shape):
         output, inv_rms = deeplink_ext.rms_norm(
@@ -112,7 +112,7 @@ class _DeeplinkRMSNormFunction_WithNormalizedShape(torch.autograd.Function):
 
 
 # 定义一个nn.Module包裹这个自定义函数
-class DeeplinkRMSNorm(nn.Module):
+class DeepLinkRMSNorm(nn.Module):
 
     def __init__(self, hidden_size, eps=1e-6):
         super().__init__()
@@ -121,9 +121,9 @@ class DeeplinkRMSNorm(nn.Module):
         self.variance_epsilon = eps
 
     def forward(self, hidden_states):
-        return _DeeplinkRMSNormFunction.apply(hidden_states, self.weight, self.bias, self.variance_epsilon)
+        return _DeepLinkRMSNormFunction.apply(hidden_states, self.weight, self.bias, self.variance_epsilon)
     
-class DeeplinkRMSNorm_WithNormalizedShape(nn.Module):
+class DeepLinkRMSNorm_WithNormalizedShape(nn.Module):
 
     def __init__(self, hidden_size, eps=1e-6):
         super().__init__()
@@ -132,4 +132,4 @@ class DeeplinkRMSNorm_WithNormalizedShape(nn.Module):
         self.variance_epsilon = eps
 
     def forward(self, hidden_states):
-        return _DeeplinkRMSNormFunction_WithNormalizedShape.apply(hidden_states, self.weight, self.bias, self.variance_epsilon, self.weight.size())
+        return _DeepLinkRMSNormFunction_WithNormalizedShape.apply(hidden_states, self.weight, self.bias, self.variance_epsilon, self.weight.size())

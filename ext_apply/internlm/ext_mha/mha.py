@@ -7,7 +7,7 @@ from .mha_kvpacked_func import DeepLinkMultiHeadAttentionKVPackedFunc
 from .mha_varlen_kvpacked_func import DeepLinkMultiHeadAttentionVarLenKVPackedFunc
 
 
-class DeeplinkSelfAttention(nn.Module):
+class DeepLinkSelfAttention(nn.Module):
     """Performs self-attention with support for both padded and unpadded sequences.
 
     Args:
@@ -67,11 +67,11 @@ class DeeplinkSelfAttention(nn.Module):
 
 
 class DeepLinkCrossAttention(nn.Module):
-    def __init__(self, causal=False, softmax_scale=None, dropout_p=0.0):
+    def __init__(self, causal=False, softmax_scale=None, attention_dropout=0.0):
         super().__init__()
         self.causal = causal
         self.softmax_scale = softmax_scale
-        self.dropout_p = dropout_p
+        self.dropout_p = attention_dropout
 
     def forward(
         self,

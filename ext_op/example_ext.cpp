@@ -175,23 +175,21 @@ auto extMultiHeadAttentionVarLenBackward(
                          std::move(grad_v));
 }
 
-auto extDestIndexCopyKV(const at::Tensor& k, const at::Tensor& dest_loc,
+void extDestIndexCopyKV(const at::Tensor& k, const at::Tensor& dest_loc,
                         at::Tensor& out) {
   callDiopi(diopiDestIndexCopyKV, out, k, dest_loc);
-  return out;
 }
 
-auto extTokenAttentionInference(const at::Tensor& q, const at::Tensor& k,
+void extTokenAttentionInference(const at::Tensor& q, const at::Tensor& k,
                                 at::Tensor& out, const at::Tensor& b_loc,
                                 const at::Tensor& b_start_loc,
                                 const at::Tensor& b_seq_len,
                                 int max_input_len) {
   callDiopi(diopiTokenAttentionInference, out, q, k, b_loc, b_start_loc,
             b_seq_len, max_input_len);
-  return out;
 }
 
-auto extTokenSoftmaxReduceVInference(const at::Tensor& logics,
+void extTokenSoftmaxReduceVInference(const at::Tensor& logics,
                                      const at::Tensor& v, at::Tensor& out,
                                      const at::Tensor& b_loc,
                                      const at::Tensor& b_start_loc,
@@ -199,24 +197,49 @@ auto extTokenSoftmaxReduceVInference(const at::Tensor& logics,
                                      int max_input_len, int other_kv_index) {
   callDiopi(diopiTokenSoftmaxReduceVInference, out, logics, v, b_loc,
             b_start_loc, b_seq_len, max_input_len, other_kv_index);
-  return out;
 }
 
-auto extContextAttentionInference(const at::Tensor& q, const at::Tensor& k,
+void extContextAttentionInference(const at::Tensor& q, const at::Tensor& k,
                                   const at::Tensor& v, at::Tensor& out,
                                   const at::Tensor& b_start_loc,
                                   const at::Tensor& b_seq_len,
                                   int max_input_len) {
   callDiopi(diopiContextAttentionInference, out, q, k, v, b_start_loc,
             b_seq_len, max_input_len);
+}
+
+void extApplyPenalty(at::Tensor& Logits, const at::Tensor& presence_penalty,
+                     const at::Tensor& frequency_penalty,
+                     const at::Tensor& p_token_ids,
+                     const at::Tensor& p_token_counts,
+                     const at::Tensor& p_cumsum_seq_len,
+                     int p_max_len_in_batch) {
+  callDiopi(diopiApplyPenalty, Logits, presence_penalty, frequency_penalty,
+            p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
+}
+
+// For lightllm, rms_norm reuses the diopi implementation of internlm
+auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
+                        float eps) {
+  at::ScalarType acc_type = x.scalar_type();
+  if (x.scalar_type() == at::kBFloat16 || x.scalar_type() == at::kHalf) {
+    acc_type = at::kFloat;
+  }
+  auto inv_rms = at::empty_like(x, acc_type);
+  auto out = at::empty_like(x);
+  auto bias = at::empty_like(weight);
+  at::OptionalIntArrayRef normalized_shape = weight.sizes();
+  callDiopi(diopiRMSNorm, out, inv_rms, x, normalized_shape, weight, bias, eps);
   return out;
 }
 
-at::Tensor extApplyPenalty(
-    at::Tensor& Logits, const at::Tensor& presence_penalty, const at::Tensor& frequency_penalty, const at::Tensor& p_token_ids,
-    const at::Tensor& p_token_counts, const at::Tensor& p_cumsum_seq_len, int p_max_len_in_batch) {
-      callDiopi(diopiApplyPenalty, Logits, presence_penalty, frequency_penalty, p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
-    return Logits;
+// For lightllm, rotary_embedding reuses the diopi implementation of internlm
+void extRotaryEmb(at::Tensor& q, const at::Tensor& cos, const at::Tensor& sin) {
+  auto seq_len = q.size(0);
+  auto dim = q.size(-1);
+  auto cos_view = cos.view({seq_len, 1, dim / 2});
+  auto sin_view = sin.view({seq_len, 1, dim / 2});
+  callDiopi(diopiRotaryEmbedding, q, q, cos_view, sin_view, false, false);
 }
 
 // 判断是否有对应的 diopi 实现:
@@ -226,6 +249,9 @@ at::Tensor extApplyPenalty(
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiRMSNorm != nullptr) {  // Check if weak symbol defined
     m.def("rms_norm", &extRmsNorm, "deeplink ext_rms_norm");
+    m.def("rms_norm_lightllm", &extRmsNormLightllm,
+          "deeplink ext_rms_norm for lightllm", py::arg("x"), py::arg("weight"),
+          py::arg("eps"));
   }
   if (&diopiRMSNormBackward != nullptr) {
     m.def("rms_norm_backward", &extRmsNormBackward,
@@ -233,6 +259,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
   if (&diopiRotaryEmbedding != nullptr) {
     m.def("apply_rotary", &extApplyRotary, "deeplink ext_apply_rotary");
+    m.def("rotary_emb", &extRotaryEmb, "deeplink ext_rotary_emb for lightllm");
   }
   if (&diopiMultiHeadAttention != nullptr) {
     m.def("mha_fwd", &extMultiHeadAttention, "deeplink ext_mha_fwd");
