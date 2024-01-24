@@ -102,7 +102,8 @@ void callDiopi(DiopiFunc&& diopi_func, Args&&... args) {
   diopiError_t err_code =
       diopi_func(&ctx, castToDiopiType(std::forward<Args>(args))...);
   if (err_code != diopiSuccess) {
-    throw std::runtime_error("DIOPI call failed");
+    throw std::runtime_error("DIOPI error, code: " + std::to_string(err_code) +
+                             ", message: " + diopiGetLastErrorString());
   }
 }
 
