@@ -67,8 +67,8 @@ def _patch_lightllm():
         except AttributeError:
             print(f"[deeplink_ext] op {op} is not implemented in diopi\n", end="")
 
-        for op in patch_list:
-            try_patch(op)
+    for op in patch_list:
+        try_patch(op)
 
 
 _patch_lightllm()
