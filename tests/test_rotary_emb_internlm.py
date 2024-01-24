@@ -1,27 +1,25 @@
+# Copyright (c) 2023, DeepLink.
+
 import torch
-import torch_dipu
-from einops import rearrange
-import dipu_ext.ext_
-from DeepLinkExt.ext_apply.internlm.ext_apply_rotary import (
-    TorchApplyRotaryEmbQKV_,
-    DeepLinkApplyRotaryEmbQKV_,
-    TorchApplyRotaryEmb,
-    DeepLinkApplyRotaryEmb,
-)
+import deeplink_ext.internlm_ops.rotary as ext
+
 
 def RotaryEmbTest(func_name):
-
     if func_name == "RotaryEmbQKV":
-        torch_apply = TorchApplyRotaryEmbQKV_.apply
-        dipu_apply = DeepLinkApplyRotaryEmbQKV_.apply
-        input = torch.randn(1, 125, 3, 16, 32, dtype=torch.float16, requires_grad=True).cuda()
+        torch_apply = ext.fallback.ApplyRotaryEmbQKV_.apply
+        dipu_apply = ext.DeepLinkApplyRotaryEmbQKV_.apply
+        input = torch.randn(
+            1, 125, 3, 16, 32, dtype=torch.float16, requires_grad=True
+        ).cuda()
     elif func_name == "RotaryEmb":
-        torch_apply = TorchApplyRotaryEmb.apply
-        dipu_apply = DeepLinkApplyRotaryEmb.apply
-        input = torch.randn(1, 125, 16, 32, dtype=torch.float16, requires_grad=True).cuda()
+        torch_apply = ext.fallback.ApplyRotaryEmb.apply
+        dipu_apply = ext.DeepLinkApplyRotaryEmb.apply
+        input = torch.randn(
+            1, 125, 16, 32, dtype=torch.float16, requires_grad=True
+        ).cuda()
     else:
-         print(f"{func_name} is not supported.")
-         return False
+        print(f"{func_name} is not supported.")
+        return False
 
     loss_fn = torch.nn.MSELoss()
     cos = torch.randn(257, 16, dtype=torch.float16).cuda()
@@ -42,9 +40,8 @@ def RotaryEmbTest(func_name):
         res1 = torch_apply(input, cos, sin, interleaved)
         res2 = dipu_apply(input1, cos1, sin1, interleaved)
     else:
-         print(f"{func_name} is not supported.")
-         return False
-
+        print(f"{func_name} is not supported.")
+        return False
 
     # 验证前向传播结果
     forward_correct = torch.allclose(res1, res2)
@@ -77,6 +74,7 @@ def RotaryEmbTest(func_name):
             backward_correct,
         )
         return False
+
 
 assert RotaryEmbTest("RotaryEmbQKV")
 assert RotaryEmbTest("RotaryEmb")

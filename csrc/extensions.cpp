@@ -208,13 +208,13 @@ void extContextAttentionInference(const at::Tensor& q, const at::Tensor& k,
             b_seq_len, max_input_len);
 }
 
-void extApplyPenalty(at::Tensor& Logits, const at::Tensor& presence_penalty,
+void extApplyPenalty(at::Tensor& logits, const at::Tensor& presence_penalty,
                      const at::Tensor& frequency_penalty,
                      const at::Tensor& p_token_ids,
                      const at::Tensor& p_token_counts,
                      const at::Tensor& p_cumsum_seq_len,
                      int p_max_len_in_batch) {
-  callDiopi(diopiApplyPenalty, Logits, presence_penalty, frequency_penalty,
+  callDiopi(diopiApplyPenalty, logits, presence_penalty, frequency_penalty,
             p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
 }
 

@@ -1,0 +1,66 @@
+def _patch_lightllm():
+    import os
+    import deeplink_ext.cpp_extensions as ext
+    import lightllm.common.basemodel.triton_kernel.destindex_copy_kv as destindex_copy_kv_pack
+    import lightllm.common.basemodel.triton_kernel.apply_penalty as apply_penalty_pack
+    import lightllm.models.llama.triton_kernel.context_flashattention_nopad as context_attention_pack
+    import lightllm.models.llama.triton_kernel.token_attention_nopad_att1 as token_attention_pack
+    import lightllm.models.llama.triton_kernel.token_attention_softmax_and_reducev as token_attention_softmax_reducev_pack
+    import lightllm.models.llama.triton_kernel.rmsnorm as rms_norm_pack
+    import lightllm.models.llama.triton_kernel.rotary_emb as rotary_emb_pack
+
+    DEFAULT_PATCH_LIST = [
+        "dest_index_copy_kv",
+        "apply_penalty",
+        "context_attention_inference",
+        "token_attention_inference",
+        "token_softmax_reducev_inference",
+        "rms_norm_lightllm",
+        "rotary_emb",
+    ]
+    PATCH_LIST_ENV_NAME = "DEEPLINKEXT_LIGHTLLM_PATCH_LIST"
+    patch_list_env = os.environ.get(PATCH_LIST_ENV_NAME)
+    use_custom_patch_list = patch_list_env is not None
+    patch_list = (
+        patch_list_env.split(",") if use_custom_patch_list else DEFAULT_PATCH_LIST
+    )
+    if use_custom_patch_list:
+        print(f"Use custom lightllm patch list: {patch_list}")
+
+    def try_patch(op: str):
+        def patch_dest_index_copy_kv():
+            destindex_copy_kv_pack.destindex_copy_kv = ext.dest_index_copy_kv
+
+        def patch_apply_penalty():
+            apply_penalty_pack.apply_penalty = ext.apply_penalty
+
+        def patch_context_attention_inference():
+            context_attention_pack.context_attention_fwd = (
+                ext.context_attention_inference
+            )
+
+        def patch_token_attention_inference():
+            token_attention_pack.token_att_fwd = ext.token_attention_inference
+
+        def patch_token_softmax_reducev_inference():
+            token_attention_softmax_reducev_pack.token_softmax_reducev_fwd = (
+                ext.token_softmax_reducev_inference
+            )
+
+        def patch_rms_norm_lightllm():
+            rms_norm_pack.rmsnorm_forward = ext.rms_norm_lightllm
+
+        def patch_rotary_emb():
+            rotary_emb_pack.rotary_emb_fwd = ext.rotary_emb
+
+        try:
+            locals()[f"patch_{op}"]()
+            print(f"Patched diopi implementation of {op}")
+        except:
+            print(f"Unknow op: {op}, supported ops: {DEFAULT_PATCH_LIST}")
+
+        for op in patch_list:
+            try_patch(op)
+
+
+_patch_lightllm()

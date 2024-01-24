@@ -1,7 +1,8 @@
-from setuptools import setup, Extension
+from setuptools import find_packages, setup, Extension
 from torch.utils.cpp_extension import BuildExtension, include_paths, library_paths
 import glob
 import os
+import subprocess
 
 
 def _getenv_or_die(env_name: str):
@@ -11,11 +12,31 @@ def _getenv_or_die(env_name: str):
     return env
 
 
+class BuildExtensionWithCompdb(BuildExtension):
+    def build_extensions(self):
+        super().build_extensions()
+        try:
+            self._gen_compdb()
+        except Exception as e:
+            print(f"Failed to generate compile_commands.json: {e}")
+
+    def _gen_compdb(self):
+        assert self.use_ninja
+        build_ninja_file = glob.glob("./build/**/build.ninja", recursive=True)
+        assert len(build_ninja_file) == 1
+        with open("build/compile_commands.json", "w") as f:
+            subprocess.run(
+                ["ninja", "-f", build_ninja_file[0], "-t", "compdb"],
+                stdout=f,
+                check=True,
+            )
+        print("Generated build/compile_commands.json")
+
+
 def get_ext():
-    ext_name = "dipu_ext.ext_"
-    os.makedirs('dipu_ext', exist_ok=True)
+    ext_name = "deeplink_ext.cpp_extensions"
     # 包含所有算子文件
-    op_files = glob.glob("./ext_op/*.cpp")
+    op_files = glob.glob("./csrc/*.cpp")
     include_dirs = []
     system_include_dirs = include_paths()
     define_macros = []
@@ -40,9 +61,8 @@ def get_ext():
     library_dirs += [dipu_root]
     libraries += ["torch_dipu"]
 
-    extra_compile_args = {"cxx": []}
-    extra_compile_args["cxx"] = ["-std=c++14"]
-    extra_compile_args["cxx"] += ["-isystem" + path for path in system_include_dirs]
+    extra_compile_args = ["-std=c++17"]
+    extra_compile_args += ["-isystem" + path for path in system_include_dirs]
     ext_ops = Extension(
         name=ext_name,  # 拓展模块名字
         sources=op_files,
@@ -57,4 +77,10 @@ def get_ext():
     return [ext_ops]
 
 
-setup(name="dipu_ext", ext_modules=get_ext(), cmdclass={"build_ext": BuildExtension})
+setup(
+    name="deeplink_ext",
+    packages=find_packages(exclude=["build", "csrc", "tests"]),
+    ext_modules=get_ext(),
+    cmdclass={"build_ext": BuildExtensionWithCompdb},
+    install_requires=["einops"],
+)

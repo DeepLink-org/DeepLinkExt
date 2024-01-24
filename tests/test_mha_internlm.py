@@ -1,8 +1,7 @@
 # Copyright (c) 2023, DeepLink.
 
 import torch
-import torch_dipu
-import DeepLinkExt.ext_apply.internlm.ext_mha as ext_mha
+import deeplink_ext.internlm_ops.mha as ext
 
 
 def _run_self_attention(self_attn_module: type, qkv_data: torch.Tensor):
@@ -29,8 +28,8 @@ S = 2
 H = 2
 D = 8
 qkv = torch.randn(B, S, 3, H, D, dtype=torch.float16).cuda()
-output_gold, grad_gold = _run_self_attention(ext_mha.fallback.SelfAttention, qkv)
-output_ext, grad_ext = _run_self_attention(ext_mha.DeepLinkSelfAttention, qkv)
+output_gold, grad_gold = _run_self_attention(ext.fallback.SelfAttention, qkv)
+output_ext, grad_ext = _run_self_attention(ext.DeepLinkSelfAttention, qkv)
 assert torch.allclose(output_gold, output_ext, atol=1e-3)
 print("SelfAttention forward test pass")
 assert torch.allclose(grad_gold, grad_ext, atol=2e-3)
@@ -39,10 +38,10 @@ print("SelfAttention backward test pass")
 q = qkv[:, :, 0]
 kv = qkv[:, :, 1:]
 output_gold, dq_gold, dkv_gold = _run_cross_attention(
-    ext_mha.fallback.CrossAttention, q, kv
+    ext.fallback.CrossAttention, q, kv
 )
 output_ext, dq_ext, dkv_ext = _run_cross_attention(
-    ext_mha.DeepLinkCrossAttention, q, kv
+    ext.DeepLinkCrossAttention, q, kv
 )
 assert torch.allclose(output_gold, output_ext, atol=1e-3)
 print("CrossAttention forward test pass")

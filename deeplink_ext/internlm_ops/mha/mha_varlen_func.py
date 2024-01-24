@@ -1,15 +1,16 @@
 # Copyright (c) 2023, DeepLink.
 
 import torch
-import dipu_ext.ext_
+import deeplink_ext.cpp_extensions as ext
 
 
-class DeepLinkMultiHeadAttentionVarLenKVPackedFunc(torch.autograd.Function):
+class DeepLinkMultiHeadAttentionVarLenFunc(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
         q,
-        kv,
+        k,
+        v,
         cu_seqlens_q,
         cu_seqlens_k,
         max_seqlen_q,
@@ -21,10 +22,10 @@ class DeepLinkMultiHeadAttentionVarLenKVPackedFunc(torch.autograd.Function):
     ):
         if softmax_scale is None:
             softmax_scale = q.shape[-1] ** (-0.5)
-        out, softmax_lse, rng, S_dmask = dipu_ext.ext_.mha_varlen_fwd(
+        out, softmax_lse, rng, S_dmask = ext.mha_varlen_fwd(
             q,
-            kv[:, :, 0],
-            kv[:, :, 1],
+            k,
+            v,
             cu_seqlens_q,
             cu_seqlens_k,
             max_seqlen_q,
@@ -35,10 +36,11 @@ class DeepLinkMultiHeadAttentionVarLenKVPackedFunc(torch.autograd.Function):
             softmax_scale,
         )
         ctx.save_for_backward(
-            q, kv, out, softmax_lse, cu_seqlens_q, cu_seqlens_k, rng.get_state()
+            q, k, v, out, softmax_lse, cu_seqlens_q, cu_seqlens_k, rng.get_state()
         )
         ctx.dropout_p = dropout_p
-        ctx.max_seqlen = max_seqlen_q
+        ctx.max_seqlen_q = max_seqlen_q
+        ctx.max_seqlen_k = max_seqlen_k
         ctx.softmax_scale = softmax_scale
         ctx.causal = causal
         return out if not return_softmax else (out, softmax_lse, S_dmask)
@@ -47,34 +49,33 @@ class DeepLinkMultiHeadAttentionVarLenKVPackedFunc(torch.autograd.Function):
     def backward(ctx, dout):
         (
             q,
-            kv,
+            k,
+            v,
             out,
             softmax_lse,
             cu_seqlens_q,
             cu_seqlens_k,
             rng_state,
         ) = ctx.saved_tensors
-        dq = torch.empty_like(q)
-        dkv = torch.empty_like(kv)
         rng = torch.Generator(device=q.device)
         rng.set_state(rng_state)
-        dipu_ext.ext_.mha_varlen_bwd(
+        dq, dk, dv = ext.mha_varlen_bwd(
             dout,
             q,
-            kv[:, :, 0],
-            kv[:, :, 1],
+            k,
+            v,
             out,
             softmax_lse,
             cu_seqlens_q,
             cu_seqlens_k,
-            ctx.max_seqlen,
-            ctx.max_seqlen,
+            ctx.max_seqlen_q,
+            ctx.max_seqlen_k,
             ctx.dropout_p,
             ctx.causal,
             rng,
             ctx.softmax_scale,
-            dq,
-            dkv[:, :, 0],
-            dkv[:, :, 1],
+            None,
+            None,
+            None,
         )
-        return dq, dkv, None, None, None, None, None, None, None, None
+        return dq, dk, dv, None, None, None, None, None, None, None, None
