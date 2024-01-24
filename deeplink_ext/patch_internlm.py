@@ -70,7 +70,7 @@ def _patch_internlm():
     _find_flash_attn()
     _patch_flash_attn()
     _patch_ops()
-    print("[deeplink_ext] patched diopi implementation of internlm")
+    print("[deeplink_ext] patched diopi implementation of internlm\n", end="")
 
 
 _patch_internlm()
