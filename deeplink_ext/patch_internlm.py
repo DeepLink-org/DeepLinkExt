@@ -56,7 +56,9 @@ def _patch_internlm():
 
         import internlm.model.norm
 
-        internlm.model.norm.RMSNormTorch = ext.rms_norm.DeepLinkRMSNormWithNormalizedShape
+        internlm.model.norm.RMSNormTorch = (
+            ext.rms_norm.DeepLinkRMSNormWithNormalizedShape
+        )
 
     _find_or_mock_module("rotary_emb")
     _find_or_mock_module("fused_dense_lib")

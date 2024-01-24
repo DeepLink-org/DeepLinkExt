@@ -40,9 +40,7 @@ kv = qkv[:, :, 1:]
 output_gold, dq_gold, dkv_gold = _run_cross_attention(
     ext.fallback.CrossAttention, q, kv
 )
-output_ext, dq_ext, dkv_ext = _run_cross_attention(
-    ext.DeepLinkCrossAttention, q, kv
-)
+output_ext, dq_ext, dkv_ext = _run_cross_attention(ext.DeepLinkCrossAttention, q, kv)
 assert torch.allclose(output_gold, output_ext, atol=1e-3)
 print("CrossAttention forward test pass")
 assert torch.allclose(dq_gold, dq_ext, atol=2e-3)
