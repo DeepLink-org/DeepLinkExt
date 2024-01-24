@@ -3,6 +3,8 @@
 import torch
 import deeplink_ext.cpp_extensions as ext
 
+assert hasattr(ext, "mha_fwd") and hasattr(ext, "mha_bwd")
+
 
 class DeepLinkMultiHeadAttentionVarLenKVPackedFunc(torch.autograd.Function):
     @staticmethod

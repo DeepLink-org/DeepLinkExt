@@ -1,3 +1,6 @@
+# Copyright (c) 2024, DeepLink.
+
+
 def _patch_lightllm():
     import os
     import deeplink_ext.cpp_extensions as ext
@@ -25,7 +28,7 @@ def _patch_lightllm():
         patch_list_env.split(",") if use_custom_patch_list else DEFAULT_PATCH_LIST
     )
     if use_custom_patch_list:
-        print(f"Use custom lightllm patch list: {patch_list}")
+        print(f"[deeplink_ext] use custom lightllm patch list: {patch_list}")
 
     def try_patch(op: str):
         def patch_dest_index_copy_kv():
@@ -55,9 +58,13 @@ def _patch_lightllm():
 
         try:
             locals()[f"patch_{op}"]()
-            print(f"Patched diopi implementation of {op}")
-        except:
-            print(f"Unknow op: {op}, supported ops: {DEFAULT_PATCH_LIST}")
+            print(f"[deeplink_ext] patched diopi implementation of {op}")
+        except KeyError:
+            print(
+                f"[deeplink_ext] unknow op: {op}, supported ops: {DEFAULT_PATCH_LIST}"
+            )
+        except AttributeError:
+            print(f"[deeplink_ext] op {op} is not implemented in diopi")
 
         for op in patch_list:
             try_patch(op)

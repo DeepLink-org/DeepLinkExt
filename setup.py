@@ -1,3 +1,5 @@
+# Copyright (c) 2024, DeepLink.
+
 from setuptools import find_packages, setup, Extension
 from torch.utils.cpp_extension import BuildExtension, include_paths, library_paths
 import glob

@@ -1,3 +1,6 @@
+# Copyright (c) 2024, DeepLink.
+
+
 def _patch_internlm():
     import importlib.util
     import os
@@ -67,6 +70,7 @@ def _patch_internlm():
     _find_flash_attn()
     _patch_flash_attn()
     _patch_ops()
+    print("[deeplink_ext] patched diopi implementation of internlm")
 
 
 _patch_internlm()

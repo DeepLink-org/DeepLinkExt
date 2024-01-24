@@ -1,5 +1,9 @@
+# Copyright (c) 2024, DeepLink.
+
 import torch
 import deeplink_ext.cpp_extensions as ext
+
+assert hasattr(ext, "rms_norm")
 
 
 # 定义自定义的 autograd 函数

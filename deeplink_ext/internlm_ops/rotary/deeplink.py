@@ -1,6 +1,10 @@
+# Copyright (c) 2024, DeepLink.
+
 import torch
 from einops import rearrange
 import deeplink_ext.cpp_extensions as ext
+
+assert hasattr(ext, "apply_rotary")
 
 
 class DeepLinkApplyRotaryEmbQKV_(torch.autograd.Function):
