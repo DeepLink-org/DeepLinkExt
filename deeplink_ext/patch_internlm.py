@@ -29,7 +29,7 @@ def _patch_internlm():
             )
 
     def _patch_flash_attn():
-        import flash_attn.losses.cross_entropy
+        import flash_attn.losses.cross_entropy  # type: ignore
         import torch.nn
 
         def CrossEntropyLossProxy(reduction, **_):
@@ -37,7 +37,7 @@ def _patch_internlm():
 
         flash_attn.losses.cross_entropy.CrossEntropyLoss = CrossEntropyLossProxy
 
-        import flash_attn.modules.mha
+        import flash_attn.modules.mha  # type: ignore
 
         flash_attn.modules.mha.SelfAttention = ext.mha.DeepLinkSelfAttention
         flash_attn.modules.mha.FlashSelfAttention = ext.mha.DeepLinkSelfAttention
@@ -45,11 +45,15 @@ def _patch_internlm():
         flash_attn.modules.mha.FlashCrossAttention = ext.mha.DeepLinkCrossAttention
 
     def _patch_ops():
-        import internlm.model.embedding
+        import internlm.model.embedding  # type: ignore
 
-        internlm.model.embedding.apply_rotary_emb_qkv_ = (
-            ext.rotary.DeepLinkApplyRotaryEmbQKV_.apply
-        )
+        # TODO(lljbash,gongqiwei): implement a module aligned with rotary_emb
+        def NotImplementedRotaryEnb(*args, **kwargs):
+            raise NotImplementedError(
+                "the patch for apply_rotary_emb_qkv_ (requires rotary_emb) has not been implemented in deeplink_ext yet"
+            )
+
+        internlm.model.embedding.apply_rotary_emb_qkv_ = NotImplementedRotaryEnb
         internlm.model.embedding.legacy_apply_rotary_embed = (
             ext.rotary.DeepLinkApplyRotaryEmb.apply
         )
@@ -57,7 +61,7 @@ def _patch_internlm():
             ext.rotary.DeepLinkApplyRotaryEmbQKV_.apply
         )
 
-        import internlm.model.norm
+        import internlm.model.norm  # type: ignore
 
         internlm.model.norm.RMSNormTorch = (
             ext.rms_norm.DeepLinkRMSNormWithNormalizedShape

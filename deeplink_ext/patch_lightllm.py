@@ -4,13 +4,13 @@
 def _patch_lightllm():
     import os
     import deeplink_ext.cpp_extensions as ext
-    import lightllm.common.basemodel.triton_kernel.destindex_copy_kv as destindex_copy_kv_pack
-    import lightllm.common.basemodel.triton_kernel.apply_penalty as apply_penalty_pack
-    import lightllm.models.llama.triton_kernel.context_flashattention_nopad as context_attention_pack
-    import lightllm.models.llama.triton_kernel.token_attention_nopad_att1 as token_attention_pack
-    import lightllm.models.llama.triton_kernel.token_attention_softmax_and_reducev as token_attention_softmax_reducev_pack
-    import lightllm.models.llama.triton_kernel.rmsnorm as rms_norm_pack
-    import lightllm.models.llama.triton_kernel.rotary_emb as rotary_emb_pack
+    import lightllm.common.basemodel.triton_kernel.destindex_copy_kv as destindex_copy_kv_pack  # type: ignore
+    import lightllm.common.basemodel.triton_kernel.apply_penalty as apply_penalty_pack  # type: ignore
+    import lightllm.models.llama.triton_kernel.context_flashattention_nopad as context_attention_pack  # type: ignore
+    import lightllm.models.llama.triton_kernel.token_attention_nopad_att1 as token_attention_pack  # type: ignore
+    import lightllm.models.llama.triton_kernel.token_attention_softmax_and_reducev as token_attention_softmax_reducev_pack  # type: ignore
+    import lightllm.models.llama.triton_kernel.rmsnorm as rms_norm_pack  # type: ignore
+    import lightllm.models.llama.triton_kernel.rotary_emb as rotary_emb_pack  # type: ignore
 
     DEFAULT_PATCH_LIST = [
         "dest_index_copy_kv",
