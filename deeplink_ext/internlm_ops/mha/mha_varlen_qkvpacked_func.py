@@ -3,7 +3,7 @@
 import torch
 import deeplink_ext.cpp_extensions as ext
 
-assert hasattr(ext, "mha_fwd") and hasattr(ext, "mha_bwd")
+assert hasattr(ext, "mha_varlen_fwd") and hasattr(ext, "mha_varlen_bwd")
 
 
 class DeepLinkMultiHeadAttentionVarLenQKVPackedFunc(torch.autograd.Function):
