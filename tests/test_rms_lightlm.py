@@ -1,11 +1,7 @@
+# Copyright (c) 2023, DeepLink.
+
 import torch
-
-import dipu_ext.ext_ as deeplink_ext
-import torch_dipu
-import pdb
-# import debugat
-
-# 假设 deeplink_ext 是一个包含上述 RMS normalization 函数的模块
+import deeplink_ext.cpp_extensions as ext
 
 # 定义输入张量
 input = torch.randn(5, 5, requires_grad=True).cuda()
@@ -20,29 +16,12 @@ grad_output = torch.randn(5, 5).cuda()
 # 归一化的形状通常是输入张量的形状
 normalized_shape = torch.tensor([5, 5], dtype=torch.long).cuda()
 
-# pdb.set_trace()
-
-# 使用 RMS normalization 前向传播
-# while True:
-
 print(input.is_dipu)
-output, inv_rms = deeplink_ext.rms_norm(
-    input,
-    None,
-    weight,
-    bias,
-    1e-6
-)
+output, inv_rms = ext.rms_norm(input, None, weight, bias, 1e-6)
 
 # 使用 RMS normalization 反向传播
-grad_input, grad_weight, grad_bias = deeplink_ext.rms_norm_backward(
-    input,
-    grad_output,
-    inv_rms,
-    None,
-    weight,
-    bias,
-    1e-6
+grad_input, grad_weight, grad_bias = ext.rms_norm_backward(
+    input, grad_output, inv_rms, None, weight, bias, 1e-6
 )
 
 print("Output:", output)

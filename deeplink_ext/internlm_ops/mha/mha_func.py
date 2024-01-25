@@ -1,7 +1,9 @@
 # Copyright (c) 2023, DeepLink.
 
 import torch
-import dipu_ext.ext_
+import deeplink_ext.cpp_extensions as ext
+
+assert hasattr(ext, "mha_fwd") and hasattr(ext, "mha_bwd")
 
 
 class DeepLinkMultiHeadAttentionFunc(torch.autograd.Function):
@@ -9,7 +11,7 @@ class DeepLinkMultiHeadAttentionFunc(torch.autograd.Function):
     def forward(ctx, q, k, v, dropout_p, softmax_scale, causal, return_softmax):
         if softmax_scale is None:
             softmax_scale = q.shape[-1] ** (-0.5)
-        out, softmax_lse, rng, S_dmask = dipu_ext.ext_.mha_fwd(
+        out, softmax_lse, rng, S_dmask = ext.mha_fwd(
             q,
             k,
             v,
@@ -29,7 +31,7 @@ class DeepLinkMultiHeadAttentionFunc(torch.autograd.Function):
         q, k, v, out, softmax_lse, rng_state = ctx.saved_tensors
         rng = torch.Generator(device=q.device)
         rng.set_state(rng_state)
-        dq, dk, dv = dipu_ext.ext_.mha_bwd(
+        dq, dk, dv = ext.mha_bwd(
             dout,
             q,
             k,
