@@ -72,7 +72,7 @@ auto extRmsNormBackward(const at::Tensor& input, const at::Tensor& grad_output,
 
 void extApplyRotary(at::Tensor output, const at::Tensor& input,
                     const at::Tensor& cos, const at::Tensor& sin,
-                    const bool conj, const bool interleaved = false) {
+                    const bool conj, const bool interleaved) {
   callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj, interleaved);
 }
 
@@ -239,7 +239,8 @@ void extRotaryEmb(at::Tensor& q, const at::Tensor& cos, const at::Tensor& sin) {
   auto dim = q.size(-1);
   auto cos_view = cos.view({seq_len, 1, dim / 2});
   auto sin_view = sin.view({seq_len, 1, dim / 2});
-  callDiopi(diopiRotaryEmbedding, q, q, cos_view, sin_view, false, false);
+  callDiopi(diopiRotaryEmbedding, q, q, cos_view, sin_view, /*conj=*/false,
+            /*interleaved=*/false);
 }
 
 // 判断是否有对应的 diopi 实现:
