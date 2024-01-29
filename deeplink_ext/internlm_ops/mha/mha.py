@@ -48,7 +48,7 @@ class DeepLinkSelfAttention(nn.Module):
             # padded
             return DeepLinkMultiHeadAttentionQKVPackedFunc.apply(
                 qkv,
-                self.dropout_p,
+                self.dropout_p if self.training else 0.0,
                 self.softmax_scale,
                 causal if causal is not None else self.causal,
                 False,
@@ -59,7 +59,7 @@ class DeepLinkSelfAttention(nn.Module):
                 qkv,
                 cu_seqlens,
                 max_seqlen,
-                self.dropout_p,
+                self.dropout_p if self.training else 0.0,
                 self.softmax_scale,
                 causal if causal is not None else self.causal,
                 False,
