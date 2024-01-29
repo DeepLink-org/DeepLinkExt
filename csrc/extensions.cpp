@@ -125,6 +125,70 @@ auto extMultiHeadAttentionBackward(const at::Tensor& grad_out,
                          std::move(grad_v));
 }
 
+auto extFlashAttention(const at::Tensor& q, const at::Tensor& k,
+                       const at::Tensor& v, double p_dropout,
+                       double softmax_scale, bool is_causal) {
+  const auto batch_size = q.sizes()[0];
+  const auto q_seq_len = q.sizes()[1];
+  const auto head_num = q.sizes()[2];
+  const auto k_seq_len = k.sizes()[1];
+
+  auto out = at::empty_like(q);
+  // auto softmax_max = at::empty_like(q);
+  // auto softmax_sum = at::empty_like(q);
+  // auto softmax_out = at::empty_like(q);
+
+  // const IntArray softmax_max_size{batch_size, head_num, q_seq_len, 8};
+  // const auto softmax_lse_option = q.options().dtype(at::kFloat);
+  // auto softmax_lse = at::empty(softmax_lse_size, softmax_lse_option);
+
+  // const IntArray softmax_sum_size{batch_size, head_num, q_seq_len, 8};
+  // const auto softmax_lse_option = q.options().dtype(at::kFloat);
+  // auto softmax_lse = at::empty(softmax_lse_size, softmax_lse_option);
+
+  // const IntArray softmax_out_size{batch_size, head_num, q_seq_len, 8};
+  // const auto softmax_lse_option = q.options().dtype(at::kFloat);
+  // auto softmax_lse = at::empty(softmax_lse_size, softmax_lse_option);
+
+  // softmax_max = OpPreparation::apply_tensor_without_format(
+  //     {B, head_num, S0, 8},
+  //     query.options().dtype(at::kFloat));  // [B, N, S0, 8]
+  // softmax_sum = OpPreparation::apply_tensor_without_format(
+  //     {B, head_num, S0, 8},
+  //     query.options().dtype(at::kFloat));  // [B, N, S0, 8]
+  // softmax_out = at::empty({0}, query.options());
+
+  auto gen = createDIPUGenerator();
+
+  callDiopi(diopiFlashAttention, out, gen, softmax_max, softmax_sum,
+            softmax_out, q, k, v, p_dropout, softmax_scale, is_causal);
+  return std::make_tuple(std::move(out), std::move(softmax_max),
+                         std::move(softmax_sum), std::move(softmax_out),
+                         std::move(gen));
+}
+
+// grad_q, grad_k, grad_v are output args, and should be pre-allocated.
+auto extFlashAttentionBackward(c10::optional<at::Tensor>& grad_q_opt,
+                               c10::optional<at::Tensor>& grad_k_opt,
+                               c10::optional<at::Tensor>& grad_v_opt,
+                               const at::Tensor& grad_out, const at::Tensor& q,
+                               const at::Tensor& k, const at::Tensor& v,
+                               const at::Tensor& out,
+                               const at::Tensor& softmax_max,
+                               const at::Tensor& softmax_sum,
+                               const at::Tensor& softmax_out,
+                               at::Generator& gen, double p_dropout,
+                               double softmax_scale, bool is_causal) {
+  auto grad_q = grad_q_opt.has_value() ? grad_q_opt.value() : at::empty_like(q);
+  auto grad_k = grad_k_opt.has_value() ? grad_k_opt.value() : at::empty_like(k);
+  auto grad_v = grad_v_opt.has_value() ? grad_v_opt.value() : at::empty_like(v);
+  callDiopi(diopiFlashAttentionBackward, grad_q, grad_k, grad_v, grad_out, q, k,
+            v, out, softmax_max, softmax_sum, softmax_out, gen, p_dropout,
+            softmax_scale, is_casual);
+  return std::make_tuple(std::move(grad_q), std::move(grad_k),
+                         std::move(grad_v));
+}
+
 auto extMultiHeadAttentionVarLen(at::Tensor& q, at::Tensor& k, at::Tensor& v,
                                  const at::Tensor& cum_seq_q,
                                  const at::Tensor& cum_seq_k,
@@ -274,6 +338,12 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiMultiHeadAttentionVarLenBackward != nullptr) {
     m.def("mha_varlen_bwd", &extMultiHeadAttentionVarLenBackward,
           "deeplink ext_mha_varlen_bwd");
+  }
+  if (&diopiFlashAttention != nullptr) {
+    m.def("fa_fwd", &extFlashAttention, "deeplink ext_fa_fwd");
+  }
+  if (&diopiFlashAttentionBackward != nullptr) {
+    m.def("fa_bwd", &extFlashAttentionBackward, "deeplink ext_fa_bwd");
   }
   if (&diopiDestIndexCopyKV != nullptr) {
     m.def("dest_index_copy_kv", &extDestIndexCopyKV,
