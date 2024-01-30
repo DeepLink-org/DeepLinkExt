@@ -2,7 +2,6 @@
 
 import torch
 from einops import rearrange
-import deeplink_ext.cpp_extensions as ext
 
 
 # Rotary_emb
