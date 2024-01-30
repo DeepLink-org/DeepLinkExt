@@ -72,12 +72,12 @@ auto extRmsNormBackward(const at::Tensor& input, const at::Tensor& grad_output,
 
 void extApplyRotary(at::Tensor output, const at::Tensor& input,
                     const at::Tensor& cos, const at::Tensor& sin,
-                    const bool conj, const bool interleaved = false) {
+                    const bool conj, const bool interleaved) {
   callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj, interleaved);
 }
 
 auto extMultiHeadAttention(at::Tensor& q, at::Tensor& k, at::Tensor& v,
-                           double dropout_p, bool is_casual,
+                           double dropout_p, bool is_causal,
                            bool return_debug_mask, double scale) {
   const auto batch_size = q.sizes()[0];
   const auto q_seq_len = q.sizes()[1];
@@ -99,7 +99,7 @@ auto extMultiHeadAttention(at::Tensor& q, at::Tensor& k, at::Tensor& v,
   auto debug_attn_mask =
       at::empty(debug_attn_mask_size, debug_attn_mask_option);
 
-  callDiopi(diopiMultiHeadAttention, q, k, v, dropout_p, is_casual,
+  callDiopi(diopiMultiHeadAttention, q, k, v, dropout_p, is_causal,
             return_debug_mask, scale, out, softmax_lse, gen, debug_attn_mask);
   return std::make_tuple(std::move(out), std::move(softmax_lse), std::move(gen),
                          std::move(debug_attn_mask));
@@ -110,7 +110,7 @@ auto extMultiHeadAttentionBackward(const at::Tensor& grad_out,
                                    const at::Tensor& q, const at::Tensor& k,
                                    const at::Tensor& v, const at::Tensor& out,
                                    const at::Tensor& softmax_lse,
-                                   double dropout_p, bool is_casual,
+                                   double dropout_p, bool is_causal,
                                    at::Generator& gen, double scale,
                                    c10::optional<at::Tensor>& grad_q_opt,
                                    c10::optional<at::Tensor>& grad_k_opt,
@@ -119,7 +119,7 @@ auto extMultiHeadAttentionBackward(const at::Tensor& grad_out,
   auto grad_k = grad_k_opt.has_value() ? grad_k_opt.value() : at::empty_like(k);
   auto grad_v = grad_v_opt.has_value() ? grad_v_opt.value() : at::empty_like(v);
   callDiopi(diopiMultiHeadAttentionBackward, grad_out, q, k, v, out,
-            softmax_lse, dropout_p, is_casual, gen, scale, grad_q, grad_k,
+            softmax_lse, dropout_p, is_causal, gen, scale, grad_q, grad_k,
             grad_v);
   return std::make_tuple(std::move(grad_q), std::move(grad_k),
                          std::move(grad_v));
@@ -175,7 +175,7 @@ auto extMultiHeadAttentionVarLen(at::Tensor& q, at::Tensor& k, at::Tensor& v,
                                  const at::Tensor& cum_seq_q,
                                  const at::Tensor& cum_seq_k,
                                  std::int64_t max_q, std::int64_t max_k,
-                                 double dropout_p, bool is_casual,
+                                 double dropout_p, bool is_causal,
                                  bool return_debug_mask, double scale) {
   const auto head_num = q.sizes()[1];
   const auto batch_size = cum_seq_q.sizes()[0] - 1;
@@ -196,7 +196,7 @@ auto extMultiHeadAttentionVarLen(at::Tensor& q, at::Tensor& k, at::Tensor& v,
       at::empty(debug_attn_mask_size, debug_attn_mask_option);
 
   callDiopi(diopiMultiHeadAttentionVarLen, q, k, v, cum_seq_q, cum_seq_k, max_q,
-            max_k, dropout_p, is_casual, return_debug_mask, scale, out,
+            max_k, dropout_p, is_causal, return_debug_mask, scale, out,
             softmax_lse, gen, debug_attn_mask);
   return std::make_tuple(std::move(out), std::move(softmax_lse), std::move(gen),
                          std::move(debug_attn_mask));
@@ -207,7 +207,7 @@ auto extMultiHeadAttentionVarLenBackward(
     const at::Tensor& grad_out, const at::Tensor& q, const at::Tensor& k,
     const at::Tensor& v, const at::Tensor& out, const at::Tensor& softmax_lse,
     const at::Tensor& cum_seq_q, const at::Tensor& cum_seq_k,
-    std::int64_t max_q, std::int64_t max_k, double dropout_p, bool is_casual,
+    std::int64_t max_q, std::int64_t max_k, double dropout_p, bool is_causal,
     at::Generator& gen, double scale, c10::optional<at::Tensor>& grad_q_opt,
     c10::optional<at::Tensor>& grad_k_opt,
     c10::optional<at::Tensor>& grad_v_opt) {
@@ -216,7 +216,7 @@ auto extMultiHeadAttentionVarLenBackward(
   auto grad_v = grad_v_opt.has_value() ? grad_v_opt.value() : at::empty_like(v);
   callDiopi(diopiMultiHeadAttentionVarLenBackward, grad_out, q, k, v, out,
             softmax_lse, cum_seq_q, cum_seq_k, max_q, max_k, dropout_p,
-            is_casual, gen, scale, grad_q, grad_k, grad_v);
+            is_causal, gen, scale, grad_q, grad_k, grad_v);
   return std::make_tuple(std::move(grad_q), std::move(grad_k),
                          std::move(grad_v));
 }
@@ -285,7 +285,8 @@ void extRotaryEmb(at::Tensor& q, const at::Tensor& cos, const at::Tensor& sin) {
   auto dim = q.size(-1);
   auto cos_view = cos.view({seq_len, 1, dim / 2});
   auto sin_view = sin.view({seq_len, 1, dim / 2});
-  callDiopi(diopiRotaryEmbedding, q, q, cos_view, sin_view, false, false);
+  callDiopi(diopiRotaryEmbedding, q, q, cos_view, sin_view, /*conj=*/false,
+            /*interleaved=*/false);
 }
 
 // 判断是否有对应的 diopi 实现:
