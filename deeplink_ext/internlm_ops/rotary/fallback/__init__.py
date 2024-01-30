@@ -1,3 +1,3 @@
 # Copyright (c) 2024, DeepLink.
 
-from .fallback import ApplyRotaryEmb, ApplyRotaryEmbQKV_
+from .fallback import ApplyRotaryEmbQKV_

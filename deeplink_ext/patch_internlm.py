@@ -6,6 +6,7 @@ def _patch_internlm():
     import os
     import sys
     import unittest.mock as mock
+    import torch
     import deeplink_ext.internlm_ops as ext
 
     def _find_or_mock_module(module_name):
@@ -47,15 +48,33 @@ def _patch_internlm():
     def _patch_ops():
         import internlm.model.embedding  # type: ignore
 
-        # TODO(lljbash,gongqiwei): implement a module aligned with rotary_emb
-        def NotImplementedRotaryEnb(*args, **kwargs):
+        def NotImplementedLegacyRotaryEmb(*args, **kwargs):
             raise NotImplementedError(
-                "the patch for apply_rotary_emb_qkv_ (requires rotary_emb) has not been implemented in deeplink_ext yet"
+                "we assume that legacy_apply_rotary_embed is not used in internlm"
             )
 
-        internlm.model.embedding.apply_rotary_emb_qkv_ = NotImplementedRotaryEnb
+        class NonLegacyRotaryEmbQKV_(torch.autograd.Function):
+            """the first 2 dims of qkv has been squeezed"""
+
+            @staticmethod
+            def forward(ctx, qkv: torch.Tensor, *args, **kwargs):
+                unsqueezed_qkv = qkv.view([1] + list(qkv.shape))
+                out: torch.Tensor = ext.rotary.DeepLinkApplyRotaryEmbQKV_.forward(
+                    ctx, unsqueezed_qkv, *args, **kwargs
+                )
+                return out.view(out.shape[1:])
+
+            @staticmethod
+            def backward(ctx, dqkv: torch.Tensor, *args, **kwargs):
+                unqueezed_dqkv = dqkv.view([1] + list(dqkv.shape))
+                out: tuple = ext.rotary.DeepLinkApplyRotaryEmbQKV_.backward(
+                    ctx, unqueezed_dqkv, *args, **kwargs
+                )
+                return (out[0].view(out[0].shape[1:]),) + out[1:]
+
+        internlm.model.embedding.apply_rotary_emb_qkv_ = NonLegacyRotaryEmbQKV_.apply
         internlm.model.embedding.legacy_apply_rotary_embed = (
-            ext.rotary.DeepLinkApplyRotaryEmb.apply
+            NotImplementedLegacyRotaryEmb
         )
         internlm.model.embedding.legacy_apply_rotary_embed_qkv = (
             ext.rotary.DeepLinkApplyRotaryEmbQKV_.apply
