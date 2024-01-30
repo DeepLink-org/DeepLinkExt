@@ -134,37 +134,18 @@ auto extFlashAttention(const at::Tensor& q, const at::Tensor& k,
   const auto k_seq_len = k.sizes()[1];
 
   auto out = at::empty_like(q);
-  // auto softmax_max = at::empty_like(q);
-  // auto softmax_sum = at::empty_like(q);
-  // auto softmax_out = at::empty_like(q);
-
-  // const IntArray softmax_max_size{batch_size, head_num, q_seq_len, 8};
-  // const auto softmax_lse_option = q.options().dtype(at::kFloat);
-  // auto softmax_lse = at::empty(softmax_lse_size, softmax_lse_option);
-
-  // const IntArray softmax_sum_size{batch_size, head_num, q_seq_len, 8};
-  // const auto softmax_lse_option = q.options().dtype(at::kFloat);
-  // auto softmax_lse = at::empty(softmax_lse_size, softmax_lse_option);
-
-  // const IntArray softmax_out_size{batch_size, head_num, q_seq_len, 8};
-  // const auto softmax_lse_option = q.options().dtype(at::kFloat);
-  // auto softmax_lse = at::empty(softmax_lse_size, softmax_lse_option);
-
-  // softmax_max = OpPreparation::apply_tensor_without_format(
-  //     {B, head_num, S0, 8},
-  //     query.options().dtype(at::kFloat));  // [B, N, S0, 8]
-  // softmax_sum = OpPreparation::apply_tensor_without_format(
-  //     {B, head_num, S0, 8},
-  //     query.options().dtype(at::kFloat));  // [B, N, S0, 8]
-  // softmax_out = at::empty({0}, query.options());
+  diopiTensorHandle_t softmax_max;
+  diopiTensorHandle_t softmax_sum;
+  diopiTensorHandle_t softmax_out;
 
   auto gen = createDIPUGenerator();
 
-  callDiopi(diopiFlashAttention, out, gen, softmax_max, softmax_sum,
-            softmax_out, q, k, v, p_dropout, softmax_scale, is_causal);
-  return std::make_tuple(std::move(out), std::move(softmax_max),
-                         std::move(softmax_sum), std::move(softmax_out),
-                         std::move(gen));
+  callDiopi(diopiFlashAttention, out, gen, &softmax_max, &softmax_sum,
+            &softmax_out, q, k, v, p_dropout, softmax_scale, is_causal);
+
+  return std::make_tuple(std::move(out), *fromDiopiTensorHandle(softmax_max),
+                         *fromDiopiTensorHandle(softmax_sum),
+                         std::move(softmax_out), std::move(gen));
 }
 
 // grad_q, grad_k, grad_v are output args, and should be pre-allocated.
@@ -184,7 +165,7 @@ auto extFlashAttentionBackward(c10::optional<at::Tensor>& grad_q_opt,
   auto grad_v = grad_v_opt.has_value() ? grad_v_opt.value() : at::empty_like(v);
   callDiopi(diopiFlashAttentionBackward, grad_q, grad_k, grad_v, grad_out, q, k,
             v, out, softmax_max, softmax_sum, softmax_out, gen, p_dropout,
-            softmax_scale, is_casual);
+            softmax_scale, is_causal);
   return std::make_tuple(std::move(grad_q), std::move(grad_k),
                          std::move(grad_v));
 }
