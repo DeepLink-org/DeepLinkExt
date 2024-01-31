@@ -13,13 +13,13 @@ def _patch_lightllm():
     import lightllm.models.llama.triton_kernel.rotary_emb as rotary_emb_pack  # type: ignore
 
     DEFAULT_PATCH_LIST = [
-        "dest_index_copy_kv",
-        "apply_penalty",
-        "context_attention_inference",
-        "token_attention_inference",
-        "token_softmax_reducev_inference",
-        "rms_norm_lightllm",
-        "rotary_emb",
+        # "dest_index_copy_kv",
+        # "apply_penalty",
+        # "context_attention_inference",
+        # "token_attention_inference",
+        # "token_softmax_reducev_inference",
+        # "rms_norm_lightllm",
+        # "rotary_emb",
     ]
     PATCH_LIST_ENV_NAME = "DEEPLINKEXT_LIGHTLLM_PATCH_LIST"
     patch_list_env = os.environ.get(PATCH_LIST_ENV_NAME)

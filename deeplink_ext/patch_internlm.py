@@ -72,19 +72,19 @@ def _patch_internlm():
                 )
                 return (out[0].view(out[0].shape[1:]),) + out[1:]
 
-        internlm.model.embedding.apply_rotary_emb_qkv_ = NonLegacyRotaryEmbQKV_.apply
-        internlm.model.embedding.legacy_apply_rotary_embed = (
-            NotImplementedLegacyRotaryEmb
-        )
-        internlm.model.embedding.legacy_apply_rotary_embed_qkv = (
-            ext.rotary.DeepLinkApplyRotaryEmbQKV_.apply
-        )
+        # internlm.model.embedding.apply_rotary_emb_qkv_ = NonLegacyRotaryEmbQKV_.apply
+        # internlm.model.embedding.legacy_apply_rotary_embed = (
+        #     NotImplementedLegacyRotaryEmb
+        # )
+        # internlm.model.embedding.legacy_apply_rotary_embed_qkv = (
+        #     ext.rotary.DeepLinkApplyRotaryEmbQKV_.apply
+        # )
 
-        import internlm.model.norm  # type: ignore
+        # import internlm.model.norm  # type: ignore
 
-        internlm.model.norm.RMSNormTorch = (
-            ext.rms_norm.DeepLinkRMSNormWithNormalizedShape
-        )
+        # internlm.model.norm.RMSNormTorch = (
+        #     ext.rms_norm.DeepLinkRMSNormWithNormalizedShape
+        # )
 
     _find_or_mock_module("rotary_emb")
     _find_or_mock_module("fused_dense_lib")
