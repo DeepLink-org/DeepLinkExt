@@ -48,11 +48,6 @@ def _patch_internlm():
     def _patch_ops():
         import internlm.model.embedding  # type: ignore
 
-        def NotImplementedLegacyRotaryEmb(*args, **kwargs):
-            raise NotImplementedError(
-                "we assume that legacy_apply_rotary_embed is not used in internlm"
-            )
-
         class NonLegacyRotaryEmbQKV_(torch.autograd.Function):
             """the first 2 dims of qkv has been squeezed"""
 
@@ -74,7 +69,7 @@ def _patch_internlm():
 
         internlm.model.embedding.apply_rotary_emb_qkv_ = NonLegacyRotaryEmbQKV_.apply
         internlm.model.embedding.legacy_apply_rotary_embed = (
-            NotImplementedLegacyRotaryEmb
+            ext.rotary.DeepLinkApplyRotaryEmb.apply
         )
         internlm.model.embedding.legacy_apply_rotary_embed_qkv = (
             ext.rotary.DeepLinkApplyRotaryEmbQKV_.apply

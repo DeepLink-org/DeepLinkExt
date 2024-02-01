@@ -113,3 +113,9 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
         )
         dqkv[:, :, 1, :, :rotary_dim] = torch.cat((dk1, dk2), dim=-1)
         return dqkv, None, None, None, None, None
+
+
+class ApplyRotaryEmb:
+    @staticmethod
+    def apply(*args, **kwargs):
+        raise NotImplementedError("fallback.ApplyRotaryEmb is not implemented yet")
