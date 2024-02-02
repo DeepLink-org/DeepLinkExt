@@ -4,7 +4,7 @@
 
 融合算子的 diopi 定义及实现放在 DIOPI 库里，本拓展库仅引用。
 
-支持自动 patch InternLM 和 lightllm 中用到的融合算子，将它们替换为 DIOPI 实现。
+支持自动 patch InternLM 和 LightLLM 中用到的融合算子，将它们替换为 DIOPI 实现。
 
 ## Install
 
@@ -23,7 +23,7 @@ import deeplink_ext.patch_internlm
 import internlm
 ```
 
-#lightllm
+### LightLLM
 
 ```python
 import deeplink_ext.patch_lightllm
