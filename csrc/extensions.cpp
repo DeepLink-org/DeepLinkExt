@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include <ATen/core/ATen_fwd.h>
@@ -14,7 +15,8 @@
 #include <c10/util/OptionalArrayRef.h>
 #include <torch/csrc/utils/pybind.h>  // IWYU pragma: keep
 
-#include <pybind11/pybind11.h>
+#include <pybind11/cast.h>
+#include <pybind11/detail/common.h>
 
 #include <diopi/functions_ext.h>
 
@@ -23,8 +25,7 @@
 #include "diopi_helper.h"
 #include "pybind_type_cast.h"
 
-namespace dipu {
-namespace dipu_ext {
+namespace dipu::dipu_ext {
 
 namespace {
 
@@ -297,5 +298,4 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
 }
 
-}  // namespace dipu_ext
-}  // namespace dipu
+}  // namespace dipu::dipu_ext

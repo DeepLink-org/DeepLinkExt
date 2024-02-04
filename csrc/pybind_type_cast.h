@@ -5,24 +5,23 @@
 
 #include <vector>
 
-#include <c10/util/ArrayRef.h>
+#include <ATen/core/ATen_fwd.h>
 #include <c10/util/Optional.h>
-#include <c10/util/OptionalArrayRef.h>
-#include <torch/types.h>
 
-#include <pybind11/pybind11.h>
+#include <Python.h>
+#include <listobject.h>
+#include <pybind11/cast.h>
+#include <pybind11/detail/descr.h>
+#include <pybind11/pytypes.h>
 
-namespace dipu {
-namespace dipu_ext {
+namespace dipu::dipu_ext {
 
 using IntArray = std::vector<at::IntArrayRef::value_type>;
 using OptionalIntArray = c10::optional<IntArray>;
 
-}  // namespace dipu_ext
-}  // namespace dipu
+}  // namespace dipu::dipu_ext
 
-namespace pybind11 {
-namespace detail {
+namespace pybind11::detail {
 
 namespace py = pybind11;
 
@@ -44,7 +43,6 @@ struct type_caster<at::OptionalIntArrayRef> {
   }
 };
 
-}  // namespace detail
-}  // namespace pybind11
+}  // namespace pybind11::detail
 
 #endif /* end of include guard: PYBIND_TYPE_CAST_H_PXMGELYW */

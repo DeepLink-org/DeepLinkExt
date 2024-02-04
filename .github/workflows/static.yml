@@ -1,0 +1,81 @@
+name: static checks on sco
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  DEEPLINK_PATH: /mnt/cache/share/deeplinkci/github/${{ github.repository }}
+  ENV_SOURCE: /mnt/cache/share/platform/env/dipu_latest
+  PROXY_SOURCE: /mnt/cache/share/platform/env/proxy
+  CLANGD_EXEC: /mnt/cache/share/platform/dep/clang-17/bin/clangd
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-checks-on-sco:
+    name: static checks on sco
+    runs-on: tps-sco-ci
+    steps:
+      - name: setting up environment
+        run: |
+          set -euxo pipefail
+          set_env() {
+            echo "$1=$2" >> "${GITHUB_ENV}"
+            eval "$1=\"\$2\""
+          }
+          set_env WORKSPACE "${DEEPLINK_PATH}/${{ github.run_number }}"
+          set_env CODE_SOURCE "${WORKSPACE}/source"
+          set_env CLANGD_TIDY_SOURCE "${WORKSPACE}/clangd-tidy"
+          set_env CLANGD_TIDY_LOG "${WORKSPACE}/clang-tidy.log"
+      - name: clean obsolete workspaces & prepare workspace
+        run: |
+          set -euxo pipefail
+          ls -la ${DEEPLINK_PATH}
+          rm -rf ${WORKSPACE}
+          find ${DEEPLINK_PATH} -maxdepth 1 -mmin +480 -type d -exec bash -c 'echo clean "$0" && rm -rf "$0"' {} \;
+          mkdir -p ${WORKSPACE}
+      - name: checkout code
+        run: |
+          set -euo pipefail
+          source ${PROXY_SOURCE}
+          set -x
+          rm -rf ${CODE_SOURCE}
+          if [ -n "${{ github.event.pull_request.head.repo.full_name }}" ] && [[ ! "${{ github.event.pull_request.head.repo.full_name }}" == "${{ github.repository }}" ]]; then
+            git clone ${{ github.event.pull_request.head.repo.clone_url }} ${CODE_SOURCE}
+            cd ${CODE_SOURCE} && git checkout ${{ github.event.pull_request.head.sha }}
+            git remote add mainrepo https://github.com/${{ github.repository }}.git
+            git fetch mainrepo && git merge --no-edit mainrepo/${{ github.base_ref }}
+          else
+            git clone ${{ github.event.repository.clone_url }} ${CODE_SOURCE} && cd ${CODE_SOURCE}
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              git checkout ${{ github.event.pull_request.head.sha }} && git merge --no-edit ${{ github.base_ref }}
+            else
+              git checkout ${{ github.sha }}
+            fi
+          fi
+          git submodule update --init --recursive
+      - name: checkout clangd-tidy
+        run: |
+          set -euo pipefail
+          source ${PROXY_SOURCE}
+          set -x
+          git -c advice.detachedHead=false clone --depth 1 -b v0.1.3 https://github.com/lljbash/clangd-tidy.git ${CLANGD_TIDY_SOURCE}
+      - name: build
+        run: |
+          set -euxo pipefail
+          srun --job-name=${GITHUB_JOB} bash -c "source ${ENV_SOURCE} && set -euxo pipefail && cd ${CODE_SOURCE} && pip install -e . -v -t install"
+      - name: clang-tidy
+        run: |
+          set -euxo pipefail
+          srun --job-name=${GITHUB_JOB} bash -c "source ${ENV_SOURCE} && set -euxo pipefail && cd ${CODE_SOURCE} && pwd && git ls-files csrc | xargs ${CLANGD_TIDY_SOURCE}/clangd-tidy --clangd-executable=${CLANGD_EXEC} --github --git-root=${CODE_SOURCE} -j4 -o ${CLANGD_TIDY_LOG}" || (cat ${CLANGD_TIDY_LOG} && false)
+      - name: cleanup
+        if: always()
+        run: |
+          set -euxo pipefail
+          rm -rf ${CODE_SOURCE}/build/.cache
