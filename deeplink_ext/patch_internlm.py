@@ -1,5 +1,5 @@
 # Copyright (c) 2024, DeepLink.
-
+import os
 
 def _patch_internlm():
     import importlib.util
@@ -86,9 +86,14 @@ def _patch_internlm():
     _find_or_mock_module("xentropy_cuda_lib")
     _find_or_mock_module("flash_attn_cuda")
     _find_flash_attn()
-    _patch_flash_attn()
-    _patch_ops()
+    ban_patch_internlm_flash_attn = bool(os.environ.get("BAN_PATCH_INTERNLM_FLASH_ATTN", False))
+    if not ban_patch_internlm_flash_attn:
+        _patch_flash_attn()
+    ban_patch_internlm_op = bool(os.environ.get("BAN_PATCH_INTERNLM_OP", False))
+    if not ban_patch_internlm_op:
+        _patch_ops()
     print("[deeplink_ext] patched diopi implementation of internlm\n", end="")
 
-
-_patch_internlm()
+ban_patch_internlm = bool(os.environ.get("BAN_PATCH_INTERNLM", False))
+if not ban_patch_internlm:
+    _patch_internlm()
