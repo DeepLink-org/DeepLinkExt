@@ -87,7 +87,7 @@ def _patch_internlm():
     _find_or_mock_module("flash_attn_cuda")
     _find_flash_attn()
     _patch_flash_attn()
-    _patch_ops()
+    # _patch_ops()
     print("[deeplink_ext] patched diopi implementation of internlm\n", end="")
 
 
