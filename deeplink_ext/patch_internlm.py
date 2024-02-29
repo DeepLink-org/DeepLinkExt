@@ -11,26 +11,12 @@ def _patch_internlm(force_fallback: bool = False):
     import types
     import torch
 
-    if force_fallback:
-        print("[deeplink_ext] force_fallback is set, removing everything from cpp_ext")
-        try:
-            import deeplink_ext.cpp_extensions as cpp_ext
-
-            for attr in dir(cpp_ext):
-                if not attr.startswith("__") and callable(getattr(cpp_ext, attr)):
-                    print(f"[deeplink_ext] removing {attr} from cpp_ext")
-                    delattr(cpp_ext, attr)
-        except ImportError:
-            print(
-                "[deeplink_ext] cpp_extensions not compiled, skipping removal of cpp_ext"
-            )
-
-    import deeplink_ext.internlm_ops as ext
-
-    def _find_or_mock_module(module_name):
+    def _find_or_mock_module(module_name) -> bool:
+        """Find or mock a module. Return True if the module is found, False otherwise."""
         module_spec = importlib.util.find_spec(module_name)
         if module_spec is None:
             sys.modules[module_name] = types.SimpleNamespace()  # type: ignore
+        return module_spec is not None
 
     def _find_flash_attn():
         flash_attn_spec = importlib.util.find_spec("flash_attn")
@@ -47,7 +33,17 @@ def _patch_internlm(force_fallback: bool = False):
                 )
             )
 
+    def _force_fallback():
+        print("[deeplink_ext] force_fallback is set, removing everything from cpp_extensions")
+        import deeplink_ext.cpp_extensions as cpp_ext
+
+        for attr in dir(cpp_ext):
+            if not attr.startswith("__") and callable(getattr(cpp_ext, attr)):
+                print(f"[deeplink_ext] removing {attr} from cpp_extensions")
+                delattr(cpp_ext, attr)
+
     def _patch_flash_attn():
+        import deeplink_ext.internlm_ops as ext
         import flash_attn.losses.cross_entropy  # type: ignore
         import torch.nn
 
@@ -64,6 +60,7 @@ def _patch_internlm(force_fallback: bool = False):
         flash_attn.modules.mha.FlashCrossAttention = ext.mha.DeepLinkCrossAttention
 
     def _patch_ops():
+        import deeplink_ext.internlm_ops as ext
         import internlm.model.embedding  # type: ignore
 
         class NonLegacyRotaryEmbQKV_(torch.autograd.Function):
@@ -106,11 +103,18 @@ def _patch_internlm(force_fallback: bool = False):
             ext.rms_norm.DeepLinkRMSNormWithNormalizedShape(*args, **kwargs)
         )
 
+    cpp_ext_found = _find_or_mock_module("deeplink_ext.cpp_extensions")
+    if not cpp_ext_found:
+        print(
+            "[deeplink_ext] WARNING: cpp_extensions not compiled, falling back to pure python implementation"
+        )
     _find_or_mock_module("rotary_emb")
     _find_or_mock_module("fused_dense_lib")
     _find_or_mock_module("xentropy_cuda_lib")
     _find_or_mock_module("flash_attn_cuda")
     _find_flash_attn()
+    if force_fallback:
+        _force_fallback()
     _patch_flash_attn()
     _patch_ops()
     print("[deeplink_ext] patched diopi implementation of internlm\n", end="")
