@@ -1,18 +1,34 @@
 # Copyright (c) 2024, DeepLink.
 
+import os
 
-def _patch_internlm():
+_force_fallback = os.environ.get("DEEPLINK_EXT_FORCE_FALLBACK", "0") != "0"
+
+
+def _patch_internlm(force_fallback: bool = False):
     import importlib.util
-    import os
     import sys
-    import unittest.mock as mock
+    import types
     import torch
+
+    if force_fallback:
+        print("[deeplink_ext] force_fallback is set, removing everything from cpp_ext")
+        try:
+            import deeplink_ext.cpp_extensions as cpp_ext
+
+            for attr in dir(cpp_ext):
+                if not attr.startswith("__") and callable(getattr(cpp_ext, attr)):
+                    print(f"[deeplink_ext] removing {attr} from cpp_ext")
+                    delattr(cpp_ext, attr)
+        except ImportError:
+            print("[deeplink_ext] cpp_extensions not compiled, skipping removal of cpp_ext")
+
     import deeplink_ext.internlm_ops as ext
 
     def _find_or_mock_module(module_name):
         module_spec = importlib.util.find_spec(module_name)
         if module_spec is None:
-            sys.modules[module_name] = mock.Mock()
+            sys.modules[module_name] = types.SimpleNamespace()  # type: ignore
 
     def _find_flash_attn():
         flash_attn_spec = importlib.util.find_spec("flash_attn")
@@ -52,7 +68,7 @@ def _patch_internlm():
             """the first 2 dims of qkv has been squeezed"""
 
             @staticmethod
-            def forward(ctx, qkv: torch.Tensor, *args, **kwargs):
+            def forward(ctx, qkv: torch.Tensor, *args, **kwargs):  # type: ignore
                 unsqueezed_qkv = qkv.view([1] + list(qkv.shape))
                 out: torch.Tensor = ext.rotary.DeepLinkApplyRotaryEmbQKV_.forward(
                     ctx, unsqueezed_qkv, *args, **kwargs
@@ -60,7 +76,7 @@ def _patch_internlm():
                 return out.view(out.shape[1:])
 
             @staticmethod
-            def backward(ctx, dqkv: torch.Tensor, *args, **kwargs):
+            def backward(ctx, dqkv: torch.Tensor, *args, **kwargs):  # type: ignore
                 unqueezed_dqkv = dqkv.view([1] + list(dqkv.shape))
                 out: tuple = ext.rotary.DeepLinkApplyRotaryEmbQKV_.backward(
                     ctx, unqueezed_dqkv, *args, **kwargs
@@ -77,8 +93,15 @@ def _patch_internlm():
 
         import internlm.model.norm  # type: ignore
 
-        internlm.model.norm.RMSNormTorch = (
-            ext.rms_norm.DeepLinkRMSNormWithNormalizedShape
+        # NOTE: RMSNormTorch class object has been assigned to RMSNorm via
+        #           RMSNorm = try_import_RMSNorm()
+        #       everywhere (e.g. in modeling_llama.py).
+        #       Thus simply reassigning RMSNormTorch to DeepLinkRMSNorm won't work.
+        #       And we don't want to reassign every RMSNorm to DeepLinkRMSNorm.
+        #       So we patch RMSNormTorch.__new__ to create a DeepLinkRMSNorm instance
+        #       whenever RMSNorm(...) is called.
+        internlm.model.norm.RMSNormTorch.__new__ = lambda _, *args, **kwargs: (
+            ext.rms_norm.DeepLinkRMSNormWithNormalizedShape(*args, **kwargs)
         )
 
     _find_or_mock_module("rotary_emb")
@@ -91,4 +114,6 @@ def _patch_internlm():
     print("[deeplink_ext] patched diopi implementation of internlm\n", end="")
 
 
-_patch_internlm()
+_patch_internlm(force_fallback=_force_fallback)
+
+__all__ = []
