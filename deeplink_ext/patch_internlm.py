@@ -34,7 +34,9 @@ def _patch_internlm(force_fallback: bool = False):
             )
 
     def _force_fallback():
-        print("[deeplink_ext] force_fallback is set, removing everything from cpp_extensions")
+        print(
+            "[deeplink_ext] force_fallback is set, removing everything from cpp_extensions"
+        )
         import deeplink_ext.cpp_extensions as cpp_ext
 
         for attr in dir(cpp_ext):
