@@ -21,7 +21,9 @@ def _patch_internlm(force_fallback: bool = False):
                     print(f"[deeplink_ext] removing {attr} from cpp_ext")
                     delattr(cpp_ext, attr)
         except ImportError:
-            print("[deeplink_ext] cpp_extensions not compiled, skipping removal of cpp_ext")
+            print(
+                "[deeplink_ext] cpp_extensions not compiled, skipping removal of cpp_ext"
+            )
 
     import deeplink_ext.internlm_ops as ext
 
