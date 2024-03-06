@@ -36,9 +36,10 @@ jobs:
       - name: clean obsolete workspaces & prepare workspace
         run: |
           set -euxo pipefail
+          mkdir -p ${DEEPLINK_PATH}
           ls -la ${DEEPLINK_PATH}
           rm -rf ${WORKSPACE}
-          find ${DEEPLINK_PATH} -maxdepth 1 -mmin +480 -type d -exec bash -c 'echo clean "$0" && rm -rf "$0"' {} \;
+          find ${DEEPLINK_PATH} -mindepth 1 -maxdepth 1 -mmin +480 -type d -exec bash -c 'echo clean "$0" && rm -rf "$0"' {} \;
           mkdir -p ${WORKSPACE}
       - name: checkout code
         run: |
