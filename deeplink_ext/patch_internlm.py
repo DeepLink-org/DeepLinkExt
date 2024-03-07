@@ -71,7 +71,10 @@ def _patch_internlm(force_fallback: bool = False):
 
     def _patch_ops():
         import deeplink_ext.internlm_ops as ext
+        import flash_attn.layers.rotary  # type: ignore
         import internlm.model.embedding  # type: ignore
+
+        flash_attn.layers.rotary.apply_rotary = ext.rotary.apply_rotary
 
         class NonLegacyRotaryEmbQKV_(torch.autograd.Function):
             """the first 2 dims of qkv has been squeezed"""
@@ -79,26 +82,22 @@ def _patch_internlm(force_fallback: bool = False):
             @staticmethod
             def forward(ctx, qkv: torch.Tensor, *args, **kwargs):  # type: ignore
                 unsqueezed_qkv = qkv.view([1] + list(qkv.shape))
-                out: torch.Tensor = ext.rotary.DeepLinkApplyRotaryEmbQKV_.forward(
-                    ctx, unsqueezed_qkv, *args, **kwargs
+                out: torch.Tensor = (
+                    internlm.model.embedding.LegacyApplyRotaryEmbQKV_.forward(
+                        ctx, unsqueezed_qkv, *args, **kwargs
+                    )
                 )
                 return out.view(out.shape[1:])
 
             @staticmethod
             def backward(ctx, dqkv: torch.Tensor, *args, **kwargs):  # type: ignore
                 unqueezed_dqkv = dqkv.view([1] + list(dqkv.shape))
-                out: tuple = ext.rotary.DeepLinkApplyRotaryEmbQKV_.backward(
+                out: tuple = internlm.model.embedding.LegacyApplyRotaryEmbQKV_.backward(
                     ctx, unqueezed_dqkv, *args, **kwargs
                 )
                 return (out[0].view(out[0].shape[1:]),) + out[1:]
 
         internlm.model.embedding.apply_rotary_emb_qkv_ = NonLegacyRotaryEmbQKV_.apply
-        internlm.model.embedding.legacy_apply_rotary_embed = (
-            ext.rotary.DeepLinkApplyRotaryEmb.apply
-        )
-        internlm.model.embedding.legacy_apply_rotary_embed_qkv = (
-            ext.rotary.DeepLinkApplyRotaryEmbQKV_.apply
-        )
 
         import internlm.model.norm  # type: ignore
 

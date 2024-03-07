@@ -2,12 +2,50 @@
 
 from typing import Optional, Union
 import torch
-from einops import rearrange
-import deeplink_ext.cpp_extensions as ext
-
-assert hasattr(ext, "apply_rotary")
+from einops import rearrange, repeat
 
 __all__ = ["apply_rotary"]
+
+
+def _rotate_half(x: torch.Tensor, interleaved=False):
+    if not interleaved:
+        x1, x2 = x.chunk(2, dim=-1)
+        return torch.cat((-x2, x1), dim=-1)
+    else:
+        x1, x2 = x[..., ::2], x[..., 1::2]
+        return rearrange(
+            torch.stack((-x2, x1), dim=-1), "... d two -> ... (d two)", two=2
+        )
+
+
+def _apply_rotary_emb_torch(
+    x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor, interleaved=False
+):
+    """
+    x: (batch_size, seqlen, nheads, headdim)
+    cos, sin: (seqlen, rotary_dim / 2) or (batch_size, seqlen, rotary_dim / 2)
+    """
+
+    data_type = x.dtype
+    x = x.to(torch.float32)
+    cos = cos.to(torch.float32)
+    sin = sin.to(torch.float32)
+
+    ro_dim = cos.shape[-1] * 2
+    assert ro_dim <= x.shape[-1]
+    cos = repeat(
+        cos, "... d -> ... 1 (2 d)" if not interleaved else "... d -> ... 1 (d 2)"
+    )
+    sin = repeat(
+        sin, "... d -> ... 1 (2 d)" if not interleaved else "... d -> ... 1 (d 2)"
+    )
+    return torch.cat(
+        [
+            x[..., :ro_dim] * cos + _rotate_half(x[..., :ro_dim], interleaved) * sin,
+            x[..., ro_dim:],
+        ],
+        dim=-1,
+    ).to(data_type)
 
 
 def apply_rotary(
@@ -51,15 +89,10 @@ def apply_rotary(
         x.dtype == cos.dtype
     ), f"Input and cos/sin must have the same dtype, got {x.dtype} and {cos.dtype}"
 
-    output = torch.empty_like(x) if not inplace else x
-    if rotary_dim < headdim and not inplace:
-        output[..., rotary_dim:].copy_(x[..., rotary_dim:])
-    ext.apply_rotary(
-        output,
-        x,
-        rearrange(cos[:seqlen], "s d -> s 1 d"),
-        rearrange(sin[:seqlen], "s d -> s 1 d"),
-        conjugate,
-        interleaved,
-    )
-    return output
+    if conjugate:
+        sin = -sin
+    out = _apply_rotary_emb_torch(x, cos[:seqlen], sin[:seqlen], interleaved)
+    if inplace:
+        x.copy_(out)
+        out = x
+    return out
