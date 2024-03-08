@@ -37,7 +37,15 @@ def _patch_internlm(force_fallback: bool = False):
         print(
             "[deeplink_ext] force_fallback is set, removing everything from cpp_extensions"
         )
-        import deeplink_ext.cpp_extensions as cpp_ext
+        try:
+            import deeplink_ext.cpp_extensions as cpp_ext
+        except Exception as e:
+            print(
+                "[deeplink_ext] WARNING: failed to import deeplink_ext.cpp_extensions, "
+                "so everything will be falled back to pure python implementation. "
+                "Please check this import failure if you are using torch_dipu."
+            )
+            return
 
         for attr in dir(cpp_ext):
             if not attr.startswith("__") and callable(getattr(cpp_ext, attr)):
