@@ -4,20 +4,25 @@
 #define DIOPI_HELPER_H_WTUAZNIC
 
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <utility>
 
+#include <ATen/core/ATen_fwd.h>
 #include <ATen/core/Generator.h>
 #include <ATen/core/TensorBody.h>
+#include <c10/core/DeviceType.h>
 #include <c10/util/Optional.h>
-#include <c10/util/OptionalArrayRef.h>
+
+#include <diopi/diopirt.h>
+#include <diopi/functions.h>
 
 #include <csrc_dipu/base/basedef.h>
 #include <csrc_dipu/diopirt/diopirt_impl.h>
+#include <csrc_dipu/runtime/core/DIPUStream.h>
 #include <csrc_dipu/runtime/device/basedef.h>
 
-namespace dipu {
-namespace dipu_ext {
+namespace dipu::dipu_ext {
 
 namespace type_traits {
 
@@ -121,7 +126,6 @@ void callDiopi(const DiopiFunc& diopi_func, Args&&... args) {
       callDiopiKeepContext(diopi_func, std::forward<Args>(args)...);
 }
 
-}  // namespace dipu_ext
-}  // namespace dipu
+}  // namespace dipu::dipu_ext
 
 #endif /* end of include guard: DIOPI_HELPER_H_WTUAZNIC */
