@@ -26,12 +26,40 @@ def test_rms_norm(BaseRmsNorm, DeeplinkRmsNorm, rtol=1e-4, atol=1e-3):
 
     return np.allclose(grad_x_base, grad_x_intern, rtol, atol, True)
 
+def test_rms_normfp16(BaseRmsNorm, DeeplinkRmsNorm, rtol=1e-2, atol=1e-2):
+    x_base = torch.randn(5, 5, requires_grad=True).to(dtype=torch.float16).cuda()
+    x_base.retain_grad()
+
+    x_intern = x_base.clone()
+    x_intern.retain_grad()
+
+    hidden_size = 5
+
+    model_base = BaseRmsNorm(hidden_size).to(dtype=torch.float16).cuda()
+    out_base = model_base(x_base)
+    out_base.backward(torch.ones_like(x_base))
+    grad_x_base = x_base.grad.cpu().numpy()
+
+    model_deeplink = DeeplinkRmsNorm(hidden_size).to(dtype=torch.float16).cuda()
+    out_deeplink = model_deeplink(x_intern)
+    out_deeplink.backward(torch.ones_like(x_base))
+    grad_x_intern = x_intern.grad.cpu().numpy()
+
+    return np.allclose(grad_x_base, grad_x_intern, rtol, atol, True)
 
 print(
     "Test case: normalized_shape == None: grad_inputs closed ? ",
     test_rms_norm(ext.fallback.RMSNorm, ext.DeepLinkRMSNorm),
 )
 print(
+    "Test case fp16: normalized_shape == None: grad_inputs closed ? ",
+    test_rms_normfp16(ext.fallback.RMSNorm, ext.DeepLinkRMSNorm),
+)
+print(
     "Test case: normalized_shape == weight.size(): grad_inputs closed ? ",
     test_rms_norm(ext.fallback.RMSNorm, ext.DeepLinkRMSNormWithNormalizedShape),
+)
+print(
+    "Test case fp16: normalized_shape == weight.size(): grad_inputs closed ? ",
+    test_rms_normfp16(ext.fallback.RMSNorm, ext.DeepLinkRMSNormWithNormalizedShape),
 )

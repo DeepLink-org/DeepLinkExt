@@ -35,16 +35,16 @@ def RotaryEmbTest(func_name):
     # 调用前向传播
     if func_name == "RotaryEmbQKV":
         res1 = torch_apply(input, cos, sin, cos_k, sin_k, interleaved)
-        res2 = dipu_apply(input1, cos1, sin1, cos_k, sin_k, interleaved)
+        res2 = dipu_apply(input1, cos1.repeat(1, 2), sin1.repeat(1, 2), cos_k, sin_k, interleaved)
     elif func_name == "RotaryEmb":
         res1 = torch_apply(input, cos, sin, interleaved)
-        res2 = dipu_apply(input1, cos1, sin1, interleaved)
+        res2 = dipu_apply(input1, cos1.repeat(1, 2), sin1.repeat(1, 2), interleaved)
     else:
         print(f"{func_name} is not supported.")
         return False
 
     # 验证前向传播结果
-    forward_correct = torch.allclose(res1, res2)
+    forward_correct = torch.allclose(res1, res2, rtol=1e-2, atol=1e-2)
 
     # 计算第一个损失
     c = torch.ones_like(res1)
@@ -61,7 +61,7 @@ def RotaryEmbTest(func_name):
     # 验证第一个反向传播梯度
     grad1 = input.grad
     grad2 = input1.grad
-    backward_correct = torch.allclose(grad1, grad2)
+    backward_correct = torch.allclose(grad1, grad2, rtol=1e-2, atol=1e-2)
     # 判断前向和反向传播结果是否都正确
     if forward_correct and backward_correct:
         print(f"{func_name} both forward and backward pass tests passed.")

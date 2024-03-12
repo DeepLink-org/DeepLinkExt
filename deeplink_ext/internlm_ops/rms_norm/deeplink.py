@@ -29,35 +29,20 @@ class _DeepLinkRMSNormFunctionWithNormalizedShape(torch.autograd.Function):
     @staticmethod
     def forward(ctx, hidden_states, weight, bias, eps, normalized_shape):
         output, inv_rms = ext.rms_norm(
-            hidden_states.float(), normalized_shape, weight.float(), bias.float(), eps
+            hidden_states, normalized_shape, weight, bias, eps
         )
-        output = output.half()
-        inv_rms = inv_rms.half()
         ctx.save_for_backward(hidden_states, inv_rms, weight, bias, torch.tensor(eps))
-        hidden_states = hidden_states.half()
-        weight = weight.half()
-        bias = bias.half()
         ctx.intermediate_results = normalized_shape
         return output
 
     @staticmethod
     def backward(ctx, grad_output):
+        normalized_shape = ctx.intermediate_results
         hidden_states, inv_rms, weight, bias, eps_tensor = ctx.saved_tensors
         eps = eps_tensor.item()
-        normalized_shape = ctx.intermediate_results
-        hidden_states = hidden_states.float()
-        inv_rms = inv_rms.float()
-        weight = weight.float()
-        bias = bias.float()
-        grad_output = grad_output.float()
         grad_input, grad_weight, grad_bias = ext.rms_norm_backward(
             hidden_states, grad_output, inv_rms, normalized_shape, weight, bias, eps
         )
-        grad_output = grad_output.half()
-        hidden_states = hidden_states.half()
-        inv_rms = inv_rms.half()
-        weight = weight.half()
-        bias = bias.half()
         return grad_input, grad_weight, grad_bias, None, None
 
 
@@ -70,6 +55,8 @@ class DeepLinkRMSNorm(torch.nn.Module):
         self.variance_epsilon = eps
 
     def forward(self, hidden_states):
+        if (hidden_states.dtype != self.weight.dtype):
+            hidden_states = hidden_states.to(dtype=self.weight.dtype)
         return _DeepLinkRMSNormFunction.apply(
             hidden_states, self.weight, self.bias, self.variance_epsilon
         )
@@ -83,6 +70,8 @@ class DeepLinkRMSNormWithNormalizedShape(torch.nn.Module):
         self.variance_epsilon = eps
 
     def forward(self, hidden_states):
+        if (hidden_states.dtype != self.weight.dtype):
+            hidden_states = hidden_states.to(dtype=self.weight.dtype)
         return _DeepLinkRMSNormFunctionWithNormalizedShape.apply(
             hidden_states,
             self.weight,
