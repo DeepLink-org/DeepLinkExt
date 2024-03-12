@@ -78,12 +78,12 @@ class DeepLinkCrossAttention(nn.Module):
         q,
         kv,
         causal=None,
-        cu_seqlens_q=None,
-        max_seqlen_q=None,
+        cu_seqlens=None,
+        max_seqlen=None,
         cu_seqlens_k=None,
         max_seqlen_k=None,
     ):
-        if cu_seqlens_q is None:
+        if cu_seqlens is None:
             # padded
             return DeepLinkMultiHeadAttentionKVPackedFunc.apply(
                 q,
@@ -98,9 +98,9 @@ class DeepLinkCrossAttention(nn.Module):
             return DeepLinkMultiHeadAttentionVarLenKVPackedFunc.apply(
                 q,
                 kv,
-                cu_seqlens_q,
+                cu_seqlens,
                 cu_seqlens_k,
-                max_seqlen_q,
+                max_seqlen,
                 max_seqlen_k,
                 self.dropout_p if self.training else 0.0,
                 self.softmax_scale,
