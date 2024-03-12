@@ -16,7 +16,9 @@ pip install -e .
 
 ## Usage
 
-### InternLM
+### InternEvo
+
+适配版本 https://github.com/DeepLink-org/InternEvo/tree/deeplinkext
 
 ```python
 import deeplink_ext.patch_internlm
