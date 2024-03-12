@@ -2,6 +2,8 @@
 
 import os
 
+__all__ = []
+
 _force_fallback = os.environ.get("DEEPLINK_EXT_FORCE_FALLBACK", "0") != "0"
 
 
@@ -99,18 +101,44 @@ def _patch_internlm(force_fallback: bool = False):
 
         internlm.model.embedding.apply_rotary_emb_qkv_ = NonLegacyRotaryEmbQKV_.apply
 
+        import builtins
         import internlm.model.norm  # type: ignore
 
-        # NOTE: RMSNormTorch class object has been assigned to RMSNorm via
+        # HACK: RMSNormTorch class object has been assigned to RMSNorm via
         #           RMSNorm = try_import_RMSNorm()
-        #       everywhere (e.g. in modeling_llama.py).
-        #       Thus simply reassigning RMSNormTorch to DeepLinkRMSNorm won't work.
-        #       And we don't want to reassign every RMSNorm to DeepLinkRMSNorm.
-        #       So we patch RMSNormTorch.__new__ to create a DeepLinkRMSNorm instance
-        #       whenever RMSNorm(...) is called.
+        #       everywhere (e.g. in modeling_llama.py). Thus simply reassigning
+        #       RMSNormTorch to DeepLinkRMSNorm won't work. But we don't want to
+        #       reassign every RMSNorm to DeepLinkRMSNorm. So we patch
+        #       RMSNormTorch.__new__ to create a DeepLinkRMSNorm instance whenever
+        #       RMSNorm(...) is called.
+        #       This is not enough though. In latest internevo, there are checks like
+        #           if isinstance(module, RMSNorm):
+        #       which will fail under this patch. Thus we need also trick `isinstance`.
         internlm.model.norm.RMSNormTorch.__new__ = lambda _, *args, **kwargs: (
             ext.rms_norm.DeepLinkRMSNormWithNormalizedShape(*args, **kwargs)
         )
+        isinstance_orig = builtins.isinstance
+        builtins.isinstance = lambda obj, class_or_tuple: (
+            isinstance_orig(obj, class_or_tuple)
+            or (
+                (
+                    internlm.model.norm.RMSNormTorch
+                    in (
+                        class_or_tuple
+                        if isinstance_orig(class_or_tuple, tuple)
+                        else (class_or_tuple,)
+                    )
+                )
+                and isinstance_orig(
+                    obj, ext.rms_norm.DeepLinkRMSNormWithNormalizedShape
+                )
+            )
+        )
+
+        import fused_dense_lib  # type: ignore
+        import internlm.model.utils  # type: ignore
+
+        fused_dense_lib.linear_bias_wgrad = internlm.model.utils.linear_bias_wgrad_torch
 
     cpp_ext_found = _find_or_mock_module("deeplink_ext.cpp_extensions")
     if not cpp_ext_found:
@@ -130,5 +158,3 @@ def _patch_internlm(force_fallback: bool = False):
 
 
 _patch_internlm(force_fallback=_force_fallback)
-
-__all__ = []
