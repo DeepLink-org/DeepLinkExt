@@ -18,7 +18,7 @@ IncludeCategories:
   - Regex:         '^("|<)Python\.h'
     Priority:      50
     CaseSensitive: false
-  - Regex:         '^("|<)(frameobject|structmember)\.h'
+  - Regex:         '^("|<)(frameobject|structmember|listobject)\.h'
     Priority:      50
     SortPriority:  51
     CaseSensitive: false

@@ -7,5 +7,10 @@ except:
         "[deeplink_ext] rms_norm is not implemented in diopi. Falling back to the slower implementation.\n",
         end="",
     )
-    from .fallback import RMSNorm as DeepLinkRMSNorm
+    from .fallback import (
+        RMSNorm as DeepLinkRMSNorm,
+        RMSNorm as DeepLinkRMSNormWithNormalizedShape,  # TODO(lljbash): check how this works
+    )
 from . import fallback
+
+__all__ = ["DeepLinkRMSNorm", "DeepLinkRMSNormWithNormalizedShape", "fallback"]

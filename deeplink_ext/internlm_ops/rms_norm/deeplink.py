@@ -63,7 +63,7 @@ class _DeepLinkRMSNormFunctionWithNormalizedShape(torch.autograd.Function):
 
 # 定义一个 nn.Module 包裹这个自定义函数
 class DeepLinkRMSNorm(torch.nn.Module):
-    def __init__(self, hidden_size, eps=1e-6):
+    def __init__(self, hidden_size, eps=1e-5):
         super().__init__()
         self.weight = torch.nn.Parameter(torch.ones(hidden_size))
         self.bias = torch.zeros(hidden_size).cuda()
@@ -76,7 +76,7 @@ class DeepLinkRMSNorm(torch.nn.Module):
 
 
 class DeepLinkRMSNormWithNormalizedShape(torch.nn.Module):
-    def __init__(self, hidden_size, eps=1e-6):
+    def __init__(self, hidden_size, eps=1e-5):
         super().__init__()
         self.weight = torch.nn.Parameter(torch.ones(hidden_size))
         self.bias = torch.zeros(hidden_size).cuda()
