@@ -13,16 +13,16 @@ class DeepLinkApplyRotaryEmbQKV_(torch.autograd.Function):
         batch, seqlen, three, nheads, headdim = qkv.shape
         assert three == 3
         rotary_seqlen, rotary_dim = cos.shape
+        cos_k = cos if cos_k is None else cos_k
+        sin_k = sin if sin_k is None else sin_k
         assert (
             sin.shape == cos_k.shape == sin_k.shape == (rotary_seqlen, rotary_dim)
         )
         # TODO: better method to check whether cos/sin is half or full length
+        assert (rotary_dim <= headdim or rotary_dim * 2 <= headdim)
         if rotary_dim * 2 <= headdim:
             rotary_dim = rotary_dim * 2
-        assert (rotary_dim <= headdim or rotary_dim * 2 <= headdim)
         assert seqlen <= rotary_seqlen
-        cos_k = cos if cos_k is None else cos_k
-        sin_k = sin if sin_k is None else sin_k
         qk_ro = qkv[:, :, :2, :, :rotary_dim].view([batch, seqlen, 2 * nheads, headdim])
         cos_qk = None
         sin_qk = None
@@ -79,9 +79,9 @@ class DeepLinkApplyRotaryEmb(torch.autograd.Function):
         rotary_seqlen, rotary_dim = cos.shape
         assert sin.shape == (rotary_seqlen, rotary_dim)
         # TODO: better method to check whether cos/sin is half or full length
+        assert (rotary_dim <= headdim or rotary_dim * 2 <= headdim)
         if rotary_dim * 2 <= headdim:
             rotary_dim = rotary_dim * 2
-        assert (rotary_dim <= headdim or rotary_dim * 2 <= headdim)
         assert seqlen <= rotary_seqlen
         x_ro = x[..., :rotary_dim]
         out = torch.empty_like(x) if not inplace else x
