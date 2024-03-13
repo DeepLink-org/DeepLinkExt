@@ -24,6 +24,8 @@ class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def backward(ctx, dout):
         q, kv, out, attention_mask, dropout_mask, softmax_max, softmax_sum, softmax_out = ctx.saved_tensors
+        if dropout_mask is None:
+            dropout_mask = torch.Tensor().cuda()
         dq = torch.empty_like(q)
         dkv = torch.empty_like(kv)
         ext.fa_bwd(
