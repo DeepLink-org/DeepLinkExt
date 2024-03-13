@@ -219,6 +219,24 @@ void extApplyPenalty(at::Tensor& logits, const at::Tensor& presence_penalty,
             p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
 }
 
+void extPromptFlashAttention(at::Tensor& out, const at::Tensor& q,
+                             const at::Tensor& k, const at::Tensor& v,
+                             const c10::optional<at::Tensor>& padding_mask = {},
+                             const c10::optional<at::Tensor>& atten_mask = {},
+                             const OptionalIntArray& actual_seq_lengths = {},
+                             int64_t num_heads = 1, double scale_value = 1.0,
+                             int64_t pre_tokens = 2147473647,
+                             int64_t next_tokens = 0,
+                             const std::string& input_layout = "BSH",
+                             int64_t num_key_value_heads = 0) {
+  at::OptionalIntArrayRef actual_seq_lengths_at =
+      optionalIntArrayToIntArrayRefOrDefault(actual_seq_lengths,
+                                             at::IntArrayRef());
+  callDiopi(diopiPromptFlashAttention, out, q, k, v, padding_mask, atten_mask,
+            actual_seq_lengths_at, num_heads, scale_value, pre_tokens,
+            next_tokens, input_layout.c_str(), num_key_value_heads);
+}
+
 // For lightllm, rms_norm reuses the diopi implementation of internlm
 auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
                         float eps) {
@@ -295,6 +313,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
   if (&diopiApplyPenalty != nullptr) {
     m.def("apply_penalty", &extApplyPenalty, "deeplink ext_apply_penalty");
+  }
+  if (&diopiPromptFlashAttention != nullptr) {
+    m.def("prompt_flash_attention", &extPromptFlashAttention,
+          "deeplink ext_prompt_flash_attention");
   }
 }
 
