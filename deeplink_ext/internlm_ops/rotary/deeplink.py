@@ -1,6 +1,7 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
+import torch_dipu
 from einops import rearrange
 import deeplink_ext.cpp_extensions as ext
 
@@ -20,7 +21,7 @@ class DeepLinkApplyRotaryEmbQKV_(torch.autograd.Function):
         )
         # TODO: better method to check whether cos/sin is half or full length
         assert (rotary_dim <= headdim or rotary_dim * 2 <= headdim)
-        if rotary_dim * 2 <= headdim:
+        if rotary_dim * 2 <= headdim and torch_dipu.dipu.vendor_type == "NPU":
             rotary_dim = rotary_dim * 2
         assert seqlen <= rotary_seqlen
         qk_ro = qkv[:, :, :2, :, :rotary_dim].view([batch, seqlen, 2 * nheads, headdim])

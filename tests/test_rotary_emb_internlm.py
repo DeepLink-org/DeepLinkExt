@@ -35,10 +35,10 @@ def RotaryEmbTest(func_name):
     # 调用前向传播
     if func_name == "RotaryEmbQKV":
         res1 = torch_apply(input, cos, sin, cos_k, sin_k, interleaved)
-        res2 = dipu_apply(input1, cos1.repeat(1, 2), sin1.repeat(1, 2), cos_k, sin_k, interleaved)
+        res2 = dipu_apply(input1, cos1, sin1, cos_k, sin_k, interleaved)
     elif func_name == "RotaryEmb":
         res1 = torch_apply(input, cos, sin, interleaved)
-        res2 = dipu_apply(input1, cos1.repeat(1, 2), sin1.repeat(1, 2), interleaved)
+        res2 = dipu_apply(input1, cos1, sin1, interleaved)
     else:
         print(f"{func_name} is not supported.")
         return False
