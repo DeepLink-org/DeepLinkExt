@@ -148,7 +148,7 @@ def _patch_internlm(force_fallback: bool = False):
     _find_or_mock_module("rotary_emb")
     _find_or_mock_module("fused_dense_lib")
     _find_or_mock_module("xentropy_cuda_lib")
-    _find_or_mock_module("flash_attn_cuda")
+    _find_or_mock_module("flash_attn_2_cuda")
     _find_flash_attn()
     if force_fallback:
         _force_fallback()
