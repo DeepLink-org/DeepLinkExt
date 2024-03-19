@@ -20,6 +20,7 @@
 
 #include <diopi/functions_ext.h>
 
+#include <csrc_dipu/diopirt/diopirt_impl.h>
 #include <csrc_dipu/runtime/core/DIPUGeneratorImpl.h>
 
 #include "diopi_helper.h"
@@ -122,6 +123,57 @@ auto extMultiHeadAttentionBackward(const at::Tensor& grad_out,
   callDiopi(diopiMultiHeadAttentionBackward, grad_out, q, k, v, out,
             softmax_lse, dropout_p, is_causal, gen, scale, grad_q, grad_k,
             grad_v);
+  return std::make_tuple(std::move(grad_q), std::move(grad_k),
+                         std::move(grad_v));
+}
+
+// for ascend
+auto extFlashAttention(const at::Tensor& q, const at::Tensor& k,
+                       const at::Tensor& v, double p_dropout,
+                       double softmax_scale, bool is_causal) {
+  auto out = at::empty_like(q);
+  diopiTensorHandle_t attention_mask = nullptr;
+  diopiTensorHandle_t dropout_mask = nullptr;
+  diopiTensorHandle_t softmax_max = nullptr;
+  diopiTensorHandle_t softmax_sum = nullptr;
+  diopiTensorHandle_t softmax_out = nullptr;
+
+  auto gen = createDIPUGenerator();
+
+  [[maybe_unused]] auto context = callDiopiKeepContext(
+      diopiFlashAttention, out, &attention_mask, &dropout_mask, &softmax_max,
+      &softmax_sum, &softmax_out, gen, q, k, v, p_dropout, softmax_scale,
+      is_causal);
+
+  return std::make_tuple(
+      std::move(out),
+      attention_mask
+          ? *dipu::diopi_helper::fromDiopiTensorHandle(attention_mask)
+          : at::Tensor(),
+      dropout_mask ? *dipu::diopi_helper::fromDiopiTensorHandle(dropout_mask)
+                   : at::Tensor(),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_max),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_sum),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
+}
+
+// for ascend
+// grad_q, grad_k, grad_v are output args, and should be pre-allocated.
+auto extFlashAttentionBackward(
+    c10::optional<at::Tensor>& grad_q_opt,
+    c10::optional<at::Tensor>& grad_k_opt,
+    c10::optional<at::Tensor>& grad_v_opt, const at::Tensor& grad_out,
+    const at::Tensor& q, const at::Tensor& k, const at::Tensor& v,
+    const at::Tensor& out, const at::Tensor& attention_mask,
+    const at::Tensor& dropout_mask, const at::Tensor& softmax_max,
+    const at::Tensor& softmax_sum, const at::Tensor& softmax_out,
+    double p_dropout, double softmax_scale) {
+  auto grad_q = grad_q_opt.has_value() ? grad_q_opt.value() : at::empty_like(q);
+  auto grad_k = grad_k_opt.has_value() ? grad_k_opt.value() : at::empty_like(k);
+  auto grad_v = grad_v_opt.has_value() ? grad_v_opt.value() : at::empty_like(v);
+  callDiopi(diopiFlashAttentionBackward, grad_q, grad_k, grad_v, grad_out, q, k,
+            v, out, attention_mask, dropout_mask, softmax_max, softmax_sum,
+            softmax_out, p_dropout, softmax_scale);
   return std::make_tuple(std::move(grad_q), std::move(grad_k),
                          std::move(grad_v));
 }
@@ -276,6 +328,12 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiMultiHeadAttentionVarLenBackward != nullptr) {
     m.def("mha_varlen_bwd", &extMultiHeadAttentionVarLenBackward,
           "deeplink ext_mha_varlen_bwd");
+  }
+  if (&diopiFlashAttention != nullptr) {
+    m.def("fa_fwd", &extFlashAttention, "deeplink ext_fa_fwd");
+  }
+  if (&diopiFlashAttentionBackward != nullptr) {
+    m.def("fa_bwd", &extFlashAttentionBackward, "deeplink ext_fa_bwd");
   }
   if (&diopiDestIndexCopyKV != nullptr) {
     m.def("dest_index_copy_kv", &extDestIndexCopyKV,
