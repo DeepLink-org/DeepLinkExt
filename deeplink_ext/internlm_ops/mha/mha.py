@@ -49,7 +49,6 @@ class DeepLinkSelfAttention(nn.Module):
                 self.dropout_p if self.training else 0.0,
                 self.softmax_scale,
                 causal if causal is not None else self.causal,
-                False,
             )
         # else:
         #     # unpadded
@@ -89,7 +88,6 @@ class DeepLinkCrossAttention(nn.Module):
                 self.dropout_p if self.training else 0.0,
                 self.softmax_scale,
                 causal if causal is not None else self.causal,
-                False,
             )
         # else:
         #     # unpadded
