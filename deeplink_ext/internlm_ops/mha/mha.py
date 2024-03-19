@@ -1,10 +1,6 @@
 # Copyright (c) 2023, DeepLink.
 
 import torch.nn as nn
-# from .mha_qkvpacked_func import DeepLinkMultiHeadAttentionQKVPackedFunc
-# from .mha_varlen_qkvpacked_func import DeepLinkMultiHeadAttentionVarLenQKVPackedFunc
-# from .mha_kvpacked_func import DeepLinkMultiHeadAttentionKVPackedFunc
-# from .mha_varlen_kvpacked_func import DeepLinkMultiHeadAttentionVarLenKVPackedFunc
 from .fa_qkvpacked_func import DeepLinkFlashAttentionQKVPackedFunc
 from .fa_kvpacked_func import DeepLinkFlashAttentionKVPackedFunc
 from .fa_varlen_qkvpacked_func import DeepLinkFlashAttentionVarLenQKVPackedFunc
@@ -49,13 +45,6 @@ class DeepLinkSelfAttention(nn.Module):
         """
         if cu_seqlens is None:
             # padded
-            # return DeepLinkMultiHeadAttentionQKVPackedFunc.apply(
-            #     qkv,
-            #     self.dropout_p if self.training else 0.0,
-            #     self.softmax_scale,
-            #     causal if causal is not None else self.causal,
-            #     False,
-            # )
             # for ascend
             return DeepLinkFlashAttentionQKVPackedFunc.apply(
                 qkv,
@@ -65,6 +54,7 @@ class DeepLinkSelfAttention(nn.Module):
             )
         else:
             # unpadded
+            # for ascend
             return DeepLinkFlashAttentionVarLenQKVPackedFunc.apply(
                 qkv,
                 cu_seqlens,
@@ -94,14 +84,6 @@ class DeepLinkCrossAttention(nn.Module):
     ):
         if cu_seqlens_q is None:
             # padded
-            # return DeepLinkMultiHeadAttentionKVPackedFunc.apply(
-            #     q,
-            #     kv,
-            #     self.dropout_p if self.training else 0.0,
-            #     self.softmax_scale,
-            #     causal if causal is not None else self.causal,
-            #     False,
-            # )
             # for ascend
             return DeepLinkFlashAttentionKVPackedFunc.apply(
                 q,
@@ -112,6 +94,7 @@ class DeepLinkCrossAttention(nn.Module):
             )
         else:
             # unpadded
+            # for ascend
             return DeepLinkFlashAttentionVarLenKVPackedFunc.apply(
                 q,
                 kv,
