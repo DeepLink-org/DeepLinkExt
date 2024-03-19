@@ -19,17 +19,22 @@ class DeepLinkFlashAttentionVarLenQKVPackedFunc(torch.autograd.Function):
     ):
         if softmax_scale is None:
             softmax_scale = qkv.shape[-1] ** (-0.5)
-        out, attention_mask, dropout_mask, softmax_max, softmax_sum, softmax_out = (
-            ext.fa_varlen_fwd(
-                qkv[:, 0],
-                qkv[:, 1],
-                qkv[:, 2],
-                cu_seqlens[1:].to(torch.int64),
-                cu_seqlens[1:].to(torch.int64),
-                dropout_p,
-                softmax_scale,
-                causal,
-            )
+        (
+            out,
+            attention_mask,
+            dropout_mask,
+            softmax_max,
+            softmax_sum,
+            softmax_out,
+        ) = ext.fa_varlen_fwd(
+            qkv[:, 0],
+            qkv[:, 1],
+            qkv[:, 2],
+            cu_seqlens[1:].to(torch.int64),
+            cu_seqlens[1:].to(torch.int64),
+            dropout_p,
+            softmax_scale,
+            causal,
         )
         ctx.save_for_backward(
             qkv,
