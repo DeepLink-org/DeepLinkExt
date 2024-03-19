@@ -6,6 +6,7 @@ from .fa_kvpacked_func import DeepLinkFlashAttentionKVPackedFunc
 from .fa_varlen_qkvpacked_func import DeepLinkFlashAttentionVarLenQKVPackedFunc
 from .fa_varlen_kvpacked_func import DeepLinkFlashAttentionVarLenKVPackedFunc
 
+
 class DeepLinkSelfAttention(nn.Module):
     """Performs self-attention with support for both padded and unpadded sequences.
 

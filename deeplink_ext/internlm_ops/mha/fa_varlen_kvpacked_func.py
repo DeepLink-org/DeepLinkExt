@@ -22,18 +22,29 @@ class DeepLinkFlashAttentionVarLenKVPackedFunc(torch.autograd.Function):
     ):
         if softmax_scale is None:
             softmax_scale = q.shape[-1] ** (-0.5)
-        out, attention_mask, dropout_mask, softmax_max, softmax_sum, softmax_out = ext.fa_varlen_fwd(
-            q,
-            kv[:, :, 0],
-            kv[:, :, 1],
-            cu_seqlens_q[1:],
-            cu_seqlens_k[1:],
-            dropout_p,
-            softmax_scale,
-            causal
+        out, attention_mask, dropout_mask, softmax_max, softmax_sum, softmax_out = (
+            ext.fa_varlen_fwd(
+                q,
+                kv[:, :, 0],
+                kv[:, :, 1],
+                cu_seqlens_q[1:],
+                cu_seqlens_k[1:],
+                dropout_p,
+                softmax_scale,
+                causal,
+            )
         )
         ctx.save_for_backward(
-            q, kv, out, attention_mask, dropout_mask, softmax_max, softmax_sum, softmax_out, cu_seqlens_q, cu_seqlens_k
+            q,
+            kv,
+            out,
+            attention_mask,
+            dropout_mask,
+            softmax_max,
+            softmax_sum,
+            softmax_out,
+            cu_seqlens_q,
+            cu_seqlens_k,
         )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
@@ -46,15 +57,17 @@ class DeepLinkFlashAttentionVarLenKVPackedFunc(torch.autograd.Function):
             q,
             kv,
             out,
-            attention_mask, 
-            dropout_mask, 
-            softmax_max, 
-            softmax_sum, 
+            attention_mask,
+            dropout_mask,
+            softmax_max,
+            softmax_sum,
             softmax_out,
             cu_seqlens_q,
             cu_seqlens_k,
         ) = ctx.saved_tensors
-        attention_mask = torch.Tensor().cuda() if attention_mask is None else attention_mask
+        attention_mask = (
+            torch.Tensor().cuda() if attention_mask is None else attention_mask
+        )
         dropout_mask = torch.Tensor().cuda() if dropout_mask is None else dropout_mask
         dq = torch.empty_like(q)
         dkv = torch.empty_like(kv)
@@ -69,13 +82,12 @@ class DeepLinkFlashAttentionVarLenKVPackedFunc(torch.autograd.Function):
             cu_seqlens_q[1:],
             cu_seqlens_k[1:],
             out,
-            attention_mask, 
-            dropout_mask, 
-            softmax_max, 
-            softmax_sum, 
+            attention_mask,
+            dropout_mask,
+            softmax_max,
+            softmax_sum,
             softmax_out,
             ctx.dropout_p,
             ctx.softmax_scale,
-
         )
         return dq, dkv, None, None, None, None, None, None, None, None
