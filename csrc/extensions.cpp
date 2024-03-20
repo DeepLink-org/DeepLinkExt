@@ -75,6 +75,7 @@ auto extAdamW(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
               at::Tensor& max_exp_avg_sq, const at::Tensor& grad, float lr,
               float beta1, float beta2, float epsilon, float weight_decay,
               int64_t step, bool amsgrad) {
+  // the diopiAdamW func has no "maximize" param
   callDiopi(diopiAdamW, param, grad, exp_avg, exp_avg_sq, max_exp_avg_sq, lr,
             beta1, beta2, epsilon, weight_decay, step, amsgrad);
 }

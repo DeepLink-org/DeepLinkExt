@@ -2,10 +2,7 @@
 
 import torch
 import deeplink_ext.cpp_extensions as ext
-
 assert hasattr(ext, "adamw")
-
-
 
 def adamw(params: List[Tensor],
           grads: List[Tensor],
@@ -34,7 +31,7 @@ def adamw(params: List[Tensor],
                                             beta1, beta2, eps, weight_decay, step, amsgrad)
     return params, exp_avgs, exp_avg_sq
 
-class AdamW(torch.optim.optimizer):
+class DeeplinkAdamW(torch.optim.optimizer):
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
                  weight_decay=1e-2, amsgrad=False, *, maximize: bool = False):
         if not 0.0 <= lr:
@@ -49,10 +46,10 @@ class AdamW(torch.optim.optimizer):
             raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
         defaults = dict(lr=lr, betas=betas, eps=eps,
                         weight_decay=weight_decay, amsgrad=amsgrad, maximize=maximize)
-        super(AdamW, self).__init__(params, defaults)
+        super(DeeplinkAdamW, self).__init__(params, defaults)
     
     def __setstate__(self, state):
-        super(AdamW, self).__setstate__(state)
+        super(DeeplinkAdamW, self).__setstate__(state)
         for group in self.param_groups:
             group.setdefault("amsgrad", False)
             group.setdefault('maximize', False)
