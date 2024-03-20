@@ -26,6 +26,10 @@ def adamw(
     r"""Functional API that performs AdamW algorithm computation.
     See :class:`~torch.optim.AdamW` for details.
     """
+
+    assert maximize == False, "ascend diopiAdamW only support False 'maximize'."
+    assert amsgrad == False, "ascend diopiAdamW only support False 'amsgrad'."
+
     for i, param in enumerate(params):
         if norm_coeff_scale is not None:
             grad = grads[i].float() * norm_coeff_scale
@@ -83,21 +87,22 @@ class DeepLinkAdamW(torch.optim.optimizer):
             amsgrad=amsgrad,
             maximize=maximize,
         )
-        super(DeeplinkAdamW, self).__init__(params, defaults)
+        super(DeepLinkAdamW, self).__init__(params, defaults)
 
     def __setstate__(self, state):
-        super(DeeplinkAdamW, self).__setstate__(state)
+        super(DeepLinkAdamW, self).__setstate__(state)
         for group in self.param_groups:
             group.setdefault("amsgrad", False)
             group.setdefault("maximize", False)
 
     @torch.no_grad()
-    def step(self, closure=None):
+    def step(self, closure=None, norm_coeff_scale=None):
         """Performs a single optimization step.
         Args:
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
         """
+        args = get_args()
         loss = None
         if closure is not None:
             with torch.enable_grad():
@@ -115,12 +120,13 @@ class DeepLinkAdamW(torch.optim.optimizer):
             beta1, beta2 = group["betas"]
 
             for p in group["params"]:
-                if p.grad is None:
+                attr = "fp16_grad" if norm_coeff_scale is not None else "grad"
+                if getattr(p, attr) is None:
                     continue
                 params_with_grad.append(p)
-                if p.grad.is_sparse:
+                if getattr(p, attr).is_sparse:
                     raise RuntimeError("AdamW does not support sparse gradients")
-                grads.append(p.grad)
+                grads.append(getattr(p, attr))
 
                 state = self.state[p]
 
@@ -151,7 +157,9 @@ class DeepLinkAdamW(torch.optim.optimizer):
                 state["step"] += 1
                 # record the step after step update
                 state_steps.append(state["step"])
-
+            is_sp_valid = "layernorm_sp" in group["name"] and len(grads) > 0
+            if args.deepspeed and is_sp_valid:
+                allreduce_layernorm_grads(grads)
             # adamw_torch(params_with_grad,
             adamw(
                 params_with_grad,
@@ -167,5 +175,6 @@ class DeepLinkAdamW(torch.optim.optimizer):
                 weight_decay=group["weight_decay"],
                 eps=group["eps"],
                 maximize=group["maximize"],
+                norm_coeff_scale=norm_coeff_scale,
             )
         return loss
