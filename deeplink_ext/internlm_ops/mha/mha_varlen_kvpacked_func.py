@@ -25,8 +25,8 @@ class DeepLinkMultiHeadAttentionVarLenKVPackedFunc(torch.autograd.Function):
             softmax_scale = q.shape[-1] ** (-0.5)
         out, softmax_lse, rng, S_dmask = ext.mha_varlen_fwd(
             q,
-            kv[:, :, 0],
-            kv[:, :, 1],
+            kv[:, 0],
+            kv[:, 1],
             cu_seqlens_q,
             cu_seqlens_k,
             max_seqlen_q,
@@ -40,7 +40,8 @@ class DeepLinkMultiHeadAttentionVarLenKVPackedFunc(torch.autograd.Function):
             q, kv, out, softmax_lse, cu_seqlens_q, cu_seqlens_k, rng.get_state()
         )
         ctx.dropout_p = dropout_p
-        ctx.max_seqlen = max_seqlen_q
+        ctx.max_seqlen_q = max_seqlen_q
+        ctx.max_seqlen_k = max_seqlen_k
         ctx.softmax_scale = softmax_scale
         ctx.causal = causal
         return out if not return_softmax else (out, softmax_lse, S_dmask)
@@ -63,20 +64,20 @@ class DeepLinkMultiHeadAttentionVarLenKVPackedFunc(torch.autograd.Function):
         ext.mha_varlen_bwd(
             dout,
             q,
-            kv[:, :, 0],
-            kv[:, :, 1],
+            kv[:, 0],
+            kv[:, 1],
             out,
             softmax_lse,
             cu_seqlens_q,
             cu_seqlens_k,
-            ctx.max_seqlen,
-            ctx.max_seqlen,
+            ctx.max_seqlen_q,
+            ctx.max_seqlen_k,
             ctx.dropout_p,
             ctx.causal,
             rng,
             ctx.softmax_scale,
             dq,
-            dkv[:, :, 0],
-            dkv[:, :, 1],
+            dkv[:, 0],
+            dkv[:, 1],
         )
         return dq, dkv, None, None, None, None, None, None, None, None
