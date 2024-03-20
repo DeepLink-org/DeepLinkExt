@@ -17,11 +17,16 @@ def adamw(params: List[Tensor],
           lr: float,
           weight_decay: float,
           eps: float,
-          maximize: bool):
+          maximize: bool,
+          norm_coeff_scale: float):
     r"""Functional API that performs AdamW algorithm computation.
     See :class:`~torch.optim.AdamW` for details.
     """
     for i, param in enumerate(params):
+        if norm_coeff_scale is not None:
+            grad = grads[i].float() * norm_coeff_scale
+        else:
+            grad = grads[i]
         grad = grads[i]
         exp_avg = exp_avgs[i]
         exp_avg_sq = exp_avg_sqs[i]
