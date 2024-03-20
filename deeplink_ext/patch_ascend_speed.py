@@ -6,7 +6,7 @@ import deeplink_ext.cpp_extensions as ext
 assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
 
 
-class DeepLinkFlashSelfAttentionQKVUnPackedFunc(torch.autograd.Function):
+class DeepLinkFlashSelfAttention(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, k, v, dropout_p, softmax_scale, causal, head_num):
         (
@@ -79,4 +79,4 @@ class DeepLinkFlashSelfAttentionQKVUnPackedFunc(torch.autograd.Function):
             ctx.softmax_scale,
             ctx.head_num,
         )
-        return dq, dk, dv, None
+        return dq, dk, dv, None, None, None, None
