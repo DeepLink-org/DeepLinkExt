@@ -6,6 +6,7 @@ import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
 assert hasattr(ext, "apply_rotary")
+assert hasattr(ext, "rms_norm") and hasattr(ext, "rms_norm_backward")
 
 
 class DeepLinkFlashSelfAttention(torch.autograd.Function):
@@ -110,3 +111,21 @@ class DeepLinkRotaryEmbedding(torch.autograd.Function):
     def backward(ctx, t):
         cos, sin = ctx.saved_tensors
         return apply_rotary_for_ascend_speed(t, cos, sin, conjugate=True), None, None
+
+
+class DeepLinkRMSNorm(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, hidden_states, weight, bias, eps):
+        output, inv_rms = ext.rms_norm(hidden_states, None, weight, bias, eps)
+
+        ctx.save_for_backward(hidden_states, inv_rms, weight, bias, torch.tensor(eps))
+        return output
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        hidden_states, inv_rms, weight, bias, eps_tensor = ctx.saved_tensors
+        eps = eps_tensor.item()
+        grad_input, grad_weight, grad_bias = ext.rms_norm_backward(
+            hidden_states, grad_output, inv_rms, None, weight, bias, eps
+        )
+        return grad_input, grad_weight, grad_bias, None

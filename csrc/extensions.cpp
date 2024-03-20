@@ -48,7 +48,11 @@ auto extRmsNorm(const at::Tensor& input,
   auto input_shape = input.sizes();
   std::vector<int64_t> input_size(input_shape.begin(), input_shape.end());
   input_size.back() = 1;
-  auto inv_rms = at::empty(input_size, input.options());
+  at::ScalarType acc_type = input.scalar_type();
+  if (acc_type == at::kBFloat16 || acc_type == at::kHalf) {
+    acc_type = at::kFloat;
+  }
+  auto inv_rms = at::empty(input_size, input.options().dtype(acc_type));
   auto output = at::empty_like(input);
   callDiopi(diopiRMSNorm, output, inv_rms, input, normalized_shape_at, weight,
             bias, eps);
