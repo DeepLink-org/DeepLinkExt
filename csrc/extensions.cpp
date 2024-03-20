@@ -73,7 +73,7 @@ auto extRmsNormBackward(const at::Tensor& input, const at::Tensor& grad_output,
 }
 
 auto extAdamW(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
-              at::Tensor& max_exp_avg_sq, const at::Tensor& grad, float lr,
+              at::Tensor& max_exp_avg_sq, at::Tensor& grad, float lr,
               float beta1, float beta2, float epsilon, float weight_decay,
               int64_t step, bool amsgrad) {
   // the diopiAdamW func has no "maximize" param
