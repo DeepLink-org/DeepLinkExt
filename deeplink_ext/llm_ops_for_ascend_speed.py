@@ -10,10 +10,6 @@ assert hasattr(ext, "rms_norm") and hasattr(ext, "rms_norm_backward")
 assert hasattr(ext, "adamw")
 
 
-def is_nan(x):
-    return torch.isnan(x).any().item()
-
-
 class DeepLinkFlashSelfAttention(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, k, v, dropout_p, softmax_scale, causal, head_num):
