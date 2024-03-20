@@ -306,7 +306,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("apply_penalty", &extApplyPenalty, "deeplink ext_apply_penalty");
   }
   if (&diopiAdamW != nullptr) {
-    m.def("adamw", &extAdamW, "deeplink ext_adamw")
+    m.def("adamw", &extAdamW, "deeplink ext_adamw");
   }
 }
 
