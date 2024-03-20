@@ -9,8 +9,10 @@ assert hasattr(ext, "apply_rotary")
 assert hasattr(ext, "rms_norm") and hasattr(ext, "rms_norm_backward")
 assert hasattr(ext, "adamw")
 
+
 def is_nan(x):
     return torch.isnan(x).any().item()
+
 
 class DeepLinkFlashSelfAttention(torch.autograd.Function):
     @staticmethod
@@ -118,7 +120,8 @@ class DeepLinkRotaryEmbedding(torch.autograd.Function):
 
 class DeepLinkRMSNorm(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, hidden_states, weight, bias, eps):
+    def forward(ctx, hidden_states, weight, eps):
+        bias = torch.Tensor().cuda()
         output, inv_rms = ext.rms_norm(hidden_states, None, weight, bias, eps)
         ctx.save_for_backward(hidden_states, inv_rms, weight, bias)
         ctx.eps = eps
