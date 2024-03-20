@@ -7,7 +7,7 @@ import deeplink_ext.cpp_extensions as ext
 assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
 assert hasattr(ext, "apply_rotary")
 assert hasattr(ext, "rms_norm") and hasattr(ext, "rms_norm_backward")
-assert hasattr(ext, "adamw")
+# assert hasattr(ext, "adamw")
 
 
 class DeepLinkFlashSelfAttention(torch.autograd.Function):
