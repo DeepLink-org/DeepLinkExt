@@ -11,6 +11,7 @@ class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
         if softmax_scale is None:
             softmax_scale = q.shape[-1] ** (-0.5)
+        head_num = q.shape[2]
         (
             out,
             attention_mask,
@@ -18,7 +19,9 @@ class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
             softmax_max,
             softmax_sum,
             softmax_out,
-        ) = ext.fa_fwd(q, kv[:, :, 0], kv[:, :, 1], dropout_p, softmax_scale, causal)
+        ) = ext.fa_fwd(
+            q, kv[:, :, 0], kv[:, :, 1], dropout_p, softmax_scale, causal, head_num
+        )
         ctx.save_for_backward(
             q,
             kv,
@@ -31,6 +34,7 @@ class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
         )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
+        ctx.head_num = head_num
         return out
 
     @staticmethod
@@ -67,5 +71,6 @@ class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
             softmax_out,
             ctx.dropout_p,
             ctx.softmax_scale,
+            ctx.head_num,
         )
         return dq, dkv, None, None, None, None

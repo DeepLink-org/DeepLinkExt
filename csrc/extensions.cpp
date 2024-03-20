@@ -48,7 +48,11 @@ auto extRmsNorm(const at::Tensor& input,
   auto input_shape = input.sizes();
   std::vector<int64_t> input_size(input_shape.begin(), input_shape.end());
   input_size.back() = 1;
-  auto inv_rms = at::empty(input_size, input.options());
+  at::ScalarType acc_type = input.scalar_type();
+  if (acc_type == at::kBFloat16 || acc_type == at::kHalf) {
+    acc_type = at::kFloat;
+  }
+  auto inv_rms = at::empty(input_size, input.options().dtype(acc_type));
   auto output = at::empty_like(input);
   callDiopi(diopiRMSNorm, output, inv_rms, input, normalized_shape_at, weight,
             bias, eps);
@@ -130,7 +134,7 @@ auto extMultiHeadAttentionBackward(const at::Tensor& grad_out,
 // for ascend
 auto extFlashAttention(const at::Tensor& q, const at::Tensor& k,
                        const at::Tensor& v, double p_dropout,
-                       double softmax_scale, bool is_causal) {
+                       double softmax_scale, bool is_causal, int64_t head_num) {
   auto out = at::empty_like(q);
   diopiTensorHandle_t attention_mask = nullptr;
   diopiTensorHandle_t dropout_mask = nullptr;
@@ -143,7 +147,7 @@ auto extFlashAttention(const at::Tensor& q, const at::Tensor& k,
   [[maybe_unused]] auto context = callDiopiKeepContext(
       diopiFlashAttention, out, &attention_mask, &dropout_mask, &softmax_max,
       &softmax_sum, &softmax_out, gen, q, k, v, p_dropout, softmax_scale,
-      is_causal);
+      is_causal, head_num);
 
   return std::make_tuple(
       std::move(out),
@@ -167,13 +171,13 @@ auto extFlashAttentionBackward(
     const at::Tensor& out, const at::Tensor& attention_mask,
     const at::Tensor& dropout_mask, const at::Tensor& softmax_max,
     const at::Tensor& softmax_sum, const at::Tensor& softmax_out,
-    double p_dropout, double softmax_scale) {
+    double p_dropout, double softmax_scale, int64_t head_num) {
   auto grad_q = grad_q_opt.has_value() ? grad_q_opt.value() : at::empty_like(q);
   auto grad_k = grad_k_opt.has_value() ? grad_k_opt.value() : at::empty_like(k);
   auto grad_v = grad_v_opt.has_value() ? grad_v_opt.value() : at::empty_like(v);
   callDiopi(diopiFlashAttentionBackward, grad_q, grad_k, grad_v, grad_out, q, k,
             v, out, attention_mask, dropout_mask, softmax_max, softmax_sum,
-            softmax_out, p_dropout, softmax_scale);
+            softmax_out, p_dropout, softmax_scale, head_num);
   return std::make_tuple(std::move(grad_q), std::move(grad_k),
                          std::move(grad_v));
 }
