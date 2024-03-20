@@ -9,6 +9,8 @@ assert hasattr(ext, "apply_rotary")
 assert hasattr(ext, "rms_norm") and hasattr(ext, "rms_norm_backward")
 assert hasattr(ext, "adamw")
 
+def is_nan(x):
+    return torch.isnan(x).any().item()
 
 class DeepLinkFlashSelfAttention(torch.autograd.Function):
     @staticmethod
@@ -128,7 +130,7 @@ class DeepLinkRMSNorm(torch.autograd.Function):
         grad_input, grad_weight, grad_bias = ext.rms_norm_backward(
             hidden_states, grad_output, inv_rms, None, weight, bias, ctx.eps
         )
-        return grad_input, grad_weight, grad_bias, None
+        return grad_input, grad_weight, None, None
 
 
 def adamw_for_ascend_speed(
