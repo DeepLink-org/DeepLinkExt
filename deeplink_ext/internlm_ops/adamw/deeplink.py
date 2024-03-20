@@ -36,7 +36,7 @@ def adamw(params: List[Tensor],
                                             beta1, beta2, eps, weight_decay, step, amsgrad)
     return params, exp_avgs, exp_avg_sq
 
-class DeeplinkAdamW(torch.optim.optimizer):
+class DeepLinkAdamW(torch.optim.optimizer):
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
                  weight_decay=1e-2, amsgrad=False, *, maximize: bool = False):
         if not 0.0 <= lr:
