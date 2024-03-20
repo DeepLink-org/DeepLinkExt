@@ -19,6 +19,7 @@
 #include <pybind11/detail/common.h>
 
 #include <diopi/functions_ext.h>
+#include <diopi/functions.h>
 
 #include <csrc_dipu/runtime/core/DIPUGeneratorImpl.h>
 
