@@ -117,15 +117,14 @@ class DeepLinkRMSNorm(torch.autograd.Function):
     @staticmethod
     def forward(ctx, hidden_states, weight, bias, eps):
         output, inv_rms = ext.rms_norm(hidden_states, None, weight, bias, eps)
-
-        ctx.save_for_backward(hidden_states, inv_rms, weight, bias, torch.tensor(eps))
+        ctx.save_for_backward(hidden_states, inv_rms, weight, bias)
+        ctx.eps = eps
         return output
 
     @staticmethod
     def backward(ctx, grad_output):
-        hidden_states, inv_rms, weight, bias, eps_tensor = ctx.saved_tensors
-        eps = eps_tensor.item()
+        hidden_states, inv_rms, weight, bias = ctx.saved_tensors
         grad_input, grad_weight, grad_bias = ext.rms_norm_backward(
-            hidden_states, grad_output, inv_rms, None, weight, bias, eps
+            hidden_states, grad_output, inv_rms, None, weight, bias, ctx.eps
         )
         return grad_input, grad_weight, grad_bias, None
