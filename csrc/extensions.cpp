@@ -367,9 +367,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiApplyPenalty != nullptr) {
     m.def("apply_penalty", &extApplyPenalty, "deeplink ext_apply_penalty");
   }
-  if (&diopiAdamW != nullptr) {
-    m.def("adamw", &extAdamW, "deeplink ext_adamw");
-  }
+  // if (&diopiAdamW != nullptr) {
+  //   m.def("adamw", &extAdamW, "deeplink ext_adamw");
+  // }
 }
 
 }  // namespace dipu::dipu_ext
