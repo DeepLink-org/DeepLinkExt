@@ -128,9 +128,4 @@ class DeeplinkAdamW(torch.optim.optimizer):
                     weight_decay=group['weight_decay'],
                     eps=group['eps'],
                     maximize=group['maximize'])
-
         return loss
-            
-        
-        
- 
