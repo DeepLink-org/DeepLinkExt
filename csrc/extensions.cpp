@@ -71,6 +71,14 @@ auto extRmsNormBackward(const at::Tensor& input, const at::Tensor& grad_output,
                          std::move(grad_bias));
 }
 
+auto extAdamW(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
+              at::Tensor& max_exp_avg_sq, const at::Tensor& grad, float lr,
+              float beta1, float beta2, float epsilon, float weight_decay,
+              int64_t step, bool amsgrad) {
+  callDiopi(diopiAdamW, param, grad, exp_avg, exp_avg_sq, max_exp_avg_sq, lr,
+            beta1, beta2, epsilon, weight_decay, step, amsgrad);
+}
+
 void extApplyRotary(at::Tensor output, const at::Tensor& input,
                     const at::Tensor& cos, const at::Tensor& sin,
                     const bool conj, const bool interleaved) {
@@ -295,6 +303,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
   if (&diopiApplyPenalty != nullptr) {
     m.def("apply_penalty", &extApplyPenalty, "deeplink ext_apply_penalty");
+  }
+  if (&diopiAdamW != nullptr) {
+    m.def("adamw", &extAdaW, "deeplink ext_adamw")
   }
 }
 
