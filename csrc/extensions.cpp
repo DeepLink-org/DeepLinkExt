@@ -40,14 +40,14 @@ at::IntArrayRef optionalIntArrayToIntArrayRefOrDefault(
 
 }  // namespace
 
-// auto extAdamW(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
-//               at::Tensor& max_exp_avg_sq, at::Tensor& grad, float lr,
-//               float beta1, float beta2, float epsilon, float weight_decay,
-//               int64_t step, bool amsgrad) {
-//   // the diopiAdamW func has no "maximize" param
-//   callDiopi(diopiAdamW, param, grad, exp_avg, exp_avg_sq, max_exp_avg_sq, lr,
-//             beta1, beta2, epsilon, weight_decay, step, amsgrad);
-// }
+auto extAdamW(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
+              at::Tensor& max_exp_avg_sq, at::Tensor& grad, float lr,
+              float beta1, float beta2, float epsilon, float weight_decay,
+              int64_t step, bool amsgrad) {
+  // the diopiAdamW func has no "maximize" param
+  callDiopi(diopiAdamW, param, grad, exp_avg, exp_avg_sq, max_exp_avg_sq, lr,
+            beta1, beta2, epsilon, weight_decay, step, amsgrad);
+}
 
 auto extRmsNorm(const at::Tensor& input,
                 const OptionalIntArray& normalized_shape,
@@ -163,6 +163,33 @@ auto extFlashAttention(const at::Tensor& q, const at::Tensor& k,
       attention_mask
           ? *dipu::diopi_helper::fromDiopiTensorHandle(attention_mask)
           : at::Tensor(),
+      dropout_mask ? *dipu::diopi_helper::fromDiopiTensorHandle(dropout_mask)
+                   : at::Tensor(),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_max),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_sum),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
+}
+
+// for ascend
+auto extFlashAttentionV2(const at::Tensor& q, const at::Tensor& k,
+                         const at::Tensor& v, const at::Tensor& attention_mask,
+                         double p_dropout, double softmax_scale,
+                         int64_t head_num) {
+  auto out = at::empty_like(q);
+  diopiTensorHandle_t dropout_mask = nullptr;
+  diopiTensorHandle_t softmax_max = nullptr;
+  diopiTensorHandle_t softmax_sum = nullptr;
+  diopiTensorHandle_t softmax_out = nullptr;
+
+  auto gen = createDIPUGenerator();
+
+  [[maybe_unused]] auto context = callDiopiKeepContext(
+      diopiFlashAttentionV2, out, &dropout_mask, &softmax_max, &softmax_sum,
+      &softmax_out, gen, q, k, v, attention_mask, p_dropout, softmax_scale,
+      head_num);
+
+  return std::make_tuple(
+      std::move(out),
       dropout_mask ? *dipu::diopi_helper::fromDiopiTensorHandle(dropout_mask)
                    : at::Tensor(),
       *dipu::diopi_helper::fromDiopiTensorHandle(softmax_max),
@@ -345,6 +372,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiFlashAttention != nullptr) {
     m.def("fa_fwd", &extFlashAttention, "deeplink ext_fa_fwd");
   }
+  if (&diopiFlashAttentionV2 != nullptr) {
+    m.def("fa_fwd_v2", &extFlashAttentionV2, "deeplink ext_fa_fwd_v2");
+  }
   if (&diopiFlashAttentionBackward != nullptr) {
     m.def("fa_bwd", &extFlashAttentionBackward, "deeplink ext_fa_bwd");
   }
@@ -367,9 +397,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiApplyPenalty != nullptr) {
     m.def("apply_penalty", &extApplyPenalty, "deeplink ext_apply_penalty");
   }
-  // if (&diopiAdamW != nullptr) {
-  //   m.def("adamw", &extAdamW, "deeplink ext_adamw");
-  // }
+  if (&diopiAdamW != nullptr) {
+    m.def("adamw", &extAdamW, "deeplink ext_adamw");
+  }
 }
 
 }  // namespace dipu::dipu_ext

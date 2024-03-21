@@ -7,26 +7,25 @@ import deeplink_ext.cpp_extensions as ext
 assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
 assert hasattr(ext, "apply_rotary")
 assert hasattr(ext, "rms_norm") and hasattr(ext, "rms_norm_backward")
-# assert hasattr(ext, "adamw")
+assert hasattr(ext, "adamw")
 
 
 class DeepLinkFlashSelfAttention(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, q, k, v, dropout_p, softmax_scale, causal, head_num):
+    def forward(ctx, q, k, v, attention_mask, dropout_p, softmax_scale, head_num):
         (
             out,
-            attention_mask,
             dropout_mask,
             softmax_max,
             softmax_sum,
             softmax_out,
-        ) = ext.fa_fwd(
+        ) = ext.fa_fwd_v2(
             q,
             k,
             v,
+            attention_mask,
             dropout_p,
             softmax_scale,
-            causal,
             head_num,
         )
         ctx.save_for_backward(
@@ -182,4 +181,4 @@ def adamw_for_ascend_speed(
             step,
             amsgrad,
         )
-    return params, exp_avgs, exp_avg_sq
+    return params, exp_avgs, exp_avg_sqs
