@@ -49,6 +49,23 @@ auto extAdamW(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
             beta1, beta2, epsilon, weight_decay, step, amsgrad);
 }
 
+auto extScaledMaskedSoftmax(const at::Tensor& input, const at::Tensor& mask,
+                            double scale, bool fixed_triu_mask) {
+  auto out = at::empty_like(input);
+  callDiopi(diopiScaledMaskedSoftmax, out, input, mask, scale, fixed_triu_mask);
+  return out;
+}
+
+auto extScaledMaskedSoftmaxBackward(const at::Tensor& grad_output,
+                                    const at::Tensor& out,
+                                    const at::Tensor& mask, double scale,
+                                    bool fixed_triu_mask) {
+  auto grad_input = at::empty_like(grad_output);
+  callDiopi(diopiScaledMaskedSoftmaxBackward, grad_input, grad_output, out,
+            mask, scale, fixed_triu_mask);
+  return grad_input;
+}
+
 auto extRmsNorm(const at::Tensor& input,
                 const OptionalIntArray& normalized_shape,
                 const at::Tensor& weight, const at::Tensor& bias, double eps) {
@@ -399,6 +416,14 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
   if (&diopiAdamW != nullptr) {
     m.def("adamw", &extAdamW, "deeplink ext_adamw");
+  }
+  if (&diopiScaledMaskedSoftmax != nullptr) {
+    m.def("scaled_masked_softmax_fwd", &extScaledMaskedSoftmax,
+          "deeplink ext_scaled_masked_softmax_fwd");
+  }
+  if (&diopiScaledMaskedSoftmaxBackward != nullptr) {
+    m.def("scaled_masked_softmax_bwd", &extScaledMaskedSoftmaxBackward,
+          "deeplink ext_scaled_masked_softmax_bwd");
   }
 }
 
