@@ -74,7 +74,7 @@ def _patch_internlm(force_fallback: bool = False):
     def _patch_ops():
         import deeplink_ext.internlm_ops as ext
         import flash_attn.layers.rotary  # type: ignore
-        import internlm.model.embedding  # type: ignore
+        import internlm.model.modules.embedding  # type: ignore
 
         flash_attn.layers.rotary.apply_rotary = ext.rotary.apply_rotary
 
@@ -85,7 +85,7 @@ def _patch_internlm(force_fallback: bool = False):
             def forward(ctx, qkv: torch.Tensor, *args, **kwargs):  # type: ignore
                 unsqueezed_qkv = qkv.view([1] + list(qkv.shape))
                 out: torch.Tensor = (
-                    internlm.model.embedding.LegacyApplyRotaryEmbQKV_.forward(
+                    internlm.model.modules.embedding.LegacyApplyRotaryEmbQKV_.forward(
                         ctx, unsqueezed_qkv, *args, **kwargs
                     )
                 )
@@ -94,15 +94,15 @@ def _patch_internlm(force_fallback: bool = False):
             @staticmethod
             def backward(ctx, dqkv: torch.Tensor, *args, **kwargs):  # type: ignore
                 unqueezed_dqkv = dqkv.view([1] + list(dqkv.shape))
-                out: tuple = internlm.model.embedding.LegacyApplyRotaryEmbQKV_.backward(
+                out: tuple = internlm.model.modules.embedding.LegacyApplyRotaryEmbQKV_.backward(
                     ctx, unqueezed_dqkv, *args, **kwargs
                 )
                 return (out[0].view(out[0].shape[1:]),) + out[1:]
 
-        internlm.model.embedding.apply_rotary_emb_qkv_ = NonLegacyRotaryEmbQKV_.apply
+        internlm.model.modules.embedding.apply_rotary_emb_qkv_ = NonLegacyRotaryEmbQKV_.apply
 
         import builtins
-        import internlm.model.norm  # type: ignore
+        import internlm.model.ops.norm  # type: ignore
 
         # HACK: RMSNormTorch class object has been assigned to RMSNorm via
         #           RMSNorm = try_import_RMSNorm()
@@ -114,7 +114,7 @@ def _patch_internlm(force_fallback: bool = False):
         #       This is not enough though. In latest internevo, there are checks like
         #           if isinstance(module, RMSNorm):
         #       which will fail under this patch. Thus we need also trick `isinstance`.
-        internlm.model.norm.RMSNormTorch.__new__ = lambda _, *args, **kwargs: (
+        internlm.model.ops.norm.RMSNormTorch.__new__ = lambda _, *args, **kwargs: (
             ext.rms_norm.DeepLinkRMSNormWithNormalizedShape(*args, **kwargs)
         )
         isinstance_orig = builtins.isinstance
@@ -122,7 +122,7 @@ def _patch_internlm(force_fallback: bool = False):
             isinstance_orig(obj, class_or_tuple)
             or (
                 (
-                    internlm.model.norm.RMSNormTorch
+                    internlm.model.ops.norm.RMSNormTorch
                     in (
                         class_or_tuple
                         if isinstance_orig(class_or_tuple, tuple)
