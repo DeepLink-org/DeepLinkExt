@@ -17,16 +17,36 @@ grad_output = torch.randn(5, 5).cuda()
 normalized_shape = torch.tensor([5, 5], dtype=torch.long).cuda()
 
 print(input.is_dipu)
-output, inv_rms = ext.rms_norm(input, None, weight, bias, 1e-6)
+# output, inv_rms = ext.rms_norm(input, None, weight, bias, 1e-6)
+# output1, inv_rms1 = ext.rms_norm(input, weight.shape, weight, bias, 1e-6)
+
+output = torch.empty_like(input)
+inv_rms_shape = list(input.shape[:-1]) + [1]
+inv_rms = torch.empty(inv_rms_shape, dtype=torch.float32, device=input.device)
+ext.rms_norm(output, inv_rms, input, weight.shape, weight, bias, 1e-6)
+
+
 
 # 使用 RMS normalization 反向传播
-grad_input, grad_weight, grad_bias = ext.rms_norm_backward(
-    input, grad_output, inv_rms, None, weight, bias, 1e-6
+grad_input = torch.empty_like(grad_output)
+grad_weight = torch.empty_like(weight)
+grad_bias = torch.empty_like(bias)
+ext.rms_norm_backward(
+    grad_input,
+    grad_weight,
+    grad_bias,
+    grad_output,
+    input,
+    weight,
+    bias,
+    inv_rms,
+    weight.shape,
+    1e-6
 )
 
-print("Output:", output)
-print("Grad Input:", grad_input)
-print("Grad Weight:", grad_weight)
-print("Grad Bias:", grad_bias)
+# print("Output:", output)
+# print("Grad Input:", grad_input)
+# print("Grad Weight:", grad_weight)
+# print("Grad Bias:", grad_bias)
 b = input * torch.rsqrt(input.pow(2).mean(-1, keepdim=True) + 1e-6) * weight
 assert torch.allclose(output, b)
