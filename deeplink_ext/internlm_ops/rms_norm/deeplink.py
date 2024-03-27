@@ -11,11 +11,11 @@ class _DeepLinkRMSNormFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, hidden_states, weight, bias, eps):
         output = torch.empty_like(hidden_states)
-        inv_rms_shape = list(hidden_states.shape[:-1], 1)
+        inv_rms_shape = list(hidden_states.shape[:-1]) + [1]
         inv_rms = torch.empty(
             inv_rms_shape, dtype=hidden_states.dtype, device=hidden_states.device
         )
-        ext.rms_norm(output, inv_rms, hidden_states, None, weight, bias, eps)
+        ext.rms_norm(output, inv_rms, hidden_states, weight.shape, weight, bias, eps)
 
         ctx.save_for_backward(hidden_states, inv_rms, weight, bias, torch.tensor(eps))
         return output
@@ -28,7 +28,6 @@ class _DeepLinkRMSNormFunction(torch.autograd.Function):
         grad_input = torch.empty_like(hidden_states)
         grad_weight = torch.empty_like(weight)
         grad_bias = torch.empty_like(bias)
-
         ext.rms_norm_backward(
             grad_input,
             grad_weight,
@@ -38,7 +37,7 @@ class _DeepLinkRMSNormFunction(torch.autograd.Function):
             weight,
             bias,
             inv_rms,
-            None,
+            weight.shape,
             eps,
         )
         return grad_input, grad_weight, grad_bias, None
@@ -48,7 +47,7 @@ class _DeepLinkRMSNormFunctionWithNormalizedShape(torch.autograd.Function):
     @staticmethod
     def forward(ctx, hidden_states, weight, bias, eps, normalized_shape):
         output = torch.empty_like(hidden_states, dtype=torch.float32)
-        inv_rms_shape = list(hidden_states.shape[:-1], 1)
+        inv_rms_shape = list(hidden_states.shape[:-1]) + [1]
         inv_rms = torch.empty(
             inv_rms_shape, dtype=torch.float32, device=hidden_states.device
         )
