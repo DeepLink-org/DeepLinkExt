@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <tuple>
 #include <utility>
-#include <vector>
 
 #include <ATen/core/ATen_fwd.h>
 #include <ATen/core/Generator.h>
