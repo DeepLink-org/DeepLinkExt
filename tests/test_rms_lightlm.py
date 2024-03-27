@@ -23,7 +23,6 @@ inv_rms = torch.empty(inv_rms_shape, dtype=torch.float32, device=input.device)
 ext.rms_norm(output, inv_rms, input, weight.shape, weight, bias, 1e-6)
 
 
-
 # 使用 RMS normalization 反向传播
 grad_input = torch.empty_like(grad_output)
 grad_weight = torch.empty_like(weight)
