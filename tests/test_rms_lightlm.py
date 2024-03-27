@@ -38,7 +38,7 @@ ext.rms_norm_backward(
     bias,
     inv_rms,
     weight.shape,
-    1e-6
+    1e-6,
 )
 
 print("Output:", output)
