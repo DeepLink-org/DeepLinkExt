@@ -39,7 +39,7 @@ class _DeepLinkRMSNormFunction(torch.autograd.Function):
             bias,
             inv_rms,
             None,
-            eps
+            eps,
         )
         return grad_input, grad_weight, grad_bias, None
 
@@ -59,7 +59,7 @@ class _DeepLinkRMSNormFunctionWithNormalizedShape(torch.autograd.Function):
             normalized_shape,
             weight.float(),
             bias.float(),
-            eps
+            eps,
         )
         output = output.half()
         inv_rms = inv_rms.half()
@@ -86,7 +86,7 @@ class _DeepLinkRMSNormFunctionWithNormalizedShape(torch.autograd.Function):
             bias.float(),
             inv_rms.float(),
             normalized_shape,
-            eps
+            eps,
         )
         grad_output = grad_output.half()
         hidden_states = hidden_states.half()
