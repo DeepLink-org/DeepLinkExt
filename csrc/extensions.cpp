@@ -26,45 +26,28 @@
 
 namespace dipu::dipu_ext {
 
-
-auto extRmsNorm(at::Tensor& output,
-                at::Tensor& inv_rms,
+auto extRmsNorm(at::Tensor& output, at::Tensor& inv_rms,
                 const at::Tensor& input,
                 const OptionalIntArray& normalized_shape,
-                const at::Tensor& weight,
-                const at::Tensor& bias,
-                double eps) {
+                const at::Tensor& weight, const at::Tensor& bias, double eps) {
   at::OptionalIntArrayRef normalized_shape_at = *normalized_shape;
-  callDiopi(diopiRMSNorm, output, inv_rms, input, normalized_shape_at, weight, bias, eps);
+  callDiopi(diopiRMSNorm, output, inv_rms, input, normalized_shape_at, weight,
+            bias, eps);
   return std::make_tuple(std::move(output), std::move(inv_rms));
 }
 
-
-auto extRmsNormBackward(at::Tensor& grad_input,
-                        at::Tensor& grad_weight,
-                        at::Tensor& grad_bias,
-                        const at::Tensor& grad_output,
-                        const at::Tensor& input,
-                        const at::Tensor& weight,
-                        const at::Tensor& bias,
-                        const at::Tensor& inv_rms,
-                        const OptionalIntArray& normalized_shape,
-                        double eps) {
+auto extRmsNormBackward(at::Tensor& grad_input, at::Tensor& grad_weight,
+                        at::Tensor& grad_bias, const at::Tensor& grad_output,
+                        const at::Tensor& input, const at::Tensor& weight,
+                        const at::Tensor& bias, const at::Tensor& inv_rms,
+                        const OptionalIntArray& normalized_shape, double eps) {
   at::OptionalIntArrayRef normalized_shape_at = *normalized_shape;
-  callDiopi(diopiRMSNormBackward,
-            grad_input,
-            grad_weight,
-            grad_bias,
-            grad_output,
-            input,
-            weight,
-            bias,
-            inv_rms,
-            normalized_shape_at,
+  callDiopi(diopiRMSNormBackward, grad_input, grad_weight, grad_bias,
+            grad_output, input, weight, bias, inv_rms, normalized_shape_at,
             eps);
-  return std::make_tuple(std::move(grad_input), std::move(grad_weight), std::move(grad_bias));
+  return std::make_tuple(std::move(grad_input), std::move(grad_weight),
+                         std::move(grad_bias));
 }
-
 
 void extApplyRotary(at::Tensor output, const at::Tensor& input,
                     const at::Tensor& cos, const at::Tensor& sin,
