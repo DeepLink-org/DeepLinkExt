@@ -28,7 +28,7 @@ class _DeepLinkRMSNormFunction(torch.autograd.Function):
         grad_input = torch.empty_like(hidden_states)
         grad_weight = torch.empty_like(weight)
         grad_bias = torch.empty_like(bias)
-        
+
         ext.rms_norm_backward(
             grad_input,
             grad_weight,
