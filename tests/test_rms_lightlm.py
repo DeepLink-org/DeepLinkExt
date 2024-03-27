@@ -22,7 +22,6 @@ inv_rms_shape = list(input.shape[:-1]) + [1]
 inv_rms = torch.empty(inv_rms_shape, dtype=torch.float32, device=input.device)
 ext.rms_norm(output, inv_rms, input, weight.shape, weight, bias, 1e-6)
 
-
 # 使用 RMS normalization 反向传播
 grad_input = torch.empty_like(grad_output)
 grad_weight = torch.empty_like(weight)
@@ -44,5 +43,13 @@ print("Output:", output)
 print("Grad Input:", grad_input)
 print("Grad Weight:", grad_weight)
 print("Grad Bias:", grad_bias)
+
+input.requires_grad_(True)
+weight.requires_grad_(True)
+bias.requires_grad_(True)
 b = input * torch.rsqrt(input.pow(2).mean(-1, keepdim=True) + 1e-6) * weight
+grads = torch.autograd.grad(b, [input, weight, bias], grad_output, allow_unused=True)
 assert torch.allclose(output, b)
+assert torch.allclose(grad_input, grads[0])
+assert torch.allclose(grad_weight, grads[1])
+# assert torch.allclose(grad_bias, grads[2])
