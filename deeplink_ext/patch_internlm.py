@@ -13,6 +13,12 @@ def _patch_internlm(force_fallback: bool = False):
     import types
     import torch
 
+    torch.cuda.set_device(int(os.environ["RANK"]) % torch.cuda.device_count())
+    print(int(os.environ["RANK"]) % torch.cuda.device_count())
+    print(f"torch.cuda.cur_device:{torch.cuda.current_device()}, totaldevice:{torch.cuda.device_count()}")
+    import time
+    time.sleep(3)
+
     def _find_or_mock_module(module_name) -> bool:
         """Find or mock a module. Return True if the module is found, False otherwise."""
         module_spec = importlib.util.find_spec(module_name)
