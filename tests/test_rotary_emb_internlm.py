@@ -17,7 +17,7 @@ def RotaryEmbTestFloat16() -> bool:
     )
     res2 = ext.apply_rotary(input1, cos, sin, interleaved=interleaved, inplace=inplace)
 
-    # there is a little calculated error with ascend
+    # there is a little calculated error with ascend when dtype is float16
     return torch.allclose(res1, res2, atol=1e-2, rtol=1e-3)
 
 def RotaryEmbTestFloat32() -> bool:
