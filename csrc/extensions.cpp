@@ -71,7 +71,7 @@ auto extRmsNormBackward(const at::Tensor& input, const at::Tensor& grad_output,
                          std::move(grad_bias));
 }
 
-void extApplyRotary(at::Tensor output, const at::Tensor& input,
+void extApplyRotary(at::Tensor& output, const at::Tensor& input,
                     const at::Tensor& cos, const at::Tensor& sin,
                     const bool conj, const bool interleaved) {
   callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj, interleaved);
