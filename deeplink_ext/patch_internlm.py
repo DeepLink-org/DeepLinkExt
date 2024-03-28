@@ -13,8 +13,9 @@ def _patch_internlm(force_fallback: bool = False):
     import types
     import torch
 
+    # TODO remove this if evo could set device to local rank
     torch.cuda.set_device(int(os.environ["RANK"]) % torch.cuda.device_count())
-    print(int(os.environ["RANK"]) % torch.cuda.device_count())
+    print(f"cal localrank {int(os.environ['RANK']) % torch.cuda.device_count()}")
     print(f"torch.cuda.cur_device:{torch.cuda.current_device()}, totaldevice:{torch.cuda.device_count()}")
     import time
     time.sleep(3)

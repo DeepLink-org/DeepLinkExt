@@ -28,16 +28,27 @@ class _DeepLinkRMSNormFunction(torch.autograd.Function):
 class _DeepLinkRMSNormFunctionWithNormalizedShape(torch.autograd.Function):
     @staticmethod
     def forward(ctx, hidden_states, weight, bias, eps, normalized_shape):
-        output, inv_rms = ext.rms_norm(
-            hidden_states.float(), normalized_shape, weight.float(), bias.float(), eps
-        )
-        output = output.half()
-        inv_rms = inv_rms.half()
-        ctx.save_for_backward(hidden_states, inv_rms, weight, bias, torch.tensor(eps))
-        hidden_states = hidden_states.half()
-        weight = weight.half()
-        bias = bias.half()
+        dtype = weight.dtype
         ctx.intermediate_results = normalized_shape
+        fast = False # fp16 or bf16 
+        if fast:
+            if weight.dtype != dtype:
+                weight = weight.to(dtype = dtype)
+            if bias is not None and bias.dtype != dtype:
+                bias = bias.to(dtype = dtype)
+            output, inv_rms = ext.rms_norm(
+                hidden_states, normalized_shape, weight, bias, eps
+            )
+            ctx.save_for_backward(hidden_states, inv_rms, weight, bias, torch.tensor(eps))
+        else:
+            hidden_states_float = hidden_states.float()
+            weight_float = weight.float()
+            bias_float = bias.float()
+            output, inv_rms = ext.rms_norm(
+                hidden_states_float, normalized_shape, weight_float, bias_float, eps
+            )
+            output = output.to(dtype = dtype)
+            ctx.save_for_backward(hidden_states_float, inv_rms, weight_float, bias_float, torch.tensor(eps))
         return output
 
     @staticmethod
@@ -45,19 +56,20 @@ class _DeepLinkRMSNormFunctionWithNormalizedShape(torch.autograd.Function):
         hidden_states, inv_rms, weight, bias, eps_tensor = ctx.saved_tensors
         eps = eps_tensor.item()
         normalized_shape = ctx.intermediate_results
-        hidden_states = hidden_states.float()
-        inv_rms = inv_rms.float()
-        weight = weight.float()
-        bias = bias.float()
-        grad_output = grad_output.float()
-        grad_input, grad_weight, grad_bias = ext.rms_norm_backward(
-            hidden_states, grad_output, inv_rms, normalized_shape, weight, bias, eps
-        )
-        grad_output = grad_output.half()
-        hidden_states = hidden_states.half()
-        inv_rms = inv_rms.half()
-        weight = weight.half()
-        bias = bias.half()
+        dtype = weight.dtype
+        fast = False # fp16 or bf16 
+        if fast:
+            grad_input, grad_weight, grad_bias = ext.rms_norm_backward(
+                hidden_states, grad_output, inv_rms, normalized_shape, weight, bias, eps
+            )
+        else:
+            grad_input, grad_weight, grad_bias = ext.rms_norm_backward(
+                hidden_states, grad_output.float(), inv_rms, normalized_shape, weight, bias, eps
+            )
+            grad_input = grad_input.to(dtype = dtype)
+            # grad_weight = grad_weight.to(dtype = dtype)
+            # if grad_bias is not None
+            #     grad_bias = grad_bias.to(dtype = dtype)
         return grad_input, grad_weight, grad_bias, None, None
 
 
