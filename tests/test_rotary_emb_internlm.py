@@ -3,6 +3,7 @@
 import torch
 import deeplink_ext.internlm_ops.rotary as ext
 
+
 def RotaryEmbTestFloat16() -> bool:
     input = torch.randn(1, 125, 16, 32, dtype=torch.float16).cuda()
 
@@ -19,6 +20,7 @@ def RotaryEmbTestFloat16() -> bool:
 
     # there is a little calculated error with ascend when dtype is float16
     return torch.allclose(res1, res2, atol=1e-2, rtol=1e-3)
+
 
 def RotaryEmbTestFloat32() -> bool:
     input = torch.randn(1, 125, 16, 32, dtype=torch.float32).cuda()
