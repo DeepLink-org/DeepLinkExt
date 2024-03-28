@@ -197,21 +197,6 @@ void extApplyPenalty(at::Tensor& logits, const at::Tensor& presence_penalty,
             p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
 }
 
-// For lightllm, rms_norm reuses the diopi implementation of internlm
-auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
-                        float eps) {
-  at::ScalarType acc_type = x.scalar_type();
-  if (x.scalar_type() == at::kBFloat16 || x.scalar_type() == at::kHalf) {
-    acc_type = at::kFloat;
-  }
-  auto inv_rms = at::empty_like(x, acc_type);
-  auto out = at::empty_like(x);
-  auto bias = at::empty_like(weight);
-  at::OptionalIntArrayRef normalized_shape = weight.sizes();
-  callDiopi(diopiRMSNorm, out, inv_rms, x, normalized_shape, weight, bias, eps);
-  return out;
-}
-
 // For lightllm, rotary_embedding reuses the diopi implementation of internlm
 void extRotaryEmb(at::Tensor& q, const at::Tensor& cos, const at::Tensor& sin) {
   auto seq_len = q.size(0);
@@ -229,9 +214,6 @@ void extRotaryEmb(at::Tensor& q, const at::Tensor& cos, const at::Tensor& sin) {
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiRMSNorm != nullptr) {  // Check if weak symbol defined
     m.def("rms_norm", &extRmsNorm, "deeplink ext_rms_norm");
-    m.def("rms_norm_lightllm", &extRmsNormLightllm,
-          "deeplink ext_rms_norm for lightllm", py::arg("x"), py::arg("weight"),
-          py::arg("eps"));
   }
   if (&diopiRMSNormBackward != nullptr) {
     m.def("rms_norm_backward", &extRmsNormBackward,

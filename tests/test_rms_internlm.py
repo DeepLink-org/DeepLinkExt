@@ -5,7 +5,7 @@ import numpy as np
 import deeplink_ext.internlm_ops.rms_norm as ext
 
 
-def test_rms_norm(BaseRmsNorm, DeeplinkRmsNorm, rtol=1e-4, atol=1e-3):
+def rms_norm_test(BaseRmsNorm, DeeplinkRmsNorm, rtol=1e-4, atol=1e-3):
     x_base = torch.randn(5, 5, requires_grad=True).cuda()
     x_base.retain_grad()
 
@@ -29,9 +29,9 @@ def test_rms_norm(BaseRmsNorm, DeeplinkRmsNorm, rtol=1e-4, atol=1e-3):
 
 print(
     "Test case: normalized_shape == None: grad_inputs closed ? ",
-    test_rms_norm(ext.fallback.RMSNorm, ext.DeepLinkRMSNorm),
+    rms_norm_test(ext.fallback.RMSNorm, ext.DeepLinkRMSNorm),
 )
 print(
     "Test case: normalized_shape == weight.size(): grad_inputs closed ? ",
-    test_rms_norm(ext.fallback.RMSNorm, ext.DeepLinkRMSNormWithNormalizedShape),
+    rms_norm_test(ext.fallback.RMSNorm, ext.DeepLinkRMSNormWithNormalizedShape),
 )

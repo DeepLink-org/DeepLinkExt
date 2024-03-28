@@ -1,7 +1,7 @@
 # Copyright (c) 2023, DeepLink.
 
 import torch
-import deeplink_ext.cpp_extensions as ext
+from deeplink_ext.internlm_ops.rms_norm.deeplink import rms_norm, rms_norm_backward
 
 # 定义输入张量
 input = torch.randn(5, 5, requires_grad=True).cuda()
@@ -17,26 +17,10 @@ grad_output = torch.randn(5, 5).cuda()
 normalized_shape = torch.tensor([5, 5], dtype=torch.long).cuda()
 
 print(input.is_dipu)
-output = torch.empty_like(input)
-inv_rms_shape = list(input.shape[:-1]) + [1]
-inv_rms = torch.empty(inv_rms_shape, dtype=torch.float32, device=input.device)
-ext.rms_norm(output, inv_rms, input, weight.shape, weight, bias, 1e-6)
+output, inv_rms = rms_norm(input, None, weight, bias, 1e-6)
 
-# 使用 RMS normalization 反向传播
-grad_input = torch.empty_like(grad_output)
-grad_weight = torch.empty_like(weight)
-grad_bias = torch.empty_like(bias)
-ext.rms_norm_backward(
-    grad_input,
-    grad_weight,
-    grad_bias,
-    grad_output,
-    input,
-    weight,
-    bias,
-    inv_rms,
-    weight.shape,
-    1e-6,
+grad_input, grad_weight, grad_bias = rms_norm_backward(
+    input, grad_output, inv_rms, None, weight, bias, 1e-6
 )
 
 print("Output:", output)

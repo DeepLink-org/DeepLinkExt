@@ -51,7 +51,18 @@ def _patch_lightllm():
             )
 
         def patch_rms_norm_lightllm():
-            rms_norm_pack.rmsnorm_forward = ext.rms_norm_lightllm
+            import torch
+
+            def rms_norm_lightllm(x, weight, eps):
+                output = torch.empty_like(x)
+                inv_rms_dtype = torch.float16 if x.dtype == torch.bfloat16 else x.dtype
+                inv_rms = torch.empty_like(x, dtype=inv_rms_dtype)
+                bias = torch.empty_like(weight)
+                ext.rms_norm(output, inv_rms, x, weight.shape, weight, bias, eps)
+
+                return output
+
+            rms_norm_pack.rmsnorm_forward = rms_norm_lightllm
 
         def patch_rotary_emb():
             rotary_emb_pack.rotary_emb_fwd = ext.rotary_emb
