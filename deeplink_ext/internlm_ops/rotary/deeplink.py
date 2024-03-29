@@ -77,14 +77,7 @@ def apply_rotary_for_ascend_speed(
     conjugate=False,
 ) -> torch.Tensor:
     output = torch.empty_like(x)
-    ext.apply_rotary(
-        output,
-        x,
-        cos,
-        sin,
-        conjugate,
-        interleaved
-    )
+    ext.apply_rotary(output, x, cos, sin, conjugate, interleaved)
     return output
 
 
@@ -93,7 +86,6 @@ class RotaryEmbedding_AscendSpeed(torch.autograd.Function):
     def forward(ctx, t, cos, sin):
         ctx.save_for_backward(cos, sin)
         return apply_rotary_for_ascend_speed(t, cos, sin)
-
 
     @staticmethod
     def backward(ctx, t):
