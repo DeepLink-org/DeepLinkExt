@@ -23,7 +23,9 @@ class DeepLinkSelfAttention(nn.Module):
         self.softmax_scale = softmax_scale
         self.dropout_p = attention_dropout
 
-    def forward(self, qkv, causal=None, cu_seqlens=None, max_seqlen=None):
+    def forward(self, qkv=None, q=None, k=None, v=None, kv=None, causal=None, 
+                cu_seqlens=None, max_seqlen=None, cu_seqlens_q=None, cu_seqlens_k=None,
+                max_seqlen_q=None, max_seqlen_k=None, softmax_scale=None,dropout_p=0.0):
         """Performs self-attention on the input sequences.
 
         Args:
@@ -42,10 +44,17 @@ class DeepLinkSelfAttention(nn.Module):
         Returns:
             torch.Tensor: Output tensor after applying self-attention.
         """
+        # import pdb;pdb.set_trace()
+        if causal:
+            assert causal == self.causal
+        if dropout_p:
+            assert dropout_p == self.dropout_p
+        if softmax_scale:
+            assert softmax_scale == self.softmax_scale
         if cu_seqlens is None:
             # padded
             return DeepLinkFlashAttentionQKVPackedFunc.apply(
-                qkv,
+                qkv, q, k, v, kv,
                 self.dropout_p if self.training else 0.0,
                 self.softmax_scale,
                 causal if causal is not None else self.causal,
