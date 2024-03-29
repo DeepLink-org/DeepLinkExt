@@ -14,18 +14,18 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
         head_num = 0
         if qkv is not None:
             assert (q, k, v, kv) == (None, None, None, None)
-            q = qkv[:, 0]
-            k = qkv[:, 1]
-            v = qkv[:, 2]
-            head_num = qkv.shape[2]
+            q = qkv[:, :, 0]
+            k = qkv[:, :, 1]
+            v = qkv[:, :, 2]
+            head_num = qkv.shape[3]
         else:
             assert q is not None
             if kv is not None:
-                k = kv[:, 0]
-                v = kv[:, 1]
+                k = kv[:, :, 0]
+                v = kv[:, :, 1]
             else:
                 assert k is not None and v is not None
-            head_num = q.shape[1]
+            head_num = q.shape[2]
         (
             out,
             attention_mask,
@@ -97,8 +97,8 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
             dkv = torch.empty_like(kv)
             ext.fa_bwd(
                 dq,
-                dkv[:, 0],
-                dkv[:, 1],
+                dkv[:, :, 0],
+                dkv[:, :, 1],
                 dout,
                 q,
                 k,
