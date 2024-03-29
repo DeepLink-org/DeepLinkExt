@@ -77,6 +77,9 @@ def _patch_internlm(force_fallback: bool = False):
         flash_attn.modules.mha.FlashSelfAttention = ext.mha.DeepLinkSelfAttention
         flash_attn.modules.mha.CrossAttention = ext.mha.DeepLinkCrossAttention
         flash_attn.modules.mha.FlashCrossAttention = ext.mha.DeepLinkCrossAttention
+        import internlm.model.modules.multi_head_attention
+        internlm.model.modules.multi_head_attention.SelfAttention = ext.mha.DeepLinkSelfAttention
+        internlm.model.modules.multi_head_attention.CrossAttention = ext.mha.DeepLinkCrossAttention
 
     def _patch_ops():
         if not force_fallback:
@@ -240,6 +243,157 @@ def _patch_internlm(force_fallback: bool = False):
                     dk_ro.copy_(out)
                     return dqkv, None, None, None, None, None
             internlm.model.modules.apply_rotary_emb_qkv_ = DeeplinkApplyRotaryEmbQKV_.apply
+
+            # from typing import List, Optional, Tuple, Union
+            # def adamw_for_internlm(
+            #     params: List[torch.Tensor],
+            #     grads: List[torch.Tensor],
+            #     exp_avgs: List[torch.Tensor],
+            #     exp_avg_sqs: List[torch.Tensor],
+            #     max_exp_avg_sqs: List[torch.Tensor],
+            #     state_steps: List[torch.Tensor],
+            #     grad_scale: Optional[torch.Tensor],
+            #     found_inf: Optional[torch.Tensor],
+            #     *,
+            #     amsgrad: bool,
+            #     beta1: float,
+            #     beta2: float,
+            #     lr: Union[float, torch.Tensor],
+            #     weight_decay: float,
+            #     eps: float,
+            #     maximize: bool,
+            #     capturable: bool,  # Needed for consistency.
+            #     differentiable: bool,
+            #     has_complex: bool,
+            # ) -> None:
+            #     # if grad_scale is not None:
+            #     #     raise RuntimeError("Deeplink Adamw with fused=True does not support grad_scale")
+            #     if found_inf is not None:
+            #         raise RuntimeError("Deeplink Adamw with fused=True does not support found_inf")
+            #     if capturable is not None and capturable is True:
+            #         raise RuntimeError("Deeplink Adamw with fused=True does not support capturable=True")
+            #     if differentiable is not None and differentiable is True:
+            #         raise RuntimeError("Deeplink Adamw with fused=True does not support differentiable=True")
+            #     if has_complex is not None and has_complex is True:
+            #         raise RuntimeError("Deeplink Adamw with fused=True does not support has_complex=True")
+            #     if maximize is not None and maximize is True:
+            #         raise RuntimeError("Deeplink Adamw with fused=True does not support maximize=True")
+            #     if amsgrad is not None and amsgrad is True:
+            #         raise RuntimeError("Deeplink Adamw with fused=True does not support amsgrad=True")
+            #     lr_float = lr
+            #     if isinstance(lr, torch.Tensor):
+            #         lr_float = float(lr.item())
+
+            # # def adamw_for_ascendspeed(
+            # #     params: List[torch.Tensor],
+            # #     grads: List[torch.Tensor],
+            # #     exp_avgs: List[torch.Tensor],
+            # #     exp_avg_sqs: List[torch.Tensor],
+            # #     max_exp_avg_sqs: List[torch.Tensor],
+            # #     state_steps: List[int],
+            # #     *,
+            # #     amsgrad: bool,
+            # #     beta1: float,
+            # #     beta2: float,
+            # #     lr: float,
+            # #     weight_decay: float,
+            # #     eps: float,
+            # #     maximize: bool,
+            # #     norm_coeff_scale: float == grad_scale?
+            # # ):
+            #     r"""Functional API that performs AdamW algorithm computation.
+            #     See :class:`~torch.optim.AdamW` for details.
+            #     From :wx/support_flash_attention_for_ascend_speed
+            #     """
+            #     import pdb;pdb.set_trace()
+            #     for i, param in enumerate(params):
+            #         if grad_scale is not None:
+            #             grad = grads[i].float() * grad_scale
+            #         else:
+            #             grad = grads[i]
+            #         exp_avg = exp_avgs[i]
+            #         exp_avg_sq = exp_avg_sqs[i]
+            #         step = state_steps[i]
+            #         if not max_exp_avg_sqs:
+            #             max_exp_avg_sq = torch.Tensor().cuda()
+            #         else:
+            #             max_exp_avg_sq = max_exp_avg_sqs[i]
+            #         cpp_ext.adamw(
+            #             param,
+            #             exp_avg,
+            #             exp_avg_sq,
+            #             max_exp_avg_sq,
+            #             grad,
+            #             lr_float,
+            #             beta1,
+            #             beta2,
+            #             eps,
+            #             weight_decay,
+            #             step,
+            #             amsgrad,
+            #         )
+            #     return params, exp_avgs, exp_avg_sqs
+            # torch.optim.adamw._fused_adamw = adamw_for_internlm
+            if True:
+                from typing import List, Optional, Tuple, Union
+                def adamw_for_internlm(
+                    params: List[torch.Tensor],
+                    grads: List[torch.Tensor],
+                    exp_avgs: List[torch.Tensor],
+                    exp_avg_sqs: List[torch.Tensor],
+                    max_exp_avg_sqs: List[torch.Tensor],
+                    state_steps: List[torch.Tensor],
+                    *,
+                    amsgrad: bool,
+                    beta1: float,
+                    beta2: float,
+                    lr: Union[float, torch.Tensor],
+                    weight_decay: float,
+                    eps: float,
+                    maximize: bool,
+                    grad_scale: Union[float, torch.Tensor],
+                    found_inf: Optional[torch.Tensor],
+                ) -> None:
+                    # if grad_scale is not None:
+                    #     raise RuntimeError("Deeplink Adamw with fused=True does not support grad_scale")
+                    if found_inf is not None:
+                        raise RuntimeError("Deeplink Adamw with fused=True does not support found_inf")
+                    if maximize is not None and maximize is True:
+                        raise RuntimeError("Deeplink Adamw with fused=True does not support maximize=True")
+                    if amsgrad is not None and amsgrad is True:
+                        raise RuntimeError("Deeplink Adamw with fused=True does not support amsgrad=True")
+                    # import pdb;pdb.set_trace()
+                    lr_float = lr
+                    if isinstance(lr, torch.Tensor):
+                        lr_float = float(lr.item())
+                    for i, param in enumerate(params):
+                        if grad_scale is not None:
+                            grad = grads[i].float() * grad_scale
+                        else:
+                            grad = grads[i]
+                        exp_avg = exp_avgs[i]
+                        exp_avg_sq = exp_avg_sqs[i]
+                        step = state_steps[i]
+                        if not max_exp_avg_sqs:
+                            max_exp_avg_sq = torch.Tensor().cuda()
+                        else:
+                            max_exp_avg_sq = max_exp_avg_sqs[i]
+                        cpp_ext.adamw(
+                            param,
+                            exp_avg,
+                            exp_avg_sq,
+                            max_exp_avg_sq,
+                            grad,
+                            lr_float,
+                            beta1,
+                            beta2,
+                            eps,
+                            weight_decay,
+                            step,
+                            amsgrad,
+                        )
+                    return params, exp_avgs, exp_avg_sqs
+                torch._fused_adamw_ = adamw_for_internlm
 
         import deeplink_ext.internlm_ops as ext
         import builtins
