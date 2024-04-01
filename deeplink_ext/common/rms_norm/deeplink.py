@@ -76,4 +76,3 @@ def rms_norm_backward(input, grad_output, inv_rms, normalized_shape, weight, bia
     )
 
     return [grad_input, grad_weight, grad_bias]
-
