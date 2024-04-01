@@ -81,7 +81,7 @@ auto extRmsNormBackward(const at::Tensor& input, const at::Tensor& grad_output,
                          std::move(grad_bias));
 }
 
-void extApplyRotary(at::Tensor output, const at::Tensor& input,
+void extApplyRotary(at::Tensor& output, const at::Tensor& input,
                     const at::Tensor& cos, const at::Tensor& sin,
                     const bool conj, const bool interleaved) {
   callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj, interleaved);
@@ -244,16 +244,6 @@ auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
   return out;
 }
 
-// For lightllm, rotary_embedding reuses the diopi implementation of internlm
-void extRotaryEmb(at::Tensor& q, const at::Tensor& cos, const at::Tensor& sin) {
-  auto seq_len = q.size(0);
-  auto dim = q.size(-1);
-  auto cos_view = cos.view({seq_len, 1, dim / 2});
-  auto sin_view = sin.view({seq_len, 1, dim / 2});
-  callDiopi(diopiRotaryEmbedding, q, q, cos_view, sin_view, /*conj=*/false,
-            /*interleaved=*/false);
-}
-
 // 判断是否有对应的 diopi 实现:
 //   如果有, 则直接 pybind 上去;
 //   否则不注册, 等到 python 层处理.
@@ -274,7 +264,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
   if (&diopiRotaryEmbedding != nullptr) {
     m.def("apply_rotary", &extApplyRotary, "deeplink ext_apply_rotary");
-    m.def("rotary_emb", &extRotaryEmb, "deeplink ext_rotary_emb for lightllm");
   }
   if (&diopiMultiHeadAttention != nullptr) {
     m.def("mha_fwd", &extMultiHeadAttention, "deeplink ext_mha_fwd");
