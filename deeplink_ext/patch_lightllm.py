@@ -51,7 +51,7 @@ def _patch_lightllm():
             )
 
         def patch_rms_norm_lightllm():
-            from .common.rms_norm.deeplink import rms_norm
+            from .common.rms_norm import rms_norm
 
             rms_norm_pack.rmsnorm_forward = rms_norm
 
