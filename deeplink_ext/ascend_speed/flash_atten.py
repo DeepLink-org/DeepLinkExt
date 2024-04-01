@@ -5,7 +5,7 @@ import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
 
-__all__ = ["CrossAttention", "SelfAttention"]
+__all__ = ["CrossAttention", "SelfAttention", "ScaledMaskedSoftmax"]
 
 
 def fa_fwd_out(out, gen, q, k, v, p_dropout, softmax_scale, is_causal, head_num):
@@ -324,3 +324,20 @@ class CrossAttention(nn.Module):
                 self.softmax_scale,
                 causal if causal is not None else self.causal,
             )
+
+class ScaledMaskedSoftmax(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input, mask, scale, fixed_triu_mask):
+        out = ext.scaled_masked_softmax_fwd(input, mask, scale, fixed_triu_mask)
+        ctx.save_for_backward(out, mask)
+        ctx.scale = scale
+        ctx.fixed_triu_mask = fixed_triu_mask
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        out, mask = ctx.saved_tensors
+        grad_input = ext.scaled_masked_softmax_bwd(
+            grad_output, out, mask, ctx.scale, ctx.fixed_triu_mask
+        )
+        return grad_input, None, None, None

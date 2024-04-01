@@ -201,6 +201,23 @@ void extDestIndexCopyKV(const at::Tensor& k, const at::Tensor& dest_loc,
   callDiopi(diopiDestIndexCopyKV, out, k, dest_loc);
 }
 
+auto extScaledMaskedSoftmax(const at::Tensor& input, const at::Tensor& mask,
+                            double scale, bool fixed_triu_mask) {
+  auto out = at::empty_like(input);
+  callDiopi(diopiScaledMaskedSoftmax, out, input, mask, scale, fixed_triu_mask);
+  return out;
+}
+
+auto extScaledMaskedSoftmaxBackward(const at::Tensor& grad_output,
+                                    const at::Tensor& out,
+                                    const at::Tensor& mask, double scale,
+                                    bool fixed_triu_mask) {
+  auto grad_input = at::empty_like(grad_output);
+  callDiopi(diopiScaledMaskedSoftmaxBackward, grad_input, grad_output, out,
+            mask, scale, fixed_triu_mask);
+  return grad_input;
+}
+
 void extTokenAttentionInference(const at::Tensor& q, const at::Tensor& k,
                                 at::Tensor& out, const at::Tensor& b_loc,
                                 const at::Tensor& b_start_loc,
@@ -292,6 +309,14 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiDestIndexCopyKV != nullptr) {
     m.def("dest_index_copy_kv", &extDestIndexCopyKV,
           "deeplink ext_dest_index_copy_kv");
+  }
+  if (&diopiScaledMaskedSoftmax != nullptr) {
+    m.def("scaled_masked_softmax_fwd", &extScaledMaskedSoftmax,
+          "deeplink ext_scaled_masked_softmax_fwd");
+  }
+  if (&diopiScaledMaskedSoftmaxBackward != nullptr) {
+    m.def("scaled_masked_softmax_bwd", &extScaledMaskedSoftmaxBackward,
+          "deeplink ext_scaled_masked_softmax_bwd");
   }
   if (&diopiTokenAttentionInference != nullptr) {
     m.def("token_attention_inference", &extTokenAttentionInference,
