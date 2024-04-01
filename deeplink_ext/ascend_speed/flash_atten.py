@@ -325,6 +325,7 @@ class CrossAttention(nn.Module):
                 causal if causal is not None else self.causal,
             )
 
+
 class ScaledMaskedSoftmax(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input, mask, scale, fixed_triu_mask):
