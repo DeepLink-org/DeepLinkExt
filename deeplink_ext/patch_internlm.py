@@ -129,9 +129,7 @@ def _patch_internlm(force_fallback: bool = False):
                         else (class_or_tuple,)
                     )
                 )
-                and isinstance_orig(
-                    obj, ext.rms_norm.RMSNormWithNormalizedShape
-                )
+                and isinstance_orig(obj, ext.rms_norm.RMSNormWithNormalizedShape)
             )
         )
 

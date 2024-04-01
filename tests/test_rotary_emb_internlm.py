@@ -2,7 +2,9 @@
 
 import torch
 from deeplink_ext.internlm_ops.rotary_embedding import apply_rotary
-from deeplink_ext.internlm_ops.rotary_embeddinig_fallback import apply_rotary as apply_rotary_fb
+from deeplink_ext.internlm_ops.rotary_embeddinig_fallback import (
+    apply_rotary as apply_rotary_fb,
+)
 
 
 def RotaryEmbTestFloat16() -> bool:
@@ -14,9 +16,7 @@ def RotaryEmbTestFloat16() -> bool:
     inplace = True
     interleaved = False
 
-    res1 = apply_rotary_fb(
-        input, cos, sin, interleaved=interleaved, inplace=inplace
-    )
+    res1 = apply_rotary_fb(input, cos, sin, interleaved=interleaved, inplace=inplace)
     res2 = apply_rotary(input1, cos, sin, interleaved=interleaved, inplace=inplace)
 
     # there is a little calculated error with ascend when dtype is float16
@@ -32,9 +32,7 @@ def RotaryEmbTestFloat32() -> bool:
     inplace = True
     interleaved = False
 
-    res1 = apply_rotary_fb(
-        input, cos, sin, interleaved=interleaved, inplace=inplace
-    )
+    res1 = apply_rotary_fb(input, cos, sin, interleaved=interleaved, inplace=inplace)
     res2 = apply_rotary(input1, cos, sin, interleaved=interleaved, inplace=inplace)
 
     return torch.allclose(res1, res2)
