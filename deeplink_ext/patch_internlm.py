@@ -66,10 +66,10 @@ def _patch_internlm(force_fallback: bool = False):
 
         import flash_attn.modules.mha  # type: ignore
 
-        flash_attn.modules.mha.SelfAttention = ext.mha.DeepLinkSelfAttention
-        flash_attn.modules.mha.FlashSelfAttention = ext.mha.DeepLinkSelfAttention
-        flash_attn.modules.mha.CrossAttention = ext.mha.DeepLinkCrossAttention
-        flash_attn.modules.mha.FlashCrossAttention = ext.mha.DeepLinkCrossAttention
+        flash_attn.modules.mha.SelfAttention = ext.mha.SelfAttention
+        flash_attn.modules.mha.FlashSelfAttention = ext.mha.SelfAttention
+        flash_attn.modules.mha.CrossAttention = ext.mha.CrossAttention
+        flash_attn.modules.mha.FlashCrossAttention = ext.mha.CrossAttention
 
     def _patch_ops():
         import deeplink_ext.internlm_ops as ext

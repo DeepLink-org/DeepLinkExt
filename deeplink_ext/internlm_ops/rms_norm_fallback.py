@@ -25,4 +25,5 @@ class RMSNorm(torch.nn.Module):
 
         return self.weight * hidden_states
 
+
 RMSNormWithNormalizedShape = RMSNorm

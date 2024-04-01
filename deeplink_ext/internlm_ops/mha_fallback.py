@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 import einops
 
+__all__ = ["SelfAttention", "CrossAttention"]
+
 
 class SelfAttention(nn.Module):
     def __init__(self, causal=False, softmax_scale=None, attention_dropout=0.0):

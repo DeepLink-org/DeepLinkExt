@@ -13,8 +13,8 @@ except:
         _not_impl.format(op_name="RMSNorm or RMSNormWithNormalizedShape"),
     )
     from .rms_norm_fallback import (
-        RMSNorm as RMSNorm,
-        RMSNorm as RMSNormWithNormalizedShape,
+        RMSNorm,
+        RMSNormWithNormalizedShape,
     )
 
 
@@ -25,4 +25,16 @@ except:
     from .rotary_embeddinig_fallback import apply_rotary
 
 
-__all__ = ["mha", "RMSNorm", "RMSNormWithNormalizedShape", "apply_rotary"]
+try:
+    from .mha import SelfAttention, CrossAttention
+except Exception as e:
+    print(_not_impl.format(op_name="mha"))
+    from .mha_fallback import SelfAttention, CrossAttention
+
+__all__ = [
+    "SelfAttention",
+    "CrossAttention",
+    "RMSNorm",
+    "RMSNormWithNormalizedShape",
+    "apply_rotary",
+]
