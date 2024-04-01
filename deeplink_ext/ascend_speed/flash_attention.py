@@ -6,7 +6,9 @@ assert hasattr(ext, "fa_fwd_v2") and hasattr(ext, "fa_bwd")
 
 class FlashSelfAttention(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, q, k, v, attention_mask, dropout_p, softmax_scale, head_num):
+    def forward(
+        ctx, q, k, v, attention_mask, dropout_p, softmax_scale, head_num, input_layout
+    ):
         out = torch.empty_like(q)
         (
             dropout_mask,
@@ -22,6 +24,7 @@ class FlashSelfAttention(torch.autograd.Function):
             dropout_p,
             softmax_scale,
             head_num,
+            input_layout,
         )
         ctx.save_for_backward(
             q,
@@ -37,6 +40,7 @@ class FlashSelfAttention(torch.autograd.Function):
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.head_num = head_num
+        ctx.input_layout = input_layout
         return out
 
     @staticmethod
@@ -76,5 +80,6 @@ class FlashSelfAttention(torch.autograd.Function):
             ctx.dropout_p,
             ctx.softmax_scale,
             ctx.head_num,
+            ctx.input_layout,
         )
         return dq, dk, dv, None, None, None, None
