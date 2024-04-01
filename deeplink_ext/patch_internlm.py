@@ -115,7 +115,7 @@ def _patch_internlm(force_fallback: bool = False):
         #           if isinstance(module, RMSNorm):
         #       which will fail under this patch. Thus we need also trick `isinstance`.
         internlm.model.norm.RMSNormTorch.__new__ = lambda _, *args, **kwargs: (
-            ext.rms_norm.DeepLinkRMSNormWithNormalizedShape(*args, **kwargs)
+            ext.rms_norm.RMSNormWithNormalizedShape(*args, **kwargs)
         )
         isinstance_orig = builtins.isinstance
         builtins.isinstance = lambda obj, class_or_tuple: (
@@ -130,7 +130,7 @@ def _patch_internlm(force_fallback: bool = False):
                     )
                 )
                 and isinstance_orig(
-                    obj, ext.rms_norm.DeepLinkRMSNormWithNormalizedShape
+                    obj, ext.rms_norm.RMSNormWithNormalizedShape
                 )
             )
         )

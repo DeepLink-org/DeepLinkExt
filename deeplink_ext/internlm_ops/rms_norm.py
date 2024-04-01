@@ -4,6 +4,9 @@ import torch
 from DeepLinkExt.deeplink_ext.common.rms_norm import rms_norm, rms_norm_backward
 
 
+__all__ = ["RMSNorm", "RMSNormWithNormalizedShape"]
+
+
 # 定义自定义的 autograd 函数
 class _DeepLinkRMSNormFunction(torch.autograd.Function):
     @staticmethod

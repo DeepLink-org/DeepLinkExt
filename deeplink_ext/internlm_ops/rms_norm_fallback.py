@@ -2,6 +2,8 @@
 
 import torch
 
+__all__ = ["RMSNorm", "RMSNormWithNormalizedShape"]
+
 
 # RMSNorm fallback from InternLM
 class RMSNorm(torch.nn.Module):
@@ -22,3 +24,5 @@ class RMSNorm(torch.nn.Module):
             hidden_states = hidden_states.to(self.weight.dtype)
 
         return self.weight * hidden_states
+
+RMSNormWithNormalizedShape = RMSNorm
