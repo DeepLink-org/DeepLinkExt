@@ -21,9 +21,8 @@ except:
 try:
     from .rotary_embedding import apply_rotary
 except:
-    print( _not_impl.format("apply_rotary"))
+    print(_not_impl.format("apply_rotary"))
     from .rotary_embeddinig_fallback import apply_rotary
-
 
 
 __all__ = ["mha", "RMSNorm", "RMSNormWithNormalizedShape", "apply_rotary"]
