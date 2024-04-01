@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <tuple>
 #include <utility>
-#include <vector>
 
 #include <ATen/core/ATen_fwd.h>
 #include <ATen/core/Generator.h>
@@ -26,18 +25,6 @@
 #include "pybind_type_cast.h"
 
 namespace dipu::dipu_ext {
-
-namespace {
-
-at::IntArrayRef optionalIntArrayToIntArrayRefOrDefault(
-    const OptionalIntArray& opt, at::IntArrayRef def) {
-  if (opt) {
-    return {*opt};
-  }
-  return def;
-}
-
-}  // namespace
 
 auto extFlashAttention(at::Tensor& out, at::Generator& gen, const at::Tensor& q,
                        const at::Tensor& k, const at::Tensor& v,
@@ -81,31 +68,22 @@ auto extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
             softmax_out, p_dropout, softmax_scale, head_num);
 }
 
-auto extRmsNorm(const at::Tensor& input,
+auto extRmsNorm(at::Tensor& output, at::Tensor& inv_rms,
+                const at::Tensor& input,
                 const OptionalIntArray& normalized_shape,
                 const at::Tensor& weight, const at::Tensor& bias, double eps) {
-  at::OptionalIntArrayRef normalized_shape_at =
-      optionalIntArrayToIntArrayRefOrDefault(normalized_shape, weight.sizes());
-  auto input_shape = input.sizes();
-  std::vector<int64_t> input_size(input_shape.begin(), input_shape.end());
-  input_size.back() = 1;
-  auto inv_rms = at::empty(input_size, input.options());
-  auto output = at::empty_like(input);
+  at::OptionalIntArrayRef normalized_shape_at = *normalized_shape;
   callDiopi(diopiRMSNorm, output, inv_rms, input, normalized_shape_at, weight,
             bias, eps);
   return std::make_tuple(std::move(output), std::move(inv_rms));
 }
 
-auto extRmsNormBackward(const at::Tensor& input, const at::Tensor& grad_output,
-                        const at::Tensor& inv_rms,
-                        const OptionalIntArray& normalized_shape,
-                        const at::Tensor& weight, const at::Tensor& bias,
-                        double eps) {
-  at::OptionalIntArrayRef normalized_shape_at =
-      optionalIntArrayToIntArrayRefOrDefault(normalized_shape, weight.sizes());
-  auto grad_input = at::empty_like(grad_output);
-  auto grad_weight = at::empty_like(weight);
-  auto grad_bias = at::empty_like(bias);
+auto extRmsNormBackward(at::Tensor& grad_input, at::Tensor& grad_weight,
+                        at::Tensor& grad_bias, const at::Tensor& grad_output,
+                        const at::Tensor& input, const at::Tensor& weight,
+                        const at::Tensor& bias, const at::Tensor& inv_rms,
+                        const OptionalIntArray& normalized_shape, double eps) {
+  at::OptionalIntArrayRef normalized_shape_at = *normalized_shape;
   callDiopi(diopiRMSNormBackward, grad_input, grad_weight, grad_bias,
             grad_output, input, weight, bias, inv_rms, normalized_shape_at,
             eps);
@@ -289,9 +267,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
   if (&diopiRMSNorm != nullptr) {  // Check if weak symbol defined
     m.def("rms_norm", &extRmsNorm, "deeplink ext_rms_norm");
-    m.def("rms_norm_lightllm", &extRmsNormLightllm,
-          "deeplink ext_rms_norm for lightllm", py::arg("x"), py::arg("weight"),
-          py::arg("eps"));
   }
   if (&diopiRMSNormBackward != nullptr) {
     m.def("rms_norm_backward", &extRmsNormBackward,

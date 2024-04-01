@@ -66,10 +66,10 @@ def _patch_internlm(force_fallback: bool = False):
 
         import flash_attn.modules.mha  # type: ignore
 
-        flash_attn.modules.mha.SelfAttention = ext.mha.DeepLinkSelfAttention
-        flash_attn.modules.mha.FlashSelfAttention = ext.mha.DeepLinkSelfAttention
-        flash_attn.modules.mha.CrossAttention = ext.mha.DeepLinkCrossAttention
-        flash_attn.modules.mha.FlashCrossAttention = ext.mha.DeepLinkCrossAttention
+        flash_attn.modules.mha.SelfAttention = ext.mha.SelfAttention
+        flash_attn.modules.mha.FlashSelfAttention = ext.mha.SelfAttention
+        flash_attn.modules.mha.CrossAttention = ext.mha.CrossAttention
+        flash_attn.modules.mha.FlashCrossAttention = ext.mha.CrossAttention
 
     def _patch_ops():
         import deeplink_ext.internlm_ops as ext
@@ -115,7 +115,7 @@ def _patch_internlm(force_fallback: bool = False):
         #           if isinstance(module, RMSNorm):
         #       which will fail under this patch. Thus we need also trick `isinstance`.
         internlm.model.norm.RMSNormTorch.__new__ = lambda _, *args, **kwargs: (
-            ext.rms_norm.DeepLinkRMSNormWithNormalizedShape(*args, **kwargs)
+            ext.rms_norm.RMSNormWithNormalizedShape(*args, **kwargs)
         )
         isinstance_orig = builtins.isinstance
         builtins.isinstance = lambda obj, class_or_tuple: (
@@ -129,9 +129,7 @@ def _patch_internlm(force_fallback: bool = False):
                         else (class_or_tuple,)
                     )
                 )
-                and isinstance_orig(
-                    obj, ext.rms_norm.DeepLinkRMSNormWithNormalizedShape
-                )
+                and isinstance_orig(obj, ext.rms_norm.RMSNormWithNormalizedShape)
             )
         )
 
