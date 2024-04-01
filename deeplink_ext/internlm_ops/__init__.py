@@ -3,14 +3,14 @@
 from . import mha
 
 
-_not_impl = "[deeplink_ext] %s is not implemented in diopi. Falling back to the slower torch implementation."
+_not_impl = "[deeplink_ext] {op_name} is not implemented in diopi. Falling back to the slower torch implementation."
 
 
 try:
     from .rms_norm import RMSNorm, RMSNormWithNormalizedShape
 except:
     print(
-        _not_impl.format("RMSNorm or RMSNormWithNormalizedShape"),
+        _not_impl.format(op_name="RMSNorm or RMSNormWithNormalizedShape"),
     )
     from .rms_norm_fallback import (
         RMSNorm as RMSNorm,
@@ -21,7 +21,7 @@ except:
 try:
     from .rotary_embedding import apply_rotary
 except:
-    print(_not_impl.format("apply_rotary"))
+    print(_not_impl.format(op_name="apply_rotary"))
     from .rotary_embeddinig_fallback import apply_rotary
 
 
