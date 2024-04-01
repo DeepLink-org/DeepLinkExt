@@ -18,18 +18,19 @@ def fa_fwd_out(
     is_causal,
     head_num,
 ):
-    attention_mask, dropout_mask, softmax_max, softmax_sum, softmax_out = cpp_ext.fa_fwd(
-        out,
-        gen,
-        q,
-        k,
-        v,
-        p_dropout,
-        softmax_scale,
-        is_causal,
-        head_num,
+    attention_mask, dropout_mask, softmax_max, softmax_sum, softmax_out = (
+        cpp_ext.fa_fwd(
+            out,
+            gen,
+            q,
+            k,
+            v,
+            p_dropout,
+            softmax_scale,
+            is_causal,
+            head_num,
+        )
     )
-    
     return [out, attention_mask, dropout_mask, softmax_max, softmax_sum, softmax_out]
 
 
@@ -59,23 +60,23 @@ def fa_fwd(
 
 
 def fa_bwd_out(
-        grad_q,
-        grad_k,
-        grad_v,
-        grad_out,
-        q,
-        k,
-        v,
-        out,
-        attention_mask,
-        dropout_mask,
-        softmax_max,
-        softmax_sum,
-        softmax_out,
-        p_dropout,
-        softmax_scale,
-        head_num,
-    ):
+    grad_q,
+    grad_k,
+    grad_v,
+    grad_out,
+    q,
+    k,
+    v,
+    out,
+    attention_mask,
+    dropout_mask,
+    softmax_max,
+    softmax_sum,
+    softmax_out,
+    p_dropout,
+    softmax_scale,
+    head_num,
+):
     cpp_ext.fa_bwd(
         grad_q,
         grad_k,
@@ -94,7 +95,7 @@ def fa_bwd_out(
         softmax_scale,
         head_num,
     )
-    
+
     return [grad_q, grad_k, grad_v]
 
 
@@ -111,11 +112,12 @@ def fa_bwd(
     softmax_out,
     p_dropout,
     softmax_scale,
-    head_num):
+    head_num,
+):
     grad_q = torch.empty_like(q)
     grad_k = torch.empty_like(k)
     grad_v = torch.empty_like(v)
-    
+
     return fa_bwd_out(
         grad_q,
         grad_k,
@@ -204,7 +206,7 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
             ctx.head_num,
         )
         return dq, dkv, None, None, None, None
-    
+
 
 class FlashAttentionQKVPackedFunc(torch.autograd.Function):
     @staticmethod
