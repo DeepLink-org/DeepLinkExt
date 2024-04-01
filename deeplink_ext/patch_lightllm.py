@@ -51,7 +51,9 @@ def _patch_lightllm():
             )
 
         def patch_rms_norm_lightllm():
-            rms_norm_pack.rmsnorm_forward = ext.rms_norm_lightllm
+            from .common.rms_norm import rms_norm
+
+            rms_norm_pack.rmsnorm_forward = rms_norm
 
         def patch_rotary_emb():
             def rotary_emb(q, cos, sin):
