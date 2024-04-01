@@ -82,4 +82,4 @@ class FlashSelfAttention(torch.autograd.Function):
             ctx.head_num,
             ctx.input_layout,
         )
-        return dq, dk, dv, None, None, None, None
+        return dq, dk, dv, None, None, None, None, None

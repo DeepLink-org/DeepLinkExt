@@ -1,6 +1,7 @@
 // Copyright (c) 2023, DeepLink.
 
 #include <cstdint>
+#include <string>
 #include <tuple>
 #include <utility>
 
@@ -167,7 +168,7 @@ auto extMultiHeadAttentionVarLenBackward(
 auto extFlashAttention(at::Tensor& out, const at::Tensor& q,
                        const at::Tensor& k, const at::Tensor& v,
                        double p_dropout, double softmax_scale, bool is_causal,
-                       int64_t head_num, c10::string_view input_layout) {
+                       int64_t head_num, const std::string& input_layout) {
   diopiTensorHandle_t attention_mask = nullptr;
   diopiTensorHandle_t dropout_mask = nullptr;
   diopiTensorHandle_t softmax_max = nullptr;
@@ -179,7 +180,7 @@ auto extFlashAttention(at::Tensor& out, const at::Tensor& q,
   [[maybe_unused]] auto context = callDiopiKeepContext(
       diopiFlashAttention, out, &attention_mask, &dropout_mask, &softmax_max,
       &softmax_sum, &softmax_out, gen, q, k, v, p_dropout, softmax_scale,
-      is_causal, head_num, input_layout.data());
+      is_causal, head_num, input_layout.c_str());
 
   return std::make_tuple(
       attention_mask
@@ -196,7 +197,7 @@ auto extFlashAttentionV2(at::Tensor& out, const at::Tensor& q,
                          const at::Tensor& k, const at::Tensor& v,
                          const at::Tensor& attention_mask, double p_dropout,
                          double softmax_scale, int64_t head_num,
-                         c10::string_view input_layout) {
+                         const std::string& input_layout) {
   diopiTensorHandle_t dropout_mask = nullptr;
   diopiTensorHandle_t softmax_max = nullptr;
   diopiTensorHandle_t softmax_sum = nullptr;
@@ -207,7 +208,7 @@ auto extFlashAttentionV2(at::Tensor& out, const at::Tensor& q,
   [[maybe_unused]] auto context = callDiopiKeepContext(
       diopiFlashAttentionV2, out, &dropout_mask, &softmax_max, &softmax_sum,
       &softmax_out, gen, q, k, v, attention_mask, p_dropout, softmax_scale,
-      head_num, input_layout.data());
+      head_num, input_layout.c_str());
 
   return std::make_tuple(
       dropout_mask ? *dipu::diopi_helper::fromDiopiTensorHandle(dropout_mask)
@@ -224,11 +225,11 @@ auto extFlashAttentionBackward(
     const at::Tensor& attention_mask, const at::Tensor& dropout_mask,
     const at::Tensor& softmax_max, const at::Tensor& softmax_sum,
     const at::Tensor& softmax_out, double p_dropout, double softmax_scale,
-    int64_t head_num, c10::string_view input_layout) {
+    int64_t head_num, const std::string& input_layout) {
   callDiopi(diopiFlashAttentionBackward, grad_q, grad_k, grad_v, grad_out, q, k,
             v, out, attention_mask, dropout_mask, softmax_max, softmax_sum,
             softmax_out, p_dropout, softmax_scale, head_num,
-            input_layout.data());
+            input_layout.c_str());
   return std::make_tuple(std::move(grad_q), std::move(grad_k),
                          std::move(grad_v));
 }
