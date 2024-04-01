@@ -17,6 +17,7 @@
 #include <pybind11/cast.h>
 #include <pybind11/detail/common.h>
 
+#include <diopi/functions.h>
 #include <diopi/functions_ext.h>
 
 #include <csrc_dipu/runtime/core/DIPUGeneratorImpl.h>
@@ -25,6 +26,15 @@
 #include "pybind_type_cast.h"
 
 namespace dipu::dipu_ext {
+
+void extAdamW(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
+              at::Tensor& max_exp_avg_sq, at::Tensor& grad, float lr,
+              float beta1, float beta2, float epsilon, float weight_decay,
+              int64_t step, bool amsgrad) {
+  // the diopiAdamW func has no "maximize" param
+  callDiopi(diopiAdamW, param, grad, exp_avg, exp_avg_sq, max_exp_avg_sq, lr,
+            beta1, beta2, epsilon, weight_decay, step, amsgrad);
+}
 
 auto extRmsNorm(at::Tensor& output, at::Tensor& inv_rms,
                 const at::Tensor& input,
@@ -217,7 +227,11 @@ auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
 //   否则不注册, 等到 python 层处理.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  if (&diopiRMSNorm != nullptr) {  // Check if weak symbol defined
+  // Check if weak symbol defined
+  if (&diopiAdamW != nullptr) {
+    m.def("adamw", &extAdamW, "deeplink ext_adamw");
+  }
+  if (&diopiRMSNorm != nullptr) {
     m.def("rms_norm", &extRmsNorm, "deeplink ext_rms_norm");
   }
   if (&diopiRMSNormBackward != nullptr) {
