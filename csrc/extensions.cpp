@@ -39,6 +39,48 @@ at::IntArrayRef optionalIntArrayToIntArrayRefOrDefault(
 
 }  // namespace
 
+auto extFlashAttention(at::Tensor& out, at::Generator& gen, const at::Tensor& q,
+                       const at::Tensor& k, const at::Tensor& v,
+                       double p_dropout, double softmax_scale, bool is_causal,
+                       int64_t head_num) {
+  diopiTensorHandle_t attention_mask = nullptr;
+  diopiTensorHandle_t dropout_mask = nullptr;
+  diopiTensorHandle_t softmax_max = nullptr;
+  diopiTensorHandle_t softmax_sum = nullptr;
+  diopiTensorHandle_t softmax_out = nullptr;
+
+  [[maybe_unused]] auto context = callDiopiKeepContext(
+      diopiFlashAttention, out, &attention_mask, &dropout_mask, &softmax_max,
+      &softmax_sum, &softmax_out, gen, q, k, v, p_dropout, softmax_scale,
+      is_causal, head_num);
+
+  return std::make_tuple(
+      attention_mask
+          ? *dipu::diopi_helper::fromDiopiTensorHandle(attention_mask)
+          : at::Tensor(),
+      dropout_mask ? *dipu::diopi_helper::fromDiopiTensorHandle(dropout_mask)
+                   : at::Tensor(),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_max),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_sum),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
+}
+
+// grad_q, grad_k, grad_v are output args, and should be pre-allocated.
+auto extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
+                               at::Tensor& grad_v, const at::Tensor& grad_out,
+                               const at::Tensor& q, const at::Tensor& k,
+                               const at::Tensor& v, const at::Tensor& out,
+                               const at::Tensor& attention_mask,
+                               const at::Tensor& dropout_mask,
+                               const at::Tensor& softmax_max,
+                               const at::Tensor& softmax_sum,
+                               const at::Tensor& softmax_out, double p_dropout,
+                               double softmax_scale, int64_t head_num) {
+  callDiopi(diopiFlashAttentionBackward, grad_q, grad_k, grad_v, grad_out, q, k,
+            v, out, attention_mask, dropout_mask, softmax_max, softmax_sum,
+            softmax_out, p_dropout, softmax_scale, head_num);
+}
+
 auto extRmsNorm(const at::Tensor& input,
                 const OptionalIntArray& normalized_shape,
                 const at::Tensor& weight, const at::Tensor& bias, double eps) {
@@ -239,6 +281,12 @@ auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
 //   否则不注册, 等到 python 层处理.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  if (&diopiFlashAttention != nullptr) {
+    m.def("fa_fwd", &extFlashAttention, "deeplink ext_fa_fwd");
+  }
+  if (&diopiFlashAttentionBackward != nullptr) {
+    m.def("fa_bwd", &extFlashAttentionBackward, "deeplink ext_fa_bwd");
+  }
   if (&diopiRMSNorm != nullptr) {  // Check if weak symbol defined
     m.def("rms_norm", &extRmsNorm, "deeplink ext_rms_norm");
     m.def("rms_norm_lightllm", &extRmsNormLightllm,
