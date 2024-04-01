@@ -3,7 +3,7 @@ from typing import Optional, Union
 import deeplink_ext.cpp_extensions as ext
 
 
-def apply_rotary_for_ascend_speed(
+def apply_rotary(
     x: torch.Tensor,
     cos: torch.Tensor,
     sin: torch.Tensor,
@@ -19,13 +19,13 @@ def apply_rotary_for_ascend_speed(
     return output
 
 
-class RotaryEmbedding_AscendSpeed(torch.autograd.Function):
+class RotaryEmbedding(torch.autograd.Function):
     @staticmethod
     def forward(ctx, t, cos, sin):
         ctx.save_for_backward(cos, sin)
-        return apply_rotary_for_ascend_speed(t, cos, sin)
+        return apply_rotary(t, cos, sin)
 
     @staticmethod
     def backward(ctx, t):
         cos, sin = ctx.saved_tensors
-        return apply_rotary_for_ascend_speed(t, cos, sin, conjugate=True), None, None
+        return apply_rotary(t, cos, sin, conjugate=True), None, None
