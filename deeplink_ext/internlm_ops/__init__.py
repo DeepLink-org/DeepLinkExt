@@ -1,5 +1,12 @@
 # Copyright (c) 2024, DeepLink.
 
-from . import mha, rms_norm, rotary
+from . import mha, rotary
 
-__all__ = ["mha", "rms_norm", "rotary"]
+try:
+    from .rms_norm import RMSNorm, RMSNormWithNormalizedShape
+except:
+    from .rms_norm_fallback import RMSNorm as RMSNorm, RMSNorm as RMSNormWithNormalizedShape
+
+
+__all__ =["mha","rotary", RMSNorm, RMSNormWithNormalizedShape]
+

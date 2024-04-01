@@ -56,7 +56,14 @@ def _patch_lightllm():
             rms_norm_pack.rmsnorm_forward = rms_norm
 
         def patch_rotary_emb():
-            rotary_emb_pack.rotary_emb_fwd = ext.rotary_emb
+            def rotary_emb(q, cos, sin):
+                seq_len = q.shape[0]
+                dim = q.shape[-1]
+                cos_view = cos.view([seq_len, 1, dim / 2])
+                sin_view = sin.view([seq_len, 1, dim / 2])
+                ext.apply_rotary(q, q, cos_view, sin_view, False, False)
+
+            rotary_emb_pack.rotary_emb_fwd = rotary_emb
 
         try:
             locals()[f"patch_{op}"]()

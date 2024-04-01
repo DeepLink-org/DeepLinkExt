@@ -49,7 +49,7 @@ auto extRmsNormBackward(at::Tensor& grad_input, at::Tensor& grad_weight,
                          std::move(grad_bias));
 }
 
-void extApplyRotary(at::Tensor output, const at::Tensor& input,
+void extApplyRotary(at::Tensor& output, const at::Tensor& input,
                     const at::Tensor& cos, const at::Tensor& sin,
                     const bool conj, const bool interleaved) {
   callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj, interleaved);
@@ -197,14 +197,19 @@ void extApplyPenalty(at::Tensor& logits, const at::Tensor& presence_penalty,
             p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
 }
 
-// For lightllm, rotary_embedding reuses the diopi implementation of internlm
-void extRotaryEmb(at::Tensor& q, const at::Tensor& cos, const at::Tensor& sin) {
-  auto seq_len = q.size(0);
-  auto dim = q.size(-1);
-  auto cos_view = cos.view({seq_len, 1, dim / 2});
-  auto sin_view = sin.view({seq_len, 1, dim / 2});
-  callDiopi(diopiRotaryEmbedding, q, q, cos_view, sin_view, /*conj=*/false,
-            /*interleaved=*/false);
+// For lightllm, rms_norm reuses the diopi implementation of internlm
+auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
+                        float eps) {
+  at::ScalarType acc_type = x.scalar_type();
+  if (x.scalar_type() == at::kBFloat16 || x.scalar_type() == at::kHalf) {
+    acc_type = at::kFloat;
+  }
+  auto inv_rms = at::empty_like(x, acc_type);
+  auto out = at::empty_like(x);
+  auto bias = at::empty_like(weight);
+  at::OptionalIntArrayRef normalized_shape = weight.sizes();
+  callDiopi(diopiRMSNorm, out, inv_rms, x, normalized_shape, weight, bias, eps);
+  return out;
 }
 
 // 判断是否有对应的 diopi 实现:
@@ -221,7 +226,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
   if (&diopiRotaryEmbedding != nullptr) {
     m.def("apply_rotary", &extApplyRotary, "deeplink ext_apply_rotary");
-    m.def("rotary_emb", &extRotaryEmb, "deeplink ext_rotary_emb for lightllm");
   }
   if (&diopiMultiHeadAttention != nullptr) {
     m.def("mha_fwd", &extMultiHeadAttention, "deeplink ext_mha_fwd");
