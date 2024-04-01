@@ -1,51 +1,15 @@
 import torch
 import torch.nn as nn
 import torch_dipu
-import deeplink_ext.cpp_extensions as cpp_ext
+import deeplink_ext.cpp_extensions as ext
 
-assert hasattr(cpp_ext, "fa_fwd") and hasattr(cpp_ext, "fa_bwd")
+assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
 
-
-def fa_fwd_out(
-    out,
-    gen,
-    q,
-    k,
-    v,
-    p_dropout,
-    softmax_scale,
-    is_causal,
-    head_num,
-):
-    attention_mask, dropout_mask, softmax_max, softmax_sum, softmax_out = (
-        cpp_ext.fa_fwd(
-            out,
-            gen,
-            q,
-            k,
-            v,
-            p_dropout,
-            softmax_scale,
-            is_causal,
-            head_num,
-        )
-    )
-    return [out, attention_mask, dropout_mask, softmax_max, softmax_sum, softmax_out]
+__all__ = ["CrossAttention", "SelfAttention"]
 
 
-def fa_fwd(
-    q,
-    k,
-    v,
-    p_dropout,
-    softmax_scale,
-    is_causal,
-    head_num,
-):
-    out = torch.empty_like(q)
-    gen = torch_dipu._C._create_dipu_generator(-1)
-
-    return fa_fwd_out(
+def fa_fwd_out(out, gen, q, k, v, p_dropout, softmax_scale, is_causal, head_num):
+    attention_mask, dropout_mask, softmax_max, softmax_sum, softmax_out = ext.fa_fwd(
         out,
         gen,
         q,
@@ -56,6 +20,14 @@ def fa_fwd(
         is_causal,
         head_num,
     )
+    return [out, attention_mask, dropout_mask, softmax_max, softmax_sum, softmax_out]
+
+
+def fa_fwd(q, k, v, p_dropout, softmax_scale, is_causal, head_num):
+    out = torch.empty_like(q)
+    gen = torch_dipu._C._create_dipu_generator(-1)
+
+    return fa_fwd_out(out, gen, q, k, v, p_dropout, softmax_scale, is_causal, head_num)
 
 
 def fa_bwd_out(
@@ -76,7 +48,7 @@ def fa_bwd_out(
     softmax_scale,
     head_num,
 ):
-    cpp_ext.fa_bwd(
+    ext.fa_bwd(
         grad_q,
         grad_k,
         grad_v,
