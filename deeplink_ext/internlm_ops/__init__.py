@@ -22,7 +22,7 @@ try:
     from .rotary_embedding import apply_rotary
 except:
     print(_not_impl.format(op_name="apply_rotary"))
-    from .rotary_embeddinig_fallback import apply_rotary
+    from .rotary_embedding_fallback import apply_rotary
 
 
 try:
