@@ -27,7 +27,9 @@ def adamw(
     See :class:`~torch.optim.AdamW` for details.
     """
 
-    assert maximize == False, "The maximize parameter is not supported by diopiAdamW yet"
+    assert (
+        maximize == False
+    ), "The maximize parameter is not supported by diopiAdamW yet"
 
     for i, param in enumerate(params):
         if norm_coeff_scale is not None:
