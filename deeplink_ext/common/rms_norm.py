@@ -94,4 +94,3 @@ class RMSNorm(torch.autograd.Function):
             hidden_states, grad_output, inv_rms, None, weight, bias, ctx.eps
         )
         return grad_input, grad_weight, None, None
-
