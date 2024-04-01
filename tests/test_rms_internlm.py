@@ -2,7 +2,8 @@
 
 import torch
 import numpy as np
-import deeplink_ext.internlm_ops.rms_norm as ext
+from deeplink_ext.internlm_ops.rms_norm import RMSNorm, RMSNormWithNormalizedShape
+from deeplink_ext.internlm_ops.rms_norm_fallback import RMSNorm as RMSNorm_fb
 
 
 def rms_norm_test(BaseRmsNorm, DeeplinkRmsNorm, rtol=1e-4, atol=1e-3):
@@ -29,9 +30,9 @@ def rms_norm_test(BaseRmsNorm, DeeplinkRmsNorm, rtol=1e-4, atol=1e-3):
 
 print(
     "Test case: normalized_shape == None: grad_inputs closed ? ",
-    rms_norm_test(ext.fallback.RMSNorm, ext.DeepLinkRMSNorm),
+    rms_norm_test(RMSNorm_fb, RMSNorm),
 )
 print(
     "Test case: normalized_shape == weight.size(): grad_inputs closed ? ",
-    rms_norm_test(ext.fallback.RMSNorm, ext.DeepLinkRMSNormWithNormalizedShape),
+    rms_norm_test(RMSNorm_fb, RMSNormWithNormalizedShape),
 )
