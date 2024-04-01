@@ -4,7 +4,7 @@ import deeplink_ext.cpp_extensions as ext
 assert hasattr(ext, "fa_fwd_v2") and hasattr(ext, "fa_bwd")
 
 
-class DeepLinkFlashSelfAttention(torch.autograd.Function):
+class FlashSelfAttention(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, k, v, attention_mask, dropout_p, softmax_scale, head_num):
         out = torch.empty_like(q)
