@@ -18,6 +18,7 @@
 #include <pybind11/cast.h>
 #include <pybind11/detail/common.h>
 
+#include <diopi/diopirt.h>
 #include <diopi/functions.h>
 #include <diopi/functions_ext.h>
 
