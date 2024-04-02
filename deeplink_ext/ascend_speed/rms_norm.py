@@ -17,7 +17,7 @@ class RMSNorm(torch.autograd.Function):
             else input_dtype
         )
         inv_rms = torch.empty(
-            hidden_states.shape[:-1] + (1,),
+            list(hidden_states.shape[:-1]) + [1],
             dtype=acc_dtype,
             device=hidden_states.device,
         )
