@@ -21,6 +21,7 @@
 #include <diopi/functions.h>
 #include <diopi/functions_ext.h>
 
+#include <csrc_dipu/diopirt/diopirt_impl.h>
 #include <csrc_dipu/runtime/core/DIPUGeneratorImpl.h>
 
 #include "diopi_helper.h"
