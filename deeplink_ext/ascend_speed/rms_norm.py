@@ -13,11 +13,11 @@ class RMSNorm(torch.autograd.Function):
         input_dtype = hidden_states.dtype
         acc_dtype = (
             torch.float32
-            if (input_dtype == torch.bfloat16 or input_dtype == torch.float16)
+            if input_dtype in [torch.bfloat16, torch.float16]
             else input_dtype
         )
         inv_rms = torch.empty_like(hidden_states, dtype=acc_dtype)
-        ext.rms_norm(output, hidden_states, None, weight, bias, eps)
+        ext.rms_norm(output, inv_rms, hidden_states, None, weight, bias, eps)
         ctx.save_for_backward(hidden_states, inv_rms, weight, bias)
         ctx.eps = eps
         return output
