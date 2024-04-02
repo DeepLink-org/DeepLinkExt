@@ -1,7 +1,5 @@
 # Copyright (c) 2024, DeepLink.
 
-from . import mha
-
 
 _not_impl = "[deeplink_ext] {op_name} is not implemented in diopi. Falling back to the slower torch implementation."
 
