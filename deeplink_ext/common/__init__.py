@@ -2,9 +2,9 @@ from .rms_norm import rms_norm_out, rms_norm, rms_norm_backward_out, rms_norm_ba
 
 
 __all__ = [
-  "rms_norm_out",
-  "rms_norm",
-  "rms_norm_backward_out",
-  "rms_norm_backward",
-  "RMSNorm",
+    "rms_norm_out",
+    "rms_norm",
+    "rms_norm_backward_out",
+    "rms_norm_backward",
+    "RMSNorm",
 ]
