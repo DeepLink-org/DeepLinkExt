@@ -179,7 +179,7 @@ def _patch_internlm(force_fallback: bool = False):
             #         )
             #     return params, exp_avgs, exp_avg_sqs
             # torch.optim.adamw._fused_adamw = adamw_for_internlm
-            if True:
+            if False:
                 from typing import List, Optional, Tuple, Union
                 def adamw_for_internlm(
                     params: List[torch.Tensor],
