@@ -17,7 +17,7 @@ class RMSNorm(torch.autograd.Function):
             else input_dtype
         )
         inv_rms = torch.empty_like(hidden_states, dtype=acc_dtype)
-        ext.rms_norm(output, inv_rms, hidden_states, None, weight, bias, eps)
+        ext.rms_norm(output, inv_rms, hidden_states, weight.shape, weight, bias, eps)
         ctx.save_for_backward(hidden_states, inv_rms, weight, bias)
         ctx.eps = eps
         return output
@@ -32,12 +32,12 @@ class RMSNorm(torch.autograd.Function):
             grad_input,
             grad_weight,
             grad_bias,
-            hidden_states,
             grad_output,
-            inv_rms,
-            None,
+            hidden_states,
             weight,
             bias,
+            inv_rms,
+            weight.shape,
             ctx.eps,
         )
         return grad_input, grad_weight, None, None
