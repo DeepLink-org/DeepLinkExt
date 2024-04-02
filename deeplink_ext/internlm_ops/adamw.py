@@ -5,6 +5,8 @@ from typing import List, Optional, Union
 
 assert hasattr(ext, "adamw")
 
+__all__ = ["adamw_for_internlm"]
+
 
 def adamw_for_internlm(
     params: List[torch.Tensor],
