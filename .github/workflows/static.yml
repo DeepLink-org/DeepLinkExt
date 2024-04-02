@@ -9,7 +9,7 @@ on:
 
 env:
   DEEPLINK_PATH: /mnt/cache/share/deeplinkci/github/${{ github.repository }}
-  ENV_SOURCE: /mnt/cache/share/platform/env/dipu_latest
+  ENV_SOURCE: /mnt/cache/share/platform/env/dipu_latest_ci
   PROXY_SOURCE: /mnt/cache/share/platform/env/proxy
   CLANGD_EXEC: /mnt/cache/share/platform/dep/clang-17/bin/clangd
 
