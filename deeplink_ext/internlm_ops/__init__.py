@@ -35,5 +35,7 @@ __all__ = [
     "RMSNorm",
     "RMSNormWithNormalizedShape",
     "apply_rotary",
+    "DeeplinkApplyRotaryEmb",
+    "DeeplinkApplyRotaryEmbQKV_",
     "adamw_for_internlm",
 ]
