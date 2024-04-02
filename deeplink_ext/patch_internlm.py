@@ -55,7 +55,7 @@ def _patch_internlm(force_fallback: bool = False):
                 delattr(cpp_ext, attr)
 
     def _patch_flash_attn():
-        import deeplink_ext.internlm_ops as ext
+        import deeplink_ext.internevo_ops as ext
         import flash_attn.losses.cross_entropy  # type: ignore
         import torch.nn
 
@@ -72,7 +72,7 @@ def _patch_internlm(force_fallback: bool = False):
         flash_attn.modules.mha.FlashCrossAttention = ext.mha.CrossAttention
 
     def _patch_ops():
-        import deeplink_ext.internlm_ops as ext
+        import deeplink_ext.internevo_ops as ext
         import flash_attn.layers.rotary  # type: ignore
         import internlm.model.embedding  # type: ignore
 

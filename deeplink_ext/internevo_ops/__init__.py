@@ -37,4 +37,5 @@ __all__ = [
     "RMSNorm",
     "RMSNormWithNormalizedShape",
     "apply_rotary",
+    "adamw",
 ]

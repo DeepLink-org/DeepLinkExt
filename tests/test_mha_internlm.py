@@ -1,7 +1,7 @@
 # Copyright (c) 2023, DeepLink.
 
 import torch
-import deeplink_ext.internlm_ops.mha as ext
+import deeplink_ext.internevo_ops.mha as ext
 
 
 def _run_self_attention(self_attn_module: type, qkv_data: torch.Tensor):
