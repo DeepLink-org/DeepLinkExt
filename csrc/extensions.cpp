@@ -231,6 +231,21 @@ auto extFlashAttentionBackward(
                          std::move(grad_v));
 }
 
+void extScaledMaskedSoftmax(at::Tensor& out, const at::Tensor& input,
+                            const at::Tensor& mask, double scale,
+                            bool fixed_triu_mask) {
+  callDiopi(diopiScaledMaskedSoftmax, out, input, mask, scale, fixed_triu_mask);
+}
+
+void extScaledMaskedSoftmaxBackward(at::Tensor& grad_input,
+                                    const at::Tensor& grad_output,
+                                    const at::Tensor& out,
+                                    const at::Tensor& mask, double scale,
+                                    bool fixed_triu_mask) {
+  callDiopi(diopiScaledMaskedSoftmaxBackward, grad_input, grad_output, out,
+            mask, scale, fixed_triu_mask);
+}
+
 void extDestIndexCopyKV(const at::Tensor& k, const at::Tensor& dest_loc,
                         at::Tensor& out) {
   callDiopi(diopiDestIndexCopyKV, out, k, dest_loc);
@@ -349,6 +364,14 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
   if (&diopiApplyPenalty != nullptr) {
     m.def("apply_penalty", &extApplyPenalty, "deeplink ext_apply_penalty");
+  }
+  if (&diopiScaledMaskedSoftmax != nullptr) {
+    m.def("scaled_masked_softmax_fwd", &extScaledMaskedSoftmax,
+          "deeplink ext_scaled_masked_softmax_fwd");
+  }
+  if (&diopiScaledMaskedSoftmaxBackward != nullptr) {
+    m.def("scaled_masked_softmax_bwd", &extScaledMaskedSoftmaxBackward,
+          "deeplink ext_scaled_masked_softmax_bwd");
   }
 }
 
