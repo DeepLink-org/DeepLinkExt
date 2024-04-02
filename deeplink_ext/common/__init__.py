@@ -6,5 +6,5 @@ __all__ = [
   "rms_norm",
   "rms_norm_backward_out",
   "rms_norm_backward",
-  "RMSNorm"，
+  "RMSNorm",
 ]
