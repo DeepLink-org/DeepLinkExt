@@ -47,7 +47,7 @@ class _DeepLinkRMSNormFunction(torch.autograd.Function):
             weight.shape,
             ctx.eps,
         )
-        return grad_input, grad_weight, grad_bias, None, None
+        return grad_input, grad_weight, grad_bias, None
 
 
 class _DeepLinkRMSNormFunctionWithNormalizedShape(torch.autograd.Function):
