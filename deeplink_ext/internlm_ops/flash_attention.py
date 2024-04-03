@@ -26,6 +26,7 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
         # The current default input layout for flash attention is BSND
         input_layout = "BSND"
         gen = torch_dipu._C._create_dipu_generator(-1)
+
         if qkv is not None:
             query = qkv[:, :, 0]
             key, value = qkv[:, :, 1], qkv[:, :, 2]
@@ -41,7 +42,6 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
 
         head_num = query.shape[2]
         out = torch.empty_like(query)
-
         (
             attention_mask,
             dropout_mask,
@@ -99,6 +99,7 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
             torch.Tensor().cuda() if attention_mask is None else attention_mask
         )
         dropout_mask = torch.Tensor().cuda() if dropout_mask is None else dropout_mask
+
         if qkv is not None:
             dqkv = torch.empty_like(qkv)
             ext.fa_bwd(
@@ -175,11 +176,13 @@ class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
         # The current default input layout for flash attention is BSND
         input_layout = "BSND"
+        gen = torch_dipu._C._create_dipu_generator(-1)
+
         if softmax_scale is None:
             softmax_scale = kv[:, :, 0].shape[-1] ** (-0.5)
+
         head_num = q.shape[2]
         out = torch.empty_like(q)
-        gen = torch_dipu._C._create_dipu_generator(-1)
         (
             attention_mask,
             dropout_mask,
@@ -198,6 +201,7 @@ class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
             head_num,
             input_layout,
         )
+
         ctx.save_for_backward(
             q,
             kv,
@@ -232,6 +236,7 @@ class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
         dropout_mask = torch.Tensor().cuda() if dropout_mask is None else dropout_mask
         dq = torch.empty_like(q)
         dkv = torch.empty_like(kv)
+
         ext.fa_bwd(
             dq,
             dkv[:, :, 0],
