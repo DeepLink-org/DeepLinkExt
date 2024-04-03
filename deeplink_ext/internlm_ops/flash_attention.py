@@ -25,25 +25,23 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
     ):
         # The current default input layout for flash attention is BSND
         input_layout = "BSND"
-        head_num = 0
-        if qkv is not None:
-            assert (q, k, v, kv) == (None, None, None, None)
-            q = qkv[:, :, 0]
-            k = qkv[:, :, 1]
-            v = qkv[:, :, 2]
-            head_num = qkv.shape[3]
-        else:
-            assert q is not None
-            if kv is not None:
-                k = kv[:, :, 0]
-                v = kv[:, :, 1]
-            else:
-                assert k is not None and v is not None
-            head_num = q.shape[2]
-        if softmax_scale is None:
-            softmax_scale = k.shape[-1] ** (-0.5)
-        out = torch.empty_like(q)
         gen = torch_dipu._C._create_dipu_generator(-1)
+        if qkv is not None:
+            query = qkv[:, :, 0]
+            key, value = qkv[:, :, 1], qkv[:, :, 2]
+        elif kv is not None:
+            query = q
+            key, value = kv[:, :, 0], kv[:, :, 1]
+        else:
+            query = q
+            key, value = k, v
+
+        if softmax_scale is None:
+            softmax_scale = key.shape[-1] ** (-0.5)
+
+        head_num = query.shape[2]
+        out = torch.empty_like(query)
+
         (
             attention_mask,
             dropout_mask,
@@ -52,9 +50,9 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
             softmax_out,
         ) = ext.fa_fwd(
             out,
-            q,
-            k,
-            v,
+            query,
+            key,
+            value,
             gen,
             dropout_p,
             softmax_scale,
@@ -62,6 +60,7 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
             head_num,
             input_layout,
         )
+
         ctx.save_for_backward(
             qkv,
             q,
