@@ -1,6 +1,5 @@
 # Copyright (c) 2024, DeepLink.
 
-from typing import Optional, Union
 import torch
 from einops import rearrange
 import deeplink_ext.cpp_extensions as ext
