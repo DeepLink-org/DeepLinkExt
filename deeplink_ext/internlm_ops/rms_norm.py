@@ -1,5 +1,6 @@
 # Copyright (c) 2024, DeepLink.
 
+import numbers
 import torch
 import deeplink_ext.cpp_extensions as ext
 
@@ -109,11 +110,9 @@ class DeepLinkRMSNormWithNormalizedShape(torch.nn.Module):
         super().__init__()
         self.weight = torch.nn.Parameter(torch.ones(normalized_shape, device="cuda"))
         self.variance_epsilon = eps
-        self.normalized_shape = (
-            torch.Size(normalized_shape)
-            if hasattr(normalized_shape, "__iter__")
-            else torch.Size((normalized_shape,))
-        )
+        if isinstance(normalized_shape, numbers.Integral):
+            normalized_shape = (normalized_shape,)
+        self.normalized_shape = torch.Size(normalized_shape)
 
     def forward(self, hidden_states):
         print("before: hidden_states.dtype", hidden_states.dtype)
