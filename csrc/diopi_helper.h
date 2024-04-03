@@ -78,7 +78,7 @@ template <class T, class U = std::decay_t<T>,
   return diopi_size;
 }
 
-// at::OptionalArray  ->  diopiSize_t
+// OptionalIntArray  ->  diopiSize_t
 template <class T, class U = std::decay_t<T>,
           std::enable_if_t<std::is_same_v<U, OptionalIntArray>, int> = 0>
 [[nodiscard]] decltype(auto) castToDiopiType(T&& shape) {
