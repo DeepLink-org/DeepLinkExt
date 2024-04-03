@@ -21,24 +21,23 @@ class RMSNorm(torch.autograd.Function):
             device=hidden_states.device,
         )
         ext.rms_norm(output, inv_rms, hidden_states, weight.shape, weight, None, eps)
-        ctx.save_for_backward(hidden_states, inv_rms, weight, None)
+        ctx.save_for_backward(hidden_states, inv_rms, weight)
         ctx.eps = eps
         return output
 
     @staticmethod
     def backward(ctx, grad_output):
-        hidden_states, inv_rms, weight, bias = ctx.saved_tensors
+        hidden_states, inv_rms, weight = ctx.saved_tensors
         grad_input = torch.empty_like(hidden_states)
         grad_weight = torch.empty_like(weight)
-        grad_bias = torch.empty_like(bias)
         ext.rms_norm_backward(
             grad_input,
             grad_weight,
-            grad_bias,
+            None,
             grad_output,
             hidden_states,
             weight,
-            bias,
+            None,
             inv_rms,
             weight.shape,
             ctx.eps,
