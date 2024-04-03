@@ -21,8 +21,8 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
         softmax_scale=None,
         causal=False,
     ):
-        if softmax_scale is None:
-            softmax_scale = qkv.shape[-1] ** (-0.5)
+        # The current default input layout for flash attention is BSND
+        input_layout = "BSND"
         head_num = 0
         if qkv is not None:
             assert (q, k, v, kv) == (None, None, None, None)
@@ -38,24 +38,25 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
             else:
                 assert k is not None and v is not None
             head_num = q.shape[2]
-        # The current default input layout for flash attention is BSND
-        input_layout = "BSND"
+        if softmax_scale is None:
+            softmax_scale = k.shape[-1] ** (-0.5)
         out = torch.empty_like(q)
         gen = torch_dipu._C._create_dipu_generator(-1)
         (
+            attention_mask,
             dropout_mask,
             softmax_max,
             softmax_sum,
             softmax_out,
-        ) = ext.fa_fwd_v2(
+        ) = ext.fa_fwd(
             out,
             q,
             k,
             v,
             gen,
-            attention_mask,
             dropout_p,
             softmax_scale,
+            causal,
             head_num,
             input_layout,
         )
@@ -75,6 +76,7 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.head_num = head_num
+        ctx.input_layout = input_layout
         return out
 
     @staticmethod
@@ -115,6 +117,7 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
                 ctx.dropout_p,
                 ctx.softmax_scale,
                 ctx.head_num,
+                ctx.input_layout,
             )
             return dqkv, None, None, None, None, None, None, None
         elif kv is not None:
@@ -137,6 +140,7 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
                 ctx.dropout_p,
                 ctx.softmax_scale,
                 ctx.head_num,
+                ctx.input_layout,
             )
             return None, dq, None, None, dkv, None, None, None
         else:
@@ -160,6 +164,7 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
                 ctx.dropout_p,
                 ctx.softmax_scale,
                 ctx.head_num,
+                ctx.input_layout,
             )
             return None, dq, dk, dv, None, None, None, None
 
@@ -167,18 +172,30 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
 class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
+        # The current default input layout for flash attention is BSND
+        input_layout = "BSND"
         if softmax_scale is None:
-            softmax_scale = q.shape[-1] ** (-0.5)
+            softmax_scale = kv[:, :, 0].shape[-1] ** (-0.5)
         head_num = q.shape[2]
+        out = torch.empty_like(q)
+        gen = torch_dipu._C._create_dipu_generator(-1)
         (
-            out,
             attention_mask,
             dropout_mask,
             softmax_max,
             softmax_sum,
             softmax_out,
         ) = ext.fa_fwd(
-            q, kv[:, :, 0], kv[:, :, 1], dropout_p, softmax_scale, causal, head_num
+            out,
+            q,
+            kv[:, :, 0],
+            kv[:, :, 1],
+            gen,
+            dropout_p,
+            softmax_scale,
+            causal,
+            head_num,
+            input_layout,
         )
         ctx.save_for_backward(
             q,
@@ -193,6 +210,7 @@ class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.head_num = head_num
+        ctx.input_layout = input_layout
         return out
 
     @staticmethod
@@ -230,6 +248,7 @@ class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
             ctx.dropout_p,
             ctx.softmax_scale,
             ctx.head_num,
+            ctx.input_layout,
         )
         return dq, dkv, None, None, None, None
 
@@ -287,12 +306,6 @@ class DeepLinkSelfAttention(nn.Module):
         Returns:
             torch.Tensor: Output tensor after applying self-attention.
         """
-        if causal:
-            assert causal == self.causal
-        if dropout_p:
-            assert dropout_p == self.dropout_p
-        if softmax_scale:
-            assert softmax_scale == self.softmax_scale
         if cu_seqlens is None:
             # padded
             return DeepLinkFlashAttentionQKVPackedFunc.apply(
