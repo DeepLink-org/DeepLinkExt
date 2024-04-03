@@ -3,6 +3,7 @@
 #ifndef DIOPI_HELPER_H_WTUAZNIC
 #define DIOPI_HELPER_H_WTUAZNIC
 
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
