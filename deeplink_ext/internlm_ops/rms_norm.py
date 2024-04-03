@@ -113,7 +113,11 @@ class DeepLinkRMSNormWithNormalizedShape(torch.nn.Module):
         self.weight = torch.nn.Parameter(torch.ones(normalized_shape, device="cuda"))
         self.bias = torch.nn.Parameter(torch.zeros(normalized_shape, device="cuda"))
         self.variance_epsilon = eps
-        self.normalized_shape = torch.Size(normalized_shape)
+        self.normalized_shape = (
+            torch.Size(normalized_shape)
+            if hasattr(normalized_shape, "__iter__")
+            else torch.Size((normalized_shape,))
+        )
 
     def forward(self, hidden_states):
         return _DeepLinkRMSNormFunctionWithNormalizedShape.apply(
