@@ -7,6 +7,8 @@ import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
 
+__all__ = ["DeepLinkSelfAttention", "DeepLinkCrossAttention"]
+
 
 class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
     @staticmethod
