@@ -63,7 +63,7 @@ def get_ext():
     library_dirs += [dipu_root]
     libraries += ["torch_dipu"]
 
-    extra_compile_args = ["-std=c++17", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"]
+    extra_compile_args = ["-std=c++17"]
     extra_compile_args += ["-isystem" + path for path in system_include_dirs]
     ext_ops = Extension(
         name=ext_name,  # 拓展模块名字
