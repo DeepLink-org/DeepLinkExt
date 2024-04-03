@@ -59,10 +59,6 @@ class FlashSelfAttention(torch.autograd.Function):
             softmax_sum,
             softmax_out,
         ) = ctx.saved_tensors
-        attention_mask = (
-            torch.Tensor().cuda() if attention_mask is None else attention_mask
-        )
-        dropout_mask = torch.Tensor().cuda() if dropout_mask is None else dropout_mask
         dq = torch.empty_like(q)
         dk = torch.empty_like(k)
         dv = torch.empty_like(v)
