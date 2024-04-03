@@ -65,7 +65,9 @@ class _DeepLinkRMSNormFunctionWithNormalizedShape(torch.autograd.Function):
             dtype=acc_dtype,
             device=hidden_states.device,
         )
-        ext.rms_norm(output, inv_rms, hidden_states, weight.shape, weight, bias, eps)
+        ext.rms_norm(
+            output, inv_rms, hidden_states, normalized_shape, weight, bias, eps
+        )
         ctx.save_for_backward(hidden_states, inv_rms, weight, bias)
         ctx.eps = eps
         ctx.normalized_shape = normalized_shape
