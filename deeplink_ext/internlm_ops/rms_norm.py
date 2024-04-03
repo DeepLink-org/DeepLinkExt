@@ -1,7 +1,7 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-from DeepLinkExt.deeplink_ext.common.rms_norm import rms_norm, rms_norm_backward
+import deeplink_ext.cpp_extensions as ext
 
 
 __all__ = ["RMSNorm", "RMSNormWithNormalizedShape"]
@@ -11,18 +11,42 @@ __all__ = ["RMSNorm", "RMSNormWithNormalizedShape"]
 class _DeepLinkRMSNormFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, hidden_states, weight, bias, eps):
-        output, inv_rms = rms_norm(hidden_states, None, weight, bias, eps)
-        ctx.save_for_backward(hidden_states, inv_rms, weight, bias, torch.tensor(eps))
+        output = torch.empty_like(hidden_states)
+        input_dtype = hidden_states.dtype
+        acc_dtype = (
+            torch.float32
+            if input_dtype in [torch.bfloat16, torch.float16]
+            else input_dtype
+        )
+        inv_rms = torch.empty(
+            list(hidden_states.shape[:-1]) + [1],
+            dtype=acc_dtype,
+            device=hidden_states.device,
+        )
+        ext.rms_norm(output, inv_rms, hidden_states, weight.shape, weight, bias, eps)
+        ctx.save_for_backward(hidden_states, inv_rms, weight, bias)
+        ctx.eps = eps
         return output
 
     @staticmethod
     def backward(ctx, grad_output):
-        hidden_states, inv_rms, weight, bias, eps_tensor = ctx.saved_tensors
-        eps = eps_tensor.item()
-        grad_input, grad_weight, grad_bias = rms_norm_backward(
-            hidden_states, grad_output, inv_rms, None, weight, bias, eps
+        hidden_states, inv_rms, weight, bias = ctx.saved_tensors
+        grad_input = torch.empty_like(hidden_states)
+        grad_weight = torch.empty_like(weight)
+        grad_bias = torch.empty_like(bias)
+        ext.rms_norm_backward(
+            grad_input,
+            grad_weight,
+            grad_bias,
+            grad_output,
+            hidden_states,
+            weight,
+            bias,
+            inv_rms,
+            weight.shape,
+            ctx.eps,
         )
-        return grad_input, grad_weight, grad_bias, None
+        return grad_input, grad_weight, grad_bias, None, None
 
 
 class _DeepLinkRMSNormFunctionWithNormalizedShape(torch.autograd.Function):
