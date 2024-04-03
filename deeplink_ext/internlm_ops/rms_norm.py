@@ -94,7 +94,7 @@ class _DeepLinkRMSNormFunctionWithNormalizedShape(torch.autograd.Function):
         return grad_input, grad_weight, grad_bias, None, None
 
 
-class RMSNorm(torch.nn.Module):
+class DeepLinkRMSNorm(torch.nn.Module):
     def __init__(self, normalized_shape, eps=1e-5):
         super().__init__()
         self.weight = torch.nn.Parameter(torch.ones(normalized_shape, device="cuda"))
@@ -107,7 +107,7 @@ class RMSNorm(torch.nn.Module):
         )
 
 
-class RMSNormWithNormalizedShape(torch.nn.Module):
+class DeepLinkRMSNormWithNormalizedShape(torch.nn.Module):
     def __init__(self, normalized_shape, eps=1e-5):
         super().__init__()
         self.weight = torch.nn.Parameter(torch.ones(normalized_shape, device="cuda"))
