@@ -34,7 +34,6 @@ __all__ = [
     "CrossAttention",
     "RMSNorm",
     "RMSNormWithNormalizedShape",
-    "apply_rotary",
     "DeeplinkApplyRotaryEmb",
     "DeeplinkApplyRotaryEmbQKV_",
     "adamw_for_internlm",
