@@ -48,7 +48,7 @@ def adamw_for_internlm(
         exp_avg_sq = exp_avg_sqs[i]
         step = state_steps[i]
         if not max_exp_avg_sqs:
-            max_exp_avg_sq = torch.Tensor().cuda()
+            max_exp_avg_sq = None
         else:
             max_exp_avg_sq = max_exp_avg_sqs[i]
         ext.adamw(
