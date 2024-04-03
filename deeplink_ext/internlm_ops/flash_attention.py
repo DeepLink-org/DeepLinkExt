@@ -95,6 +95,7 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
             softmax_sum,
             softmax_out,
         ) = ctx.saved_tensors
+
         attention_mask = (
             torch.Tensor().cuda() if attention_mask is None else attention_mask
         )
@@ -230,6 +231,7 @@ class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
             softmax_sum,
             softmax_out,
         ) = ctx.saved_tensors
+
         attention_mask = (
             torch.Tensor().cuda() if attention_mask is None else attention_mask
         )
