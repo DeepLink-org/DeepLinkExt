@@ -84,9 +84,8 @@ def rms_norm_backward(input, grad_output, inv_rms, normalized_shape, weight, bia
 class RMSNorm(torch.autograd.Function):
     @staticmethod
     def forward(ctx, hidden_states, weight, eps):
-        bias = torch.Tensor().cuda()
-        output, inv_rms = rms_norm(hidden_states, None, weight, bias, eps)
-        ctx.save_for_backward(hidden_states, inv_rms, weight, bias)
+        output, inv_rms = rms_norm(hidden_states, None, weight, None, eps)
+        ctx.save_for_backward(hidden_states, inv_rms, weight, None)
         ctx.eps = eps
         return output
 

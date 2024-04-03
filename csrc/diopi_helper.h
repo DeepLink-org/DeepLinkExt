@@ -3,6 +3,7 @@
 #ifndef DIOPI_HELPER_H_WTUAZNIC
 #define DIOPI_HELPER_H_WTUAZNIC
 
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -21,6 +22,8 @@
 #include <csrc_dipu/diopirt/diopirt_impl.h>
 #include <csrc_dipu/runtime/core/DIPUStream.h>
 #include <csrc_dipu/runtime/device/basedef.h>
+
+#include "pybind_type_cast.h"
 
 namespace dipu::dipu_ext {
 
@@ -64,6 +67,22 @@ template <class T, class U = std::decay_t<T>,
           std::enable_if_t<std::is_same_v<U, at::OptionalIntArrayRef>, int> = 0>
 [[nodiscard]] decltype(auto) castToDiopiType(T&& shape) {
   return diopi_helper::toDiopiSize(std::forward<T>(shape));
+}
+
+::diopiSize_t toDiopiSize(const OptionalIntArray& dim) {
+  ::diopiSize_t diopi_size{nullptr, 0};
+  if (dim.has_value()) {
+    diopi_size.data = dim.value().data();
+    diopi_size.len = static_cast<int64_t>(dim.value().size());
+  }
+  return diopi_size;
+}
+
+// at::OptionalArray  ->  diopiSize_t
+template <class T, class U = std::decay_t<T>,
+          std::enable_if_t<std::is_same_v<U, OptionalIntArray>, int> = 0>
+[[nodiscard]] decltype(auto) castToDiopiType(T&& shape) {
+  return toDiopiSize(std::forward<T>(shape));
 }
 
 // at::Generator                 ->  diopiGeneratorHandle_t
