@@ -27,6 +27,9 @@ def manual_rms_norm(my_input, normalized_shape, weight, eps):
 
 # adopted from https://github.com/NVIDIA/apex/blob/master/apex/normalization/fused_layer_norm
 # This torch implementation is equivalent to MixedFusedRMSNorm in apex.normalization.fused_layer_norm.
+# MixedFusedLayerNorm differs from FusedLayerNorm in that this layer norm uses parameter's dtype
+# as output tensor's dtype while FusedLayerNorm uses input tensor's dtype for output tensor's dtype.
+# See: `layer_norm_affine` and `layer_norm_affine_mixed_dtypes` in "csrc/layer_norm_cuda.cpp"
 class MixedRMSNormTorch(torch.nn.Module):
     """A custom PyTorch module for RMS normalization."""
 
