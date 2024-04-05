@@ -59,7 +59,10 @@ class _DeepLinkMixedFusedRMSNormFunction(torch.autograd.Function):
 class DeepLinkMixedFusedRMSNorm(torch.nn.Module):
     def __init__(self, normalized_shape, eps=1e-5):
         super().__init__()
-        self.weight = torch.nn.Parameter(torch.ones(normalized_shape, device="cuda"))
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.weight = torch.nn.Parameter(
+            torch.ones(normalized_shape, device=self._device)
+        )
         self.variance_epsilon = eps
         if isinstance(normalized_shape, numbers.Integral):
             normalized_shape = (normalized_shape,)

@@ -4,10 +4,9 @@ import numbers
 
 import torch
 from torch.nn import init
-from torch.nn.parameter import Parameter
 
 
-__all__ = ["RMSNormTorch"]
+__all__ = ["MixedRMSNormTorch"]
 
 
 def manual_rms_norm(my_input, normalized_shape, weight, eps):
@@ -27,7 +26,8 @@ def manual_rms_norm(my_input, normalized_shape, weight, eps):
 
 
 # adopted from https://github.com/NVIDIA/apex/blob/master/apex/normalization/fused_layer_norm
-class RMSNormTorch(torch.nn.Module):
+# This torch implementation is equivalent to MixedFusedRMSNorm in apex.normalization.fused_layer_norm.
+class MixedRMSNormTorch(torch.nn.Module):
     """A custom PyTorch module for RMS normalization."""
 
     def __init__(self, normalized_shape, eps=1e-5):
@@ -36,8 +36,11 @@ class RMSNormTorch(torch.nn.Module):
         if isinstance(normalized_shape, numbers.Integral):
             normalized_shape = (normalized_shape,)
         self.normalized_shape = torch.Size(normalized_shape)
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.weight = torch.nn.Parameter(
+            torch.empty(*normalized_shape, device=self._device)
+        )
         self.eps = eps
-        self.weight = Parameter(torch.empty(*normalized_shape, device="cuda"))
         self.reset_parameters()
 
     def forward(self, _input: torch.Tensor):
