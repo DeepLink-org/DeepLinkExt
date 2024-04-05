@@ -2,6 +2,8 @@
 
 import numbers
 import torch
+from torch.nn import init
+
 import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "rms_norm") and hasattr(ext, "rms_norm_backward")
@@ -59,21 +61,25 @@ class _DeepLinkMixedFusedRMSNormFunction(torch.autograd.Function):
 class DeepLinkMixedFusedRMSNorm(torch.nn.Module):
     def __init__(self, normalized_shape, eps=1e-5):
         super().__init__()
+        if isinstance(normalized_shape, numbers.Integral):
+            normalized_shape = (normalized_shape,)
+        self.normalized_shape = torch.Size(normalized_shape)
+        self.eps = eps
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.weight = torch.nn.Parameter(
             torch.ones(normalized_shape, device=self._device)
         )
-        self.variance_epsilon = eps
-        if isinstance(normalized_shape, numbers.Integral):
-            normalized_shape = (normalized_shape,)
-        self.normalized_shape = torch.Size(normalized_shape)
 
     def forward(self, hidden_states):
-        print("before: hidden_states.dtype", hidden_states.dtype)
-        print("before: weight.dtype", self.weight.dtype)
         return _DeepLinkMixedFusedRMSNormFunction.apply(
             hidden_states,
             self.weight,
-            self.variance_epsilon,
+            self.eps,
             self.normalized_shape,
         )
+
+    def reset_parameters(self):
+        init.ones_(self.weight)
+
+    def extra_repr(self):
+        return "{normalized_shape}, eps={eps}, ".format(**self.__dict__)
