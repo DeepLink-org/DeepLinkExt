@@ -1,6 +1,6 @@
 # Copyright (c) 2024, DeepLink.
 
-# TODO: add fallback for the newest internevo
+# TODO: perfect the fallback of ext ops for the newest internevo
 _not_impl = "[deeplink_ext] {op_name} is not implemented in diopi. Falling back to the slower torch implementation."
 
 
