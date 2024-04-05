@@ -98,6 +98,7 @@ class DeeplinkApplyRotaryEmbQKV_(torch.autograd.Function):
         assert (
             sin.shape == cos_k.shape == sin_k.shape == (rotary_seqlen, rotary_dim // 2)
         )
+
         q_ro = (
             qkv[:, 0, :, :rotary_dim]
             if len(qkv.shape) == 4
@@ -113,16 +114,14 @@ class DeeplinkApplyRotaryEmbQKV_(torch.autograd.Function):
             if len(qkv.shape) == 4
             else rearrange(sin[:seqlen], "s d -> s 1 d")
         )
-        out = torch.empty_like(q_ro)
         ext.apply_rotary(
-            out,
+            q_ro,
             q_ro,
             re_cos,
             re_sin,
             False,
             interleaved,
         )
-        q_ro.copy_(out)
 
         k_ro = (
             qkv[:, 1, :, :rotary_dim]
@@ -139,16 +138,15 @@ class DeeplinkApplyRotaryEmbQKV_(torch.autograd.Function):
             if len(qkv.shape) == 4
             else rearrange(sin_k[:seqlen], "s d -> s 1 d")
         )
-        out = torch.empty_like(k_ro)
         ext.apply_rotary(
-            out,
+            k_ro,
             k_ro,
             re_cos_k,
             re_sin_k,
             False,
             interleaved,
         )
-        k_ro.copy_(out)
+
         ctx.save_for_backward(re_cos, re_sin, re_cos_k, re_sin_k)
         ctx.interleaved = interleaved
         return qkv
@@ -160,35 +158,32 @@ class DeeplinkApplyRotaryEmbQKV_(torch.autograd.Function):
         seqlen = None if len(dqkv.shape) == 4 else dqkv.shape[1]
         rotary_dim = cos.shape[-1]
         rotary_dim *= 2
+
         dq_ro = (
             dqkv[:, 0, :, :rotary_dim]
             if len(dqkv.shape) == 4
             else dqkv[:, :, 0, :, :rotary_dim]
         )
-        out = torch.empty_like(dq_ro)
         ext.apply_rotary(
-            out,
+            dq_ro,
             dq_ro,
             cos,
             sin,
             True,
             interleaved,
         )
-        dq_ro.copy_(out)
 
         dk_ro = (
             dqkv[:, 1, :, :rotary_dim]
             if len(dqkv.shape) == 4
             else dqkv[:, :, 1, :, :rotary_dim]
         )
-        out = torch.empty_like(dk_ro)
         ext.apply_rotary(
-            out,
+            dk_ro,
             dk_ro,
             cos_k,
             sin_k,
             True,
             interleaved,
         )
-        dk_ro.copy_(out)
         return dqkv, None, None, None, None, None
