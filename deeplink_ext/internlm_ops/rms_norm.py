@@ -22,8 +22,7 @@ class _DeepLinkMixedFusedRMSNormFunction(torch.autograd.Function):
         # record original dtype of hidden_states and weight
         input_dtype = hidden_states.dtype
         weight_dtype = weight.dtype
-        print("check 最原始输入 input_dtype:", input_dtype)
-        print("check 最原始输入 weight_dtype:", weight_dtype)
+
         acc_dtype = (
             torch.float32
             if input_dtype in [torch.bfloat16, torch.float16]
@@ -36,7 +35,9 @@ class _DeepLinkMixedFusedRMSNormFunction(torch.autograd.Function):
         )
 
         higher_precision = torch.promote_types(input_dtype, weight_dtype)
-        output_higher_precision = torch.empty_like(hidden_states, dtype=higher_precision)
+        output_higher_precision = torch.empty_like(
+            hidden_states, dtype=higher_precision
+        )
         hidden_states_higher_precision = hidden_states.to(dtype=higher_precision)
         weight_higher_precision = weight.to(dtype=higher_precision)
 
@@ -58,9 +59,7 @@ class _DeepLinkMixedFusedRMSNormFunction(torch.autograd.Function):
         ctx.input_dtype = input_dtype
         ctx.weight_dtype = weight_dtype
 
-        output = output_higher_precision.to(dtype=weight_dtype)
-        print("前向output.dtype: ", output.dtype)
-        return output
+        return output_higher_precision.to(dtype=weight_dtype)
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -69,8 +68,10 @@ class _DeepLinkMixedFusedRMSNormFunction(torch.autograd.Function):
             inv_rms,
             weight_higher_precision,
         ) = ctx.saved_tensors
+
         grad_input_higher_precision = torch.empty_like(hidden_states_higher_precision)
         grad_weight_higher_precision = torch.empty_like(weight_higher_precision)
+
         ext.rms_norm_backward(
             grad_input_higher_precision,
             grad_weight_higher_precision,
@@ -83,11 +84,13 @@ class _DeepLinkMixedFusedRMSNormFunction(torch.autograd.Function):
             ctx.normalized_shape,
             ctx.eps,
         )
-        grad_input = grad_input_higher_precision.to(dtype=ctx.input_dtype)
-        grad_weight = grad_weight_higher_precision.to(dtype=ctx.weight_dtype)
-        print("反向grad_input.dtype: ", grad_input.dtype)
-        print("反向grad_weight.dtype: ", grad_weight.dtype)
-        return grad_input, grad_weight, None, None
+
+        return (
+            grad_input_higher_precision.to(dtype=ctx.input_dtype),
+            grad_weight_higher_precision.to(dtype=ctx.weight_dtype),
+            None,
+            None,
+        )
 
 
 class DeepLinkMixedFusedRMSNorm(torch.nn.Module):
