@@ -30,11 +30,10 @@
 #     from .mha_fallback import SelfAttention, CrossAttention
 
 __all__ = [
+    "adamw_for_internlm",
     "DeepLinkSelfAttention",
     "DeepLinkCrossAttention",
-    "RMSNorm",
-    "RMSNormWithNormalizedShape",
+    "DeepLinkMixedFusedRMSNorm",
     "DeeplinkApplyRotaryEmb",
     "DeeplinkApplyRotaryEmbQKV_",
-    "adamw_for_internlm",
 ]
