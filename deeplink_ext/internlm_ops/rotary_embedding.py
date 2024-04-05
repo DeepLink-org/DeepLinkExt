@@ -31,20 +31,18 @@ class DeeplinkApplyRotaryEmb(torch.autograd.Function):
         assert seqlen <= rotary_seqlen
         assert sin.shape == (rotary_seqlen, rotary_dim // 2)
         out = torch.empty_like(x)
-        new_cos = rearrange(cos[:seqlen], "s d -> s 1 d")
-        new_sin = rearrange(sin[:seqlen], "s d -> s 1 d")
-        if rotary_dim < headdim:
-            out[..., rotary_dim:].copy_(x[..., rotary_dim:])
-        ctx.save_for_backward(new_cos, new_sin)
-        ctx.interleaved = interleaved
         ext.apply_rotary(
             out[..., :rotary_dim],
             x[..., :rotary_dim],
-            new_cos,
-            new_sin,
+            rearrange(cos[:seqlen], "s d -> s 1 d"),
+            rearrange(sin[:seqlen], "s d -> s 1 d"),
             False,
             interleaved,
         )
+        if rotary_dim < headdim:
+            out[..., rotary_dim:].copy_(x[..., rotary_dim:])
+        ctx.save_for_backward(cos, sin)
+        ctx.interleaved = interleaved
         return out
 
     @staticmethod
