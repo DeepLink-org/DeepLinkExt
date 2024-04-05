@@ -1,29 +1,50 @@
 # Copyright (c) 2024, DeepLink.
 
+import numbers
+
 import torch
+from torch.nn import init
+from torch.nn.parameter import Parameter
 
-__all__ = ["RMSNorm", "RMSNormWithNormalizedShape"]
+
+__all__ = ["RMSNormTorch"]
 
 
-# RMSNorm fallback from InternLM
-class RMSNorm(torch.nn.Module):
-    def __init__(self, hidden_size, eps=1e-5):
-        """
-        InternLMRMSNorm is equivalent to T5LayerNorm
-        """
+def manual_rms_norm(my_input, normalized_shape, weight, eps):
+    # layer norm should always be calculated in float32
+    dims = tuple(i for i in range(-1, -len(normalized_shape) - 1, -1))
+    variance = my_input.to(torch.float32).pow(2).mean(dims, keepdim=True)
+    my_input = my_input * torch.rsqrt(variance + eps)
+
+    if weight is None:
+        return my_input
+
+    # convert into half-precision if necessary
+    if weight.dtype in [torch.float16, torch.bfloat16]:
+        my_input = my_input.to(weight.dtype)
+
+    return weight * my_input
+
+
+# adopted from https://github.com/NVIDIA/apex/blob/master/apex/normalization/fused_layer_norm
+class RMSNormTorch(torch.nn.Module):
+    """A custom PyTorch module for RMS normalization."""
+
+    def __init__(self, normalized_shape, eps=1e-5):
         super().__init__()
-        self.weight = torch.nn.Parameter(torch.ones(hidden_size))
-        self.variance_epsilon = eps
 
-    def forward(self, hidden_states):
-        variance = hidden_states.to(torch.float32).pow(2).mean(-1, keepdim=True)
-        hidden_states = hidden_states * torch.rsqrt(variance + self.variance_epsilon)
+        if isinstance(normalized_shape, numbers.Integral):
+            normalized_shape = (normalized_shape,)
+        self.normalized_shape = torch.Size(normalized_shape)
+        self.eps = eps
+        self.weight = Parameter(torch.empty(*normalized_shape, device="cuda"))
+        self.reset_parameters()
 
-        # convert into half-precision if necessary
-        if self.weight.dtype in [torch.float16, torch.bfloat16]:
-            hidden_states = hidden_states.to(self.weight.dtype)
+    def forward(self, _input: torch.Tensor):
+        return manual_rms_norm(_input, self.normalized_shape, self.weight, self.eps)
 
-        return self.weight * hidden_states
+    def reset_parameters(self):
+        init.ones_(self.weight)
 
-
-RMSNormWithNormalizedShape = RMSNorm
+    def extra_repr(self):
+        return "{normalized_shape}, eps={eps}, ".format(**self.__dict__)
