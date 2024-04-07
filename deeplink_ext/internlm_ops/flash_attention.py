@@ -2,7 +2,6 @@
 
 import torch
 import torch.nn as nn
-import torch_dipu
 import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
@@ -25,8 +24,7 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
     ):
         # The current default input layout for flash attention is BSND
         input_layout = "BSND"
-        # TODO: Remove the dependency of torch_dipu
-        gen = torch_dipu._C._create_dipu_generator(-1)
+        gen = torch.Generator(device="cuda")
 
         if qkv is not None:
             query = qkv[:, :, 0]
@@ -173,8 +171,7 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
         # The current default input layout for flash attention is BSND
         input_layout = "BSND"
-        # TODO: Remove the dependency of torch_dipu
-        gen = torch_dipu._C._create_dipu_generator(-1)
+        gen = torch.Generator(device="cuda")
 
         if softmax_scale is None:
             softmax_scale = kv[:, :, 0].shape[-1] ** (-0.5)
