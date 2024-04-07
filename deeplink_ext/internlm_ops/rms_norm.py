@@ -9,13 +9,13 @@ import deeplink_ext.cpp_extensions as ext
 assert hasattr(ext, "rms_norm") and hasattr(ext, "rms_norm_backward")
 
 
-__all__ = ["DeepLinkMixedFusedRMSNorm"]
+__all__ = ["MixedFusedRMSNorm"]
 
 
 # MixedFusedLayerNorm differs from FusedLayerNorm in that this layer norm uses parameter's dtype
 # as output tensor's dtype while FusedLayerNorm uses input tensor's dtype for output tensor's dtype.
 # See: `layer_norm_affine` and `layer_norm_affine_mixed_dtypes` in "csrc/layer_norm_cuda.cpp"
-class _DeepLinkMixedFusedRMSNormFunction(torch.autograd.Function):
+class _MixedFusedRMSNormFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, hidden_states, weight, eps, normalized_shape):
         # ascend currently does not support dtype of hidden_states with higher precision than weight.
@@ -93,7 +93,7 @@ class _DeepLinkMixedFusedRMSNormFunction(torch.autograd.Function):
         )
 
 
-class DeepLinkMixedFusedRMSNorm(torch.nn.Module):
+class MixedFusedRMSNorm(torch.nn.Module):
     def __init__(self, normalized_shape, eps=1e-5):
         super().__init__()
         if isinstance(normalized_shape, numbers.Integral):
@@ -106,7 +106,7 @@ class DeepLinkMixedFusedRMSNorm(torch.nn.Module):
         )
 
     def forward(self, hidden_states):
-        return _DeepLinkMixedFusedRMSNormFunction.apply(
+        return _MixedFusedRMSNormFunction.apply(
             hidden_states,
             self.weight,
             self.eps,

@@ -6,10 +6,10 @@ import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "apply_rotary")
 
-__all__ = ["DeeplinkApplyRotaryEmb", "DeeplinkApplyRotaryEmbQKV_"]
+__all__ = ["ApplyRotaryEmb", "ApplyRotaryEmbQKV_"]
 
 
-class DeeplinkApplyRotaryEmb(torch.autograd.Function):
+class ApplyRotaryEmb(torch.autograd.Function):
     """
     ApplyRotaryEmb
     """
@@ -65,7 +65,7 @@ class DeeplinkApplyRotaryEmb(torch.autograd.Function):
         return dx, None, None, None, None
 
 
-class DeeplinkApplyRotaryEmbQKV_(torch.autograd.Function):
+class ApplyRotaryEmbQKV_(torch.autograd.Function):
     """
     ApplyRotaryEmbQKV_
     """

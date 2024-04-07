@@ -5,37 +5,34 @@ _not_impl = "[deeplink_ext] {op_name} is not implemented in diopi. Falling back 
 
 
 try:
-    from .flash_attention import DeepLinkSelfAttention, DeepLinkCrossAttention
+    from .flash_attention import FlashSelfAttention, FlashCrossAttention
 except Exception as e:
     print(_not_impl.format(op_name="flash attention"))
-    from .flash_attention_fallback import SelfAttention as DeepLinkSelfAttention
-    from .flash_attention_fallback import CrossAttention as DeepLinkCrossAttention
+    from .flash_attention_fallback import SelfAttention as FlashSelfAttention
+    from .flash_attention_fallback import CrossAttention as FlashCrossAttention
 
 
 try:
-    from .rms_norm import DeepLinkMixedFusedRMSNorm
+    from .rms_norm import MixedFusedRMSNorm
 except:
     print(
         _not_impl.format(op_name="RMSNorm"),
     )
-    from .rms_norm_fallback import MixedRMSNormTorch as DeepLinkMixedFusedRMSNorm
+    from .rms_norm_fallback import MixedRMSNormTorch as MixedFusedRMSNorm
 
 
 try:
-    from .rotary_embedding import DeeplinkApplyRotaryEmb, DeeplinkApplyRotaryEmbQKV_
+    from .rotary_embedding import ApplyRotaryEmb, ApplyRotaryEmbQKV_
 except:
     print(_not_impl.format(op_name="rotary embedding"))
-    from .rotary_embedding_fallback import ApplyRotaryEmb as DeeplinkApplyRotaryEmb
-    from .rotary_embedding_fallback import (
-        ApplyRotaryEmbQKV_ as DeeplinkApplyRotaryEmbQKV_,
-    )
+    from .rotary_embedding_fallback import ApplyRotaryEmb, ApplyRotaryEmbQKV_
 
 
 __all__ = [
     "adamw_for_internlm",
-    "DeepLinkSelfAttention",
-    "DeepLinkCrossAttention",
-    "DeepLinkMixedFusedRMSNorm",
-    "DeeplinkApplyRotaryEmb",
-    "DeeplinkApplyRotaryEmbQKV_",
+    "FlashSelfAttention",
+    "FlashCrossAttention",
+    "MixedFusedRMSNorm",
+    "ApplyRotaryEmb",
+    "ApplyRotaryEmbQKV_",
 ]

@@ -7,10 +7,10 @@ import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
 
-__all__ = ["DeepLinkSelfAttention", "DeepLinkCrossAttention"]
+__all__ = ["FlashSelfAttention", "FlashCrossAttention"]
 
 
-class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
+class FlashAttentionQKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
@@ -167,7 +167,7 @@ class DeepLinkFlashAttentionQKVPackedFunc(torch.autograd.Function):
             return None, dq, dk, dv, None, None, None, None
 
 
-class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
+class FlashAttentionKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
         # The current default input layout for flash attention is BSND
@@ -252,7 +252,7 @@ class DeepLinkFlashAttentionKVPackedFunc(torch.autograd.Function):
         return dq, dkv, None, None, None, None
 
 
-class DeepLinkSelfAttention(nn.Module):
+class FlashSelfAttention(nn.Module):
     """Performs self-attention with support for both padded and unpadded sequences.
 
     Args:
@@ -307,7 +307,7 @@ class DeepLinkSelfAttention(nn.Module):
         """
         if cu_seqlens is None:
             # padded
-            return DeepLinkFlashAttentionQKVPackedFunc.apply(
+            return FlashAttentionQKVPackedFunc.apply(
                 qkv,
                 q,
                 k,
@@ -324,7 +324,7 @@ class DeepLinkSelfAttention(nn.Module):
             )
 
 
-class DeepLinkCrossAttention(nn.Module):
+class FlashCrossAttention(nn.Module):
     def __init__(self, causal=False, softmax_scale=None, attention_dropout=0.0):
         super().__init__()
         self.causal = causal
@@ -343,7 +343,7 @@ class DeepLinkCrossAttention(nn.Module):
     ):
         if cu_seqlens is None:
             # padded
-            return DeepLinkFlashAttentionKVPackedFunc.apply(
+            return FlashAttentionKVPackedFunc.apply(
                 q,
                 kv,
                 self.dropout_p if self.training else 0.0,
