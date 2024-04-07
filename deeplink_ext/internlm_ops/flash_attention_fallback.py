@@ -1,4 +1,6 @@
 # Copyright (c) 2024, DeepLink.
+# Copyright (c) 2024, InternEvo.
+# Copyright (c) 2023, Tri Dao.
 
 import math
 import torch

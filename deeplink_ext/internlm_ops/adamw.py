@@ -1,3 +1,5 @@
+# Copyright (c) 2024, DeepLink.
+
 import torch
 import deeplink_ext.cpp_extensions as ext
 from typing import List, Optional, Union
