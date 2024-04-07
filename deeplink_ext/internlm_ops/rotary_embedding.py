@@ -62,7 +62,7 @@ class ApplyRotaryEmb(torch.autograd.Function):
         )
         if rotary_dim < headdim:
             dx[..., rotary_dim:].copy_(do[..., rotary_dim:])
-        return dx, None, None, None, None
+        return dx, None, None, None
 
 
 class ApplyRotaryEmbQKV_(torch.autograd.Function):
