@@ -75,7 +75,7 @@ class _MixedFusedRMSNormFunction(torch.autograd.Function):
         ext.rms_norm_backward(
             grad_input_higher_precision,
             grad_weight_higher_precision,
-            torch.Tensor().cuda(),
+            None,
             grad_output.to(dtype=grad_input_higher_precision.dtype),
             hidden_states_higher_precision,
             weight_higher_precision,
