@@ -1,5 +1,4 @@
 import torch
-import torch_dipu
 import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "fa_fwd_v2") and hasattr(ext, "fa_bwd")
@@ -11,7 +10,7 @@ class FlashSelfAttention(torch.autograd.Function):
         ctx, q, k, v, attention_mask, dropout_p, softmax_scale, head_num, input_layout
     ):
         out = torch.empty_like(q)
-        gen = torch_dipu._C._create_dipu_generator(-1)
+        gen = torch.Generator(device="cuda")
         (
             dropout_mask,
             softmax_max,
