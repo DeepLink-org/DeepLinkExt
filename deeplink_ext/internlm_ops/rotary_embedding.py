@@ -1,4 +1,5 @@
 # Copyright (c) 2024, DeepLink.
+# Copyright (c) 2024, InternEvo.
 
 import torch
 from einops import rearrange
@@ -31,32 +32,34 @@ class ApplyRotaryEmb(torch.autograd.Function):
         assert seqlen <= rotary_seqlen
         assert sin.shape == (rotary_seqlen, rotary_dim // 2)
         out = torch.empty_like(x)
+        re_cos = (rearrange(cos[:seqlen], "s d -> s 1 d"),)
+        re_sin = (rearrange(sin[:seqlen], "s d -> s 1 d"),)
         ext.apply_rotary(
             out[..., :rotary_dim],
             x[..., :rotary_dim],
-            rearrange(cos[:seqlen], "s d -> s 1 d"),
-            rearrange(sin[:seqlen], "s d -> s 1 d"),
+            re_cos,
+            re_sin,
             False,
             interleaved,
         )
         if rotary_dim < headdim:
             out[..., rotary_dim:].copy_(x[..., rotary_dim:])
-        ctx.save_for_backward(cos, sin)
+        ctx.save_for_backward(re_cos, re_sin)
         ctx.interleaved = interleaved
         return out
 
     @staticmethod
     def backward(ctx, do):
-        cos, sin = ctx.saved_tensors
-        _, seqlen, _, headdim = do.shape
-        rotary_dim = cos.shape[-1]
+        re_cos, re_sin = ctx.saved_tensors
+        headdim = do.shape[-1]
+        rotary_dim = re_cos.shape[-1]
         rotary_dim *= 2
         dx = torch.empty_like(do)
         ext.apply_rotary(
             dx[..., :rotary_dim],
             do[..., :rotary_dim],
-            cos,
-            sin,
+            re_cos,
+            re_sin,
             True,
             ctx.interleaved,
         )
@@ -153,10 +156,8 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, dqkv):
-        interleaved = ctx.interleaved
-        cos, sin, cos_k, sin_k = ctx.saved_tensors
-        seqlen = None if len(dqkv.shape) == 4 else dqkv.shape[1]
-        rotary_dim = cos.shape[-1]
+        re_cos, re_sin, re_cos_k, re_sin_k = ctx.saved_tensors
+        rotary_dim = re_cos.shape[-1]
         rotary_dim *= 2
 
         dq_ro = (
@@ -167,10 +168,10 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
         ext.apply_rotary(
             dq_ro,
             dq_ro,
-            cos,
-            sin,
+            re_cos,
+            re_sin,
             True,
-            interleaved,
+            ctx.interleaved,
         )
 
         dk_ro = (
@@ -181,9 +182,9 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
         ext.apply_rotary(
             dk_ro,
             dk_ro,
-            cos_k,
-            sin_k,
+            re_cos_k,
+            re_sin_k,
             True,
-            interleaved,
+            ctx.interleaved,
         )
         return dqkv, None, None, None, None, None
