@@ -49,12 +49,13 @@ void extRmsNorm(at::Tensor& output, at::Tensor& inv_rms,
 }
 
 void extRmsNormBackward(at::Tensor& grad_input, at::Tensor& grad_weight,
-                        at::Tensor& grad_bias, const at::Tensor& grad_output,
-                        const at::Tensor& input, const at::Tensor& weight,
+                        c10::optional<at::Tensor>& grad_bias_opt,
+                        const at::Tensor& grad_output, const at::Tensor& input,
+                        const at::Tensor& weight,
                         const c10::optional<at::Tensor>& bias_opt,
                         const at::Tensor& inv_rms,
                         const OptionalIntArray& normalized_shape, double eps) {
-  callDiopi(diopiRMSNormBackward, grad_input, grad_weight, grad_bias,
+  callDiopi(diopiRMSNormBackward, grad_input, grad_weight, grad_bias_opt,
             grad_output, input, weight, bias_opt, inv_rms, normalized_shape,
             eps);
 }

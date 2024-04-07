@@ -52,14 +52,32 @@ inline void checkTensorOnDevice(const c10::optional<at::Tensor>& tensor) {
 
 // at::Tensor                 ->  diopiTensorHandle_t
 // const at::Tensor           ->  diopiConstTensorHandle_t
-// c10::optional<at::Tensor>  ->  diopiConstTensorHandle_t
+// const c10::optional<at::Tensor>  ->  diopiConstTensorHandle_t
 template <class T, class U = std::decay_t<T>,
           std::enable_if_t<std::is_same_v<U, at::Tensor> ||
-                               std::is_same_v<U, c10::optional<at::Tensor>>,
+                               std::is_same_v<std::remove_reference_t<T>,
+                                              const c10::optional<at::Tensor>>,
                            int> = 0>
 [[nodiscard]] decltype(auto) castToDiopiType(T&& tensor) {
   checkTensorOnDevice(tensor);
   return diopi_helper::toDiopiTensorHandle(std::forward<T>(tensor));
+}
+
+::diopiTensorHandle_t toDiopiTensorHandle(
+    c10::optional<at::Tensor>& tensor_opt) {
+  if (!tensor_opt.has_value()) {
+    return nullptr;
+  }
+  return diopi_helper::toDiopiTensorHandle(tensor_opt.value());
+}
+
+// c10::optional<at::Tensor>  ->  diopiTensorHandle_t
+template <class T, std::enable_if_t<std::is_same_v<std::remove_reference_t<T>,
+                                                   c10::optional<at::Tensor>>,
+                                    int> = 0>
+[[nodiscard]] decltype(auto) castToDiopiType(T&& tensor) {
+  checkTensorOnDevice(tensor);
+  return toDiopiTensorHandle(std::forward<T>(tensor));
 }
 
 // at::OptionalArrayRef  ->  diopiSize_t
