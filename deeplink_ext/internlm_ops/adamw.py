@@ -5,10 +5,10 @@ from typing import List, Optional, Union
 
 assert hasattr(ext, "adamw")
 
-__all__ = ["adamw_for_internlm"]
+__all__ = ["fused_adamw"]
 
 
-def adamw_for_internlm(
+def fused_adamw(
     params: List[torch.Tensor],
     grads: List[torch.Tensor],
     exp_avgs: List[torch.Tensor],
