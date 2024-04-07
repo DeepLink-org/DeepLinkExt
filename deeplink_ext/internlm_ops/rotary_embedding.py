@@ -32,8 +32,8 @@ class ApplyRotaryEmb(torch.autograd.Function):
         assert seqlen <= rotary_seqlen
         assert sin.shape == (rotary_seqlen, rotary_dim // 2)
         out = torch.empty_like(x)
-        re_cos = (rearrange(cos[:seqlen], "s d -> s 1 d"),)
-        re_sin = (rearrange(sin[:seqlen], "s d -> s 1 d"),)
+        re_cos = rearrange(cos[:seqlen], "s d -> s 1 d")
+        re_sin = rearrange(sin[:seqlen], "s d -> s 1 d")
         ext.apply_rotary(
             out[..., :rotary_dim],
             x[..., :rotary_dim],
