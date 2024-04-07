@@ -95,15 +95,15 @@ class _MixedFusedRMSNormFunction(torch.autograd.Function):
 
 class MixedFusedRMSNorm(torch.nn.Module):
     def __init__(self, normalized_shape, eps=1e-5):
+        # TODO: Further optimization when there are device and dtype available.
+        # factory_kwargs = {"device": device, "dtype": dtype}
+        factory_kwargs = {}
         super().__init__()
         if isinstance(normalized_shape, numbers.Integral):
             normalized_shape = (normalized_shape,)
         self.normalized_shape = torch.Size(normalized_shape)
+        self.weight = torch.nn.Parameter(torch.ones(normalized_shape, **factory_kwargs))
         self.eps = eps
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.weight = torch.nn.Parameter(
-            torch.ones(normalized_shape, device=self._device)
-        )
 
     def forward(self, hidden_states):
         return _MixedFusedRMSNormFunction.apply(
