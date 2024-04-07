@@ -25,6 +25,7 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
     ):
         # The current default input layout for flash attention is BSND
         input_layout = "BSND"
+        # TODO: Remove the dependency of torch_dipu
         gen = torch_dipu._C._create_dipu_generator(-1)
 
         if qkv is not None:
@@ -172,6 +173,7 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
         # The current default input layout for flash attention is BSND
         input_layout = "BSND"
+        # TODO: Remove the dependency of torch_dipu
         gen = torch_dipu._C._create_dipu_generator(-1)
 
         if softmax_scale is None:
