@@ -1,7 +1,11 @@
+# Copyright (c) 2024, DeepLink.
+
 import torch
 import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "fa_fwd_v2") and hasattr(ext, "fa_bwd")
+
+__all__ = ["FlashSelfAttention"]
 
 
 class FlashSelfAttention(torch.autograd.Function):

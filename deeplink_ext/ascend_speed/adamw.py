@@ -1,3 +1,5 @@
+# Copyright (c) 2024, DeepLink.
+
 from typing import List
 import torch
 import deeplink_ext.cpp_extensions as ext
@@ -5,6 +7,7 @@ import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "adamw")
 
+__all__ = ["adamw"]
 
 def adamw(
     params: List[torch.Tensor],

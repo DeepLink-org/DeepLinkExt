@@ -1,3 +1,5 @@
+# Copyright (c) 2024, DeepLink.
+
 import torch
 import deeplink_ext.cpp_extensions as ext
 
@@ -5,6 +7,8 @@ import deeplink_ext.cpp_extensions as ext
 assert hasattr(ext, "scaled_masked_softmax_fwd") and hasattr(
     ext, "scaled_masked_softmax_bwd"
 )
+
+__all__ = ["ScaledMaskedSoftmax"]
 
 
 class ScaledMaskedSoftmax(torch.autograd.Function):
