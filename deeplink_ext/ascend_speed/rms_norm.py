@@ -1,8 +1,12 @@
+# Copyright (c) 2024, DeepLink.
+
 import torch
 import deeplink_ext.cpp_extensions as ext
 
 
 assert hasattr(ext, "rms_norm") and hasattr(ext, "rms_norm_backward")
+
+__all__ = ["RMSNorm"]
 
 
 class RMSNorm(torch.autograd.Function):
