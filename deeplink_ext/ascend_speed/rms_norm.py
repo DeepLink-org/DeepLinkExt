@@ -8,7 +8,6 @@ assert hasattr(ext, "rms_norm") and hasattr(ext, "rms_norm_backward")
 class RMSNorm(torch.autograd.Function):
     @staticmethod
     def forward(ctx, hidden_states, weight, eps):
-        bias = torch.Tensor().cuda()
         output = torch.empty_like(hidden_states)
         input_dtype = hidden_states.dtype
         acc_dtype = (
@@ -21,25 +20,24 @@ class RMSNorm(torch.autograd.Function):
             dtype=acc_dtype,
             device=hidden_states.device,
         )
-        ext.rms_norm(output, inv_rms, hidden_states, weight.shape, weight, bias, eps)
-        ctx.save_for_backward(hidden_states, inv_rms, weight, bias)
+        ext.rms_norm(output, inv_rms, hidden_states, weight.shape, weight, None, eps)
+        ctx.save_for_backward(hidden_states, inv_rms, weight)
         ctx.eps = eps
         return output
 
     @staticmethod
     def backward(ctx, grad_output):
-        hidden_states, inv_rms, weight, bias = ctx.saved_tensors
+        hidden_states, inv_rms, weight = ctx.saved_tensors
         grad_input = torch.empty_like(hidden_states)
         grad_weight = torch.empty_like(weight)
-        grad_bias = torch.empty_like(bias)
         ext.rms_norm_backward(
             grad_input,
             grad_weight,
-            grad_bias,
+            None,
             grad_output,
             hidden_states,
             weight,
-            bias,
+            None,
             inv_rms,
             weight.shape,
             ctx.eps,

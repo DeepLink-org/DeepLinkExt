@@ -1,5 +1,4 @@
 import torch
-import torch_dipu
 import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "fa_fwd_v2") and hasattr(ext, "fa_bwd")
@@ -11,7 +10,10 @@ class FlashSelfAttention(torch.autograd.Function):
         ctx, q, k, v, attention_mask, dropout_p, softmax_scale, head_num, input_layout
     ):
         out = torch.empty_like(q)
-        gen = torch_dipu._C._create_dipu_generator(-1)
+        assert (
+            q.device == k.device and k.device == v.device
+        ), "the devices of q, k and v are not same"
+        gen = torch.Generator(device=q.device)
         (
             dropout_mask,
             softmax_max,
@@ -59,10 +61,6 @@ class FlashSelfAttention(torch.autograd.Function):
             softmax_sum,
             softmax_out,
         ) = ctx.saved_tensors
-        attention_mask = (
-            torch.Tensor().cuda() if attention_mask is None else attention_mask
-        )
-        dropout_mask = torch.Tensor().cuda() if dropout_mask is None else dropout_mask
         dq = torch.empty_like(q)
         dk = torch.empty_like(k)
         dv = torch.empty_like(v)

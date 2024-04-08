@@ -31,12 +31,12 @@
 namespace dipu::dipu_ext {
 
 void extAdamW(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
-              at::Tensor& max_exp_avg_sq, at::Tensor& grad, float lr,
-              float beta1, float beta2, float epsilon, float weight_decay,
-              int64_t step, bool amsgrad) {
+              c10::optional<at::Tensor>& max_exp_avg_sq_opt, at::Tensor& grad,
+              float lr, float beta1, float beta2, float epsilon,
+              float weight_decay, int64_t step, bool amsgrad) {
   // the diopiAdamW func has no "maximize" param
-  callDiopi(diopiAdamW, param, grad, exp_avg, exp_avg_sq, max_exp_avg_sq, lr,
-            beta1, beta2, epsilon, weight_decay, step, amsgrad);
+  callDiopi(diopiAdamW, param, grad, exp_avg, exp_avg_sq, max_exp_avg_sq_opt,
+            lr, beta1, beta2, epsilon, weight_decay, step, amsgrad);
 }
 
 void extRmsNorm(at::Tensor& output, at::Tensor& inv_rms,
@@ -49,12 +49,13 @@ void extRmsNorm(at::Tensor& output, at::Tensor& inv_rms,
 }
 
 void extRmsNormBackward(at::Tensor& grad_input, at::Tensor& grad_weight,
-                        at::Tensor& grad_bias, const at::Tensor& grad_output,
-                        const at::Tensor& input, const at::Tensor& weight,
+                        c10::optional<at::Tensor>& grad_bias_opt,
+                        const at::Tensor& grad_output, const at::Tensor& input,
+                        const at::Tensor& weight,
                         const c10::optional<at::Tensor>& bias_opt,
                         const at::Tensor& inv_rms,
                         const OptionalIntArray& normalized_shape, double eps) {
-  callDiopi(diopiRMSNormBackward, grad_input, grad_weight, grad_bias,
+  callDiopi(diopiRMSNormBackward, grad_input, grad_weight, grad_bias_opt,
             grad_output, input, weight, bias_opt, inv_rms, normalized_shape,
             eps);
 }
@@ -214,14 +215,17 @@ auto extFlashAttentionV2(at::Tensor& out, const at::Tensor& q,
       *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
 }
 
-auto extFlashAttentionBackward(
-    at::Tensor& grad_q, at::Tensor& grad_k, at::Tensor& grad_v,
-    const at::Tensor& grad_out, const at::Tensor& q, const at::Tensor& k,
-    const at::Tensor& v, const at::Tensor& out,
-    const at::Tensor& attention_mask, const at::Tensor& dropout_mask,
-    const at::Tensor& softmax_max, const at::Tensor& softmax_sum,
-    const at::Tensor& softmax_out, double p_dropout, double softmax_scale,
-    int64_t head_num, const std::string& input_layout) {
+auto extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
+                               at::Tensor& grad_v, const at::Tensor& grad_out,
+                               const at::Tensor& q, const at::Tensor& k,
+                               const at::Tensor& v, const at::Tensor& out,
+                               const c10::optional<at::Tensor>& attention_mask,
+                               const c10::optional<at::Tensor>& dropout_mask,
+                               const at::Tensor& softmax_max,
+                               const at::Tensor& softmax_sum,
+                               const at::Tensor& softmax_out, double p_dropout,
+                               double softmax_scale, int64_t head_num,
+                               const std::string& input_layout) {
   callDiopi(diopiFlashAttentionBackward, grad_q, grad_k, grad_v, grad_out, q, k,
             v, out, attention_mask, dropout_mask, softmax_max, softmax_sum,
             softmax_out, p_dropout, softmax_scale, head_num,

@@ -1,86 +1,120 @@
 # Copyright (c) 2024, DeepLink.
 
+import numbers
 import torch
-from DeepLinkExt.deeplink_ext.common.rms_norm import rms_norm, rms_norm_backward
+from torch.nn import init
+
+import deeplink_ext.cpp_extensions as ext
+
+assert hasattr(ext, "rms_norm") and hasattr(ext, "rms_norm_backward")
 
 
-__all__ = ["RMSNorm", "RMSNormWithNormalizedShape"]
+__all__ = ["MixedFusedRMSNorm"]
 
 
-# 定义自定义的 autograd 函数
-class _DeepLinkRMSNormFunction(torch.autograd.Function):
+# MixedFusedLayerNorm differs from FusedLayerNorm in that this layer norm uses parameter's dtype
+# as output tensor's dtype while FusedLayerNorm uses input tensor's dtype for output tensor's dtype.
+# See: `layer_norm_affine` and `layer_norm_affine_mixed_dtypes` in "csrc/layer_norm_cuda.cpp"
+class _MixedFusedRMSNormFunction(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, hidden_states, weight, bias, eps):
-        output, inv_rms = rms_norm(hidden_states, None, weight, bias, eps)
-        ctx.save_for_backward(hidden_states, inv_rms, weight, bias, torch.tensor(eps))
-        return output
+    def forward(ctx, hidden_states, weight, eps, normalized_shape):
+        # ascend currently does not support dtype of hidden_states with higher precision than weight.
+        # record original dtype of hidden_states and weight
+        input_dtype = hidden_states.dtype
+        weight_dtype = weight.dtype
 
-    @staticmethod
-    def backward(ctx, grad_output):
-        hidden_states, inv_rms, weight, bias, eps_tensor = ctx.saved_tensors
-        eps = eps_tensor.item()
-        grad_input, grad_weight, grad_bias = rms_norm_backward(
-            hidden_states, grad_output, inv_rms, None, weight, bias, eps
+        acc_dtype = (
+            torch.float32
+            if input_dtype in [torch.bfloat16, torch.float16]
+            else input_dtype
         )
-        return grad_input, grad_weight, grad_bias, None
-
-
-class _DeepLinkRMSNormFunctionWithNormalizedShape(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, hidden_states, weight, bias, eps, normalized_shape):
-        output, inv_rms = rms_norm(
-            hidden_states.float(), normalized_shape, weight.float(), bias.float(), eps
+        inv_rms = torch.empty(
+            list(hidden_states.shape[:-1]) + [1],
+            dtype=acc_dtype,
+            device=hidden_states.device,
         )
-        output = output.half()
-        inv_rms = inv_rms.half()
-        ctx.save_for_backward(hidden_states, inv_rms, weight, bias, torch.tensor(eps))
-        ctx.intermediate_results = normalized_shape
-        return output
 
-    @staticmethod
-    def backward(ctx, grad_output):
-        hidden_states, inv_rms, weight, bias, eps_tensor = ctx.saved_tensors
-        eps = eps_tensor.item()
-        normalized_shape = ctx.intermediate_results
+        higher_precision = torch.promote_types(input_dtype, weight_dtype)
+        output_higher_precision = torch.empty_like(
+            hidden_states, dtype=higher_precision
+        )
+        hidden_states_higher_precision = hidden_states.to(dtype=higher_precision)
+        weight_higher_precision = weight.to(dtype=higher_precision)
 
-        grad_input, grad_weight, grad_bias = rms_norm_backward(
-            hidden_states.float(),
-            grad_output.float(),
-            inv_rms.float(),
+        ext.rms_norm(
+            output_higher_precision,
+            inv_rms,
+            hidden_states_higher_precision,
             normalized_shape,
-            weight.float(),
-            bias.float(),
+            weight_higher_precision,
+            None,
             eps,
         )
-        return grad_input, grad_weight, grad_bias, None, None
 
+        ctx.save_for_backward(
+            hidden_states_higher_precision, inv_rms, weight_higher_precision
+        )
+        ctx.eps = eps
+        ctx.normalized_shape = normalized_shape
+        ctx.input_dtype = input_dtype
+        ctx.weight_dtype = weight_dtype
 
-# 定义一个 nn.Module 包裹这个自定义函数
-class RMSNorm(torch.nn.Module):
-    def __init__(self, hidden_size, eps=1e-5):
-        super().__init__()
-        self.weight = torch.nn.Parameter(torch.ones(hidden_size))
-        self.bias = torch.zeros(hidden_size).cuda()
-        self.variance_epsilon = eps
+        return output_higher_precision.to(dtype=weight_dtype)
 
-    def forward(self, hidden_states):
-        return _DeepLinkRMSNormFunction.apply(
-            hidden_states, self.weight, self.bias, self.variance_epsilon
+    @staticmethod
+    def backward(ctx, grad_output):
+        (
+            hidden_states_higher_precision,
+            inv_rms,
+            weight_higher_precision,
+        ) = ctx.saved_tensors
+
+        grad_input_higher_precision = torch.empty_like(hidden_states_higher_precision)
+        grad_weight_higher_precision = torch.empty_like(weight_higher_precision)
+
+        ext.rms_norm_backward(
+            grad_input_higher_precision,
+            grad_weight_higher_precision,
+            None,
+            grad_output.to(dtype=grad_input_higher_precision.dtype),
+            hidden_states_higher_precision,
+            weight_higher_precision,
+            None,
+            inv_rms,
+            ctx.normalized_shape,
+            ctx.eps,
+        )
+
+        return (
+            grad_input_higher_precision.to(dtype=ctx.input_dtype),
+            grad_weight_higher_precision.to(dtype=ctx.weight_dtype),
+            None,
+            None,
         )
 
 
-class RMSNormWithNormalizedShape(torch.nn.Module):
-    def __init__(self, hidden_size, eps=1e-5):
+class MixedFusedRMSNorm(torch.nn.Module):
+    def __init__(self, normalized_shape, eps=1e-5):
+        # TODO: Further optimization when there are device and dtype available.
+        # factory_kwargs = {"device": device, "dtype": dtype}
+        factory_kwargs = {}
         super().__init__()
-        self.weight = torch.nn.Parameter(torch.ones(hidden_size))
-        self.bias = torch.zeros(hidden_size).cuda()
-        self.variance_epsilon = eps
+        if isinstance(normalized_shape, numbers.Integral):
+            normalized_shape = (normalized_shape,)
+        self.normalized_shape = torch.Size(normalized_shape)
+        self.weight = torch.nn.Parameter(torch.ones(normalized_shape, **factory_kwargs))
+        self.eps = eps
 
     def forward(self, hidden_states):
-        return _DeepLinkRMSNormFunctionWithNormalizedShape.apply(
+        return _MixedFusedRMSNormFunction.apply(
             hidden_states,
             self.weight,
-            self.bias,
-            self.variance_epsilon,
-            self.weight.size(),
+            self.eps,
+            self.normalized_shape,
         )
+
+    def reset_parameters(self):
+        init.ones_(self.weight)
+
+    def extra_repr(self):
+        return "{normalized_shape}, eps={eps}, ".format(**self.__dict__)
