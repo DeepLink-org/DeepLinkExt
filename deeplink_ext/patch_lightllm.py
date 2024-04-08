@@ -1,5 +1,8 @@
 # Copyright (c) 2024, DeepLink.
 
+import torch
+import torch_dipu
+
 
 def _patch_lightllm():
     import os
@@ -51,7 +54,17 @@ def _patch_lightllm():
             )
 
         def patch_rms_norm_lightllm():
-            from .common.rms_norm import rms_norm
+            def rms_norm(input, normalized_shape, weight, bias, eps):
+                output = torch.empty_like(input)
+                inv_rms_shape = list(input.shape[:-1]) + [1]
+                inv_rms = torch.empty(
+                    inv_rms_shape, dtype=input.dtype, device=input.device
+                )
+                ext.rms_norm(
+                    output, inv_rms, input, normalized_shape, weight, bias, eps
+                )
+
+                return [output, inv_rms]
 
             rms_norm_pack.rmsnorm_forward = rms_norm
 
@@ -59,8 +72,8 @@ def _patch_lightllm():
             def rotary_emb(q, cos, sin):
                 seq_len = q.shape[0]
                 dim = q.shape[-1]
-                cos_view = cos.view([seq_len, 1, dim / 2])
-                sin_view = sin.view([seq_len, 1, dim / 2])
+                cos_view = cos.view([seq_len, 1, dim // 2])
+                sin_view = sin.view([seq_len, 1, dim // 2])
                 ext.apply_rotary(q, q, cos_view, sin_view, False, False)
 
             rotary_emb_pack.rotary_emb_fwd = rotary_emb
