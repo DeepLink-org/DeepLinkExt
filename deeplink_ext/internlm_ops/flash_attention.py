@@ -34,7 +34,7 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
             assert q.device == kv.device, "the devices of q and kv should be same"
             query = q
             key, value = kv[:, :, 0], kv[:, :, 1]
-            device = kv.device()
+            device = kv.device
         else:
             assert (
                 q is not None and k is not None and q is not None
