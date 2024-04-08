@@ -10,7 +10,10 @@ class FlashSelfAttention(torch.autograd.Function):
         ctx, q, k, v, attention_mask, dropout_p, softmax_scale, head_num, input_layout
     ):
         out = torch.empty_like(q)
-        gen = torch.Generator(device="cuda")
+        assert (
+            q.device == k.device and k.device == v.device
+        ), "the devices of q, k and v are not same"
+        gen = torch.Generator(device=q.device)
         (
             dropout_mask,
             softmax_max,
