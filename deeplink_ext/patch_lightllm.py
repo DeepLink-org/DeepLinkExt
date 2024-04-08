@@ -54,14 +54,14 @@ def _patch_lightllm():
             )
 
         def patch_rms_norm_lightllm():
-            def rms_norm(input, normalized_shape, weight, bias, eps):
+            def rms_norm(input, weight, eps):
                 output = torch.empty_like(input)
                 inv_rms_shape = list(input.shape[:-1]) + [1]
                 inv_rms = torch.empty(
                     inv_rms_shape, dtype=input.dtype, device=input.device
                 )
                 ext.rms_norm(
-                    output, inv_rms, input, normalized_shape, weight, bias, eps
+                    output, inv_rms, input, None, weight, None, eps
                 )
 
                 return [output, inv_rms]
