@@ -2,8 +2,8 @@
 
 import torch
 import numpy as np
-from deeplink_ext.internlm_ops.rms_norm import RMSNorm, RMSNormWithNormalizedShape
-from deeplink_ext.internlm_ops.rms_norm_fallback import (
+from deeplink_ext.internevo_ops.rms_norm import RMSNorm, RMSNormWithNormalizedShape
+from deeplink_ext.internevo_ops.rms_norm_fallback import (
     RMSNorm as RMSNorm_fb,
     RMSNormWithNormalizedShape as RMSNormWithNormalizedShape_fb,
 )

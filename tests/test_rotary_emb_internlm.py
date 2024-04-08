@@ -1,7 +1,7 @@
 # Copyright (c) 2023, DeepLink.
 
 import torch
-from deeplink_ext.internlm_ops.rotary_embedding import apply_rotary
+from deeplink_ext.internevo_ops.rotary_embedding import apply_rotary
 from deeplink_ext.internlm_ops.rotary_embeddinig_fallback import (
     apply_rotary as apply_rotary_fb,
 )
