@@ -24,17 +24,24 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
     ):
         # The current default input layout for flash attention is BSND
         input_layout = "BSND"
-        gen = torch.Generator(device="cuda")
-
+        device = None
         if qkv is not None:
             query = qkv[:, :, 0]
             key, value = qkv[:, :, 1], qkv[:, :, 2]
+            device = qkv.device
         elif kv is not None:
+            assert q is not None, "q should not be None, when kv is not None"
             query = q
             key, value = kv[:, :, 0], kv[:, :, 1]
+            device = kv.device()
         else:
+            assert (
+                q is not None and k is not None and q is not None
+            ), "q, k, v should not be None"
             query = q
             key, value = k, v
+            device = q.device
+        gen = torch.Generator(device)
 
         if softmax_scale is None:
             softmax_scale = key.shape[-1] ** (-0.5)
@@ -171,7 +178,8 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
         # The current default input layout for flash attention is BSND
         input_layout = "BSND"
-        gen = torch.Generator(device="cuda")
+        assert q.device == kv.device, "the devices of q and kv should be same"
+        gen = torch.Generator(device=q.device)
 
         if softmax_scale is None:
             softmax_scale = kv[:, :, 0].shape[-1] ** (-0.5)
