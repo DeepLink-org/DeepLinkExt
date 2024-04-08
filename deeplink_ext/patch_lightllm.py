@@ -58,7 +58,7 @@ def _patch_lightllm():
                 output = torch.empty_like(input)
                 inv_rms_shape = list(input.shape[:-1]) + [1]
                 inv_rms = torch.empty(
-                    inv_rms_shape, dtype=input.dtype, device=input.device
+                    inv_rms_shape, dtype=torch.float32, device=input.device
                 )
                 ext.rms_norm(output, inv_rms, input, None, weight, None, eps)
 
