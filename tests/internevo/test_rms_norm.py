@@ -41,27 +41,15 @@ def test_multi_cases_for_mixed_rms_norm():
             weight_dtype,
             list(hidden_states.shape)[-1],
         )
-        try:
-            assert torch.allclose(output_ref, output_ext)
-        except AssertionError:
-            print(
-                f"When input dtype is {input_dtype} and weight dtype is {weight_dtype}, MixedRMSNorm fails to pass the forward test!"
-            )
-        else:
-            print(
-                f"When input dtype is {input_dtype} and weight dtype is {weight_dtype}, MixedRMSNorm passes the forward test!"
-            )
 
-        try:
-            assert torch.allclose(grad_ref, grad_ext)
-        except AssertionError:
-            print(
-                f"When input dtype is {input_dtype} and weight dtype is {weight_dtype}, MixedRMSNorm fails to pass the backward test!"
-            )
-        else:
-            print(
-                f"When input dtype is {input_dtype} and weight dtype is {weight_dtype}, MixedRMSNorm passes the backward test!"
-            )
+        assert torch.allclose(
+            output_ref, output_ext
+        ), f"When input dtype is {input_dtype} and weight dtype is {weight_dtype}, MixedRMSNorm fails to pass the forward test!"
+
+        assert torch.allclose(
+            grad_ref, grad_ext
+        ), f"When input dtype is {input_dtype} and weight dtype is {weight_dtype}, MixedRMSNorm fails to pass the backward test!"
+    print("Pass all forward and backward test cases of MixedRMSNorm successfully!")
 
 
 test_multi_cases_for_mixed_rms_norm()
