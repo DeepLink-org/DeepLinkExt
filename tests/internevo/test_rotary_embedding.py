@@ -19,8 +19,16 @@ def _run_rotary_embedding(
     sin: torch.Tensor,
     interleaved: bool = False,
 ):
-    model = rotary_embedding_module()
-    # model = model.cuda()
+    class TestRotaryEmbedding(torch.nn.Module):
+        def forward(self, input, cos, sin, interleaved):
+            return rotary_embedding_module.apply(
+                input,
+                cos,
+                sin,
+                interleaved,
+            )
+
+    model = TestRotaryEmbedding()
     output = model(input, cos, sin, interleaved)
     output.backward(torch.ones_like(output))
     return output, input.grad
@@ -65,9 +73,4 @@ def test_multi_cases_for_rotary_embedding():
             )
 
 
-def test_multi_cases_for_rotary_embedding_qkv_():
-    print("1")
-
-
 test_multi_cases_for_rotary_embedding()
-test_multi_cases_for_rotary_embedding_qkv_()
