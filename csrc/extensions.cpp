@@ -292,21 +292,6 @@ void extApplyPenalty(at::Tensor& logits, const at::Tensor& presence_penalty,
             p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
 }
 
-// For lightllm, rms_norm reuses the diopi implementation of internlm
-auto extRmsNormLightllm(const at::Tensor& x, const at::Tensor& weight,
-                        float eps) {
-  at::ScalarType acc_type = x.scalar_type();
-  if (x.scalar_type() == at::kBFloat16 || x.scalar_type() == at::kHalf) {
-    acc_type = at::kFloat;
-  }
-  auto inv_rms = at::empty_like(x, acc_type);
-  auto out = at::empty_like(x);
-  auto bias = at::empty_like(weight);
-  at::OptionalIntArrayRef normalized_shape = weight.sizes();
-  callDiopi(diopiRMSNorm, out, inv_rms, x, normalized_shape, weight, bias, eps);
-  return out;
-}
-
 // 判断是否有对应的 diopi 实现:
 //   如果有, 则直接 pybind 上去;
 //   否则不注册, 等到 python 层处理.
