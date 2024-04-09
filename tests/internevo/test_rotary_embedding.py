@@ -12,6 +12,20 @@ from deeplink_ext.internevo_ops.rotary_embedding_fallback import (
 )
 
 
+class TestRotaryEmbedding(torch.nn.Module):
+    def __init__(self, rotary_embedding_module):
+        super(TestRotaryEmbedding, self).__init__()
+        self.rotary_embedding_module = rotary_embedding_module
+
+    def forward(self, input, cos, sin, interleaved):
+        return self.rotary_embedding_module.apply(
+            input,
+            cos,
+            sin,
+            interleaved,
+        )
+
+
 def _run_rotary_embedding(
     rotary_embedding_module: type,
     input: torch.Tensor,
@@ -19,16 +33,8 @@ def _run_rotary_embedding(
     sin: torch.Tensor,
     interleaved: bool = False,
 ):
-    class TestRotaryEmbedding(torch.nn.Module):
-        def forward(self, input, cos, sin, interleaved):
-            return rotary_embedding_module.apply(
-                input,
-                cos,
-                sin,
-                interleaved,
-            )
 
-    model = TestRotaryEmbedding()
+    model = TestRotaryEmbedding(rotary_embedding_module)
     output = model(input, cos, sin, interleaved)
     output.backward(torch.ones_like(output))
     return output, input.grad
@@ -50,27 +56,15 @@ def test_multi_cases_for_rotary_embedding():
         output_ext, grad_ext = _run_rotary_embedding(
             ApplyRotaryEmb, input, cos, sin, interleaved
         )
-        try:
-            assert torch.allclose(output_ref, output_ext)
-        except AssertionError:
-            print(
-                f"When input dtype is {input_dtype}, ApplyRotaryEmb fails to pass the forward test!"
-            )
-        else:
-            print(
-                f"When input dtype is {input_dtype}, ApplyRotaryEmb passes the forward test!"
-            )
 
-        try:
-            assert torch.allclose(grad_ref, grad_ext)
-        except AssertionError:
-            print(
-                f"When input dtype is {input_dtype}, ApplyRotaryEmb fails to pass the backward test!"
-            )
-        else:
-            print(
-                f"When input dtype is {input_dtype}, ApplyRotaryEmb passes the backward test!"
-            )
+        assert torch.allclose(
+            output_ref, output_ext, rtol=1e-3, atol=1e-3
+        ), f"When input dtype is {input_dtype}, ApplyRotaryEmb fails to pass the forward test!"
+
+        assert torch.allclose(
+            grad_ref, grad_ext
+        ), f"When input dtype is {input_dtype}, ApplyRotaryEmb fails to pass the backward test!"
+    print("Pass all forward and backward test cases of ApplyRotaryEmb successfully!")
 
 
 test_multi_cases_for_rotary_embedding()
