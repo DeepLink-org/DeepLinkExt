@@ -27,7 +27,7 @@ def fused_adamw(
     maximize: bool,
     grad_scale: Union[float, torch.Tensor],
     found_inf: Optional[torch.Tensor],
-) -> None:
+):
     if found_inf is not None:
         raise RuntimeError("Deeplink Adamw with fused=True does not support found_inf")
     if maximize is not None and maximize is True:

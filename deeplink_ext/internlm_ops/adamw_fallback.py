@@ -38,45 +38,27 @@ def fused_adamw_fallback(
 
     lr_float = float(lr.item()) if isinstance(lr, torch.Tensor) else lr
 
-    # optimizer initialization
-    adamw_optimizer = AdamW(
-        params,
-        lr_float,
-        betas=(beta1, beta2),
-        eps=eps,
-        weight_decay=weight_decay,
-        amsgrad=False,
-        maximize=False,
-        foreach=None,
-        capturable=False,
-        differentiable=True,
-        fused=False,
-        found_inf=False,
-    )
-    # set the grad for params
     for i in range(len(params)):
+
         if grad_scale is not None:
-            params[i].grad = grads[i].float() * grad_scale
+            grad = grads[i].float() * grad_scale
         else:
-            params[i].grad = grads[i]
+            grad = grads[i]
+        grad = -grad if maximize else grad
 
-    # set state_dict
-    custom_state_dict = adamw_optimizer.state_dict()
-    for i in range(len(params)):
-        custom_state_dict["state"][i] = {
-            "step": state_steps[0],
-            "exp_avg": exp_avgs[i],
-            "exp_avg_sq": exp_avg_sqs[i],
-        }
+        param = params[i]
+        exp_avg = exp_avgs[i]
+        exp_avg_sq = exp_avg_sqs[i]
 
-    # load the custom_state_dict
-    adamw_optimizer.load_state_dict(custom_state_dict)
+        param = param - lr_float * weight_decay * param
+        exp_avg = beta1 * exp_avg + (1 - beta1) * grad
+        exp_avg_sq = beta2 * exp_avg_sq + (1 - beta2) * grad * grad
+        exp_avg = exp_avg / (1 - pow(beta1, state_steps[0]))
+        exp_avg_sq = exp_avg_sq / (1 - pow(beta1, state_steps[0]))
+        if amsgrad:
+            max_exp_avg_sq = max(max_exp_avg_sq, exp_avg_sq)
+            param = param - lr_float * exp_avg / (torch.sqrt(max_exp_avg_sq) + eps)
+        else:
+            param = param - lr_float * exp_avg / (torch.sqrt(exp_avg_sq) + eps)
 
-    # perform a single optimization step
-    adamw_optimizer.step()
-    res_exp_avgs = []
-    res_exp_avg_sqs = []
-    for i in range(len(params)):
-        res_exp_avgs.append(adamw_optimizer.state_dict()["state"][i]["exp_avg"])
-        res_exp_avg_sqs.append(adamw_optimizer.state_dict()["state"][i]["exp_avg_sq"])
-    return params, res_exp_avgs, res_exp_avg_sqs
+    return params, exp_avgs, exp_avg_sqs
