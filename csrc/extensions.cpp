@@ -273,6 +273,53 @@ void extTokenSoftmaxReduceVInference(const at::Tensor& logics,
             b_start_loc, b_seq_len, max_input_len, other_kv_index);
 }
 
+void extTokenDecodeAttentionInference(const at::Tensor& q, const at::Tensor& k,
+                                      const at::Tensor& v, at::Tensor& out,
+                                      const at::Tensor& b_loc,
+                                      const at::Tensor& b_start_loc,
+                                      const at::Tensor& b_seq_len,
+                                      int max_input_len, int other_kv_index) {
+  callDiopi(diopiTokenDecodeAttentionInference, out, q, k, v, b_loc, b_start_loc,
+            b_seq_len, max_input_len, other_kv_index);
+}
+
+void extTokenDecodeAttentionInferenceBatchOne(const at::Tensor& q, const at::Tensor& k,
+                                      const at::Tensor& v, at::Tensor& out,
+                                      const at::Tensor& b_loc,
+                                      const at::Tensor& b_start_loc,
+                                      const at::Tensor& b_seq_len,
+                                      int max_input_len, int other_kv_index) {
+  callDiopi(diopiTokenDecodeAttentionInferenceBatchOne, out, q, k, v, b_loc, b_start_loc,
+            b_seq_len, max_input_len, other_kv_index);
+}
+
+void extIncreFlashAttention(const at::Tensor& q, const at::Tensor& k,
+                            const at::Tensor& v, at::Tensor& out,
+                            const int head, const char* layout,
+                            const c10::optional<at::Tensor>& padding_mask = {},
+                            const c10::optional<at::Tensor>& atten_mask = {},
+                            const OptionalIntArray& actual_seq_lengths = {},
+                            int64_t num_heads = 1, double scale_value = 1.0,
+                            const std::string& input_layout = "BSH", int64_t num_key_value_heads = 0) {
+  callDiopi(diopiIncreFlashAttention, out, q, k, v, padding_mask, atten_mask,
+            actual_seq_lengths, num_heads, scale_value, input_layout.c_str(), num_key_value_heads);
+}
+
+void extPromptFlashAttention(at::Tensor& out, const at::Tensor& q,
+                             const at::Tensor& k, const at::Tensor& v,
+                             const c10::optional<at::Tensor>& padding_mask = {},
+                             const c10::optional<at::Tensor>& atten_mask = {},
+                             const OptionalIntArray& actual_seq_lengths = {},
+                             int64_t num_heads = 1, double scale_value = 1.0,
+                             int64_t pre_tokens = 2147473647,
+                             int64_t next_tokens = 0,
+                             const std::string& input_layout = "BSH",
+                             int64_t num_key_value_heads = 0) {
+  callDiopi(diopiPromptFlashAttention, out, q, k, v, padding_mask, atten_mask,
+            actual_seq_lengths, num_heads, scale_value, pre_tokens,
+            next_tokens, input_layout.c_str(), num_key_value_heads);
+}
+
 void extContextAttentionInference(const at::Tensor& q, const at::Tensor& k,
                                   const at::Tensor& v, at::Tensor& out,
                                   const at::Tensor& b_start_loc,
@@ -345,6 +392,22 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiTokenSoftmaxReduceVInference != nullptr) {
     m.def("token_softmax_reducev_inference", &extTokenSoftmaxReduceVInference,
           "deeplink ext_token_softmax_reducev_inference");
+  }
+  if (&diopiTokenDecodeAttentionInference != nullptr) {
+    m.def("token_decode_attention_inference", &extTokenDecodeAttentionInference,
+          "deeplink token_decode_attention_inference");
+  }
+  if (&diopiTokenDecodeAttentionInferenceBatchOne != nullptr) {
+    m.def("token_decode_attention_inference_batch_one", &extTokenDecodeAttentionInferenceBatchOne,
+          "deeplink token_decode_attention_inference");
+  }
+  if (&diopiIncreFlashAttention != nullptr) {
+    m.def("incre_flash_attention", &extIncreFlashAttention,
+          "deeplink incre_flash_attention");
+  }
+  if (&diopiPromptFlashAttention != nullptr) {
+    m.def("prompt_flash_attention", &extPromptFlashAttention,
+          "deeplink ext_prompt_flash_attention");
   }
   if (&diopiContextAttentionInference != nullptr) {
     m.def("context_attention_inference", &extContextAttentionInference,

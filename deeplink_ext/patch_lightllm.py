@@ -14,6 +14,7 @@ def _patch_lightllm():
     import lightllm.models.llama.triton_kernel.token_attention_softmax_and_reducev as token_attention_softmax_reducev_pack  # type: ignore
     import lightllm.models.llama.triton_kernel.rmsnorm as rms_norm_pack  # type: ignore
     import lightllm.models.llama.triton_kernel.rotary_emb as rotary_emb_pack  # type: ignore
+    import math
 
     DEFAULT_PATCH_LIST = [
         "dest_index_copy_kv",
@@ -41,12 +42,33 @@ def _patch_lightllm():
             apply_penalty_pack.apply_penalty = ext.apply_penalty
 
         def patch_context_attention_inference():
+            def flash_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len):
+                batch, head, dim = b_start_loc.shape[0], q.shape[1], q.shape[2]
+                scale = 1 / math.sqrt(dim)
+                for i in range(batch):
+                    start = b_start_loc[i]
+                    end = start + b_seq_len[i]
+
+                    single_seq_len = int(b_seq_len[i])
+                    single_q = q[start:end].view(1, single_seq_len, -1)
+                    single_k = k[start:end].view(1, single_seq_len, -1)
+                    single_v = v[start:end].view(1, single_seq_len, -1)
+
+                    single_out = out[start:end, :].view(1, single_seq_len, -1)
+                    mask = torch.tril(torch.ones(single_seq_len, single_seq_len, dtype=torch.bool), diagonal=0).cuda()
+                    mask = mask.repeat(1, 1, 1)
+                    mask = torch.logical_not(mask)
+                    ext.prompt_flash_attention(single_out, single_q, single_k, single_v, None, mask, [], head, scale, 2147473647, 0, "BSH", 0)
+                return out
+
             context_attention_pack.context_attention_fwd = (
-                ext.context_attention_inference
+                # ext.context_attention_inference
+                flash_context_attention
             )
 
         def patch_token_attention_inference():
             token_attention_pack.token_att_fwd = ext.token_attention_inference
+            token_attention_pack.token_decode_attention_fwd = ext.token_decode_attention_inference
 
         def patch_token_softmax_reducev_inference():
             token_attention_softmax_reducev_pack.token_softmax_reducev_fwd = (
