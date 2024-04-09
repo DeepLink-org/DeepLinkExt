@@ -62,6 +62,3 @@ def test_multi_cases_for_mixed_rms_norm():
             print(
                 f"When input dtype is {input_dtype} and weight dtype is {weight_dtype}, MixedRMSNorm passes the backward test!"
             )
-
-
-test_multi_cases_for_mixed_rms_norm()
