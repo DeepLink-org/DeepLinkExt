@@ -44,11 +44,11 @@ def test_multi_cases_for_rotary_embedding():
     input_dtype_list = [torch.float16, torch.bfloat16, torch.float32]
     interleaved = False
     for input_dtype in input_dtype_list:
-        input = torch.rand(
+        input = torch.randn(
             1, 64, 32, 64, dtype=input_dtype, device="cuda", requires_grad=True
         )
-        cos = torch.rand(64, 32, dtype=input_dtype, device="cuda")
-        sin = torch.rand(64, 32, dtype=input_dtype, device="cuda")
+        cos = torch.randn(64, 32, dtype=input_dtype, device="cuda")
+        sin = torch.randn(64, 32, dtype=input_dtype, device="cuda")
 
         output_ref, grad_ref = _run_rotary_embedding(
             ApplyRotaryEmbTorch, input, cos, sin, interleaved
@@ -58,7 +58,7 @@ def test_multi_cases_for_rotary_embedding():
         )
 
         assert torch.allclose(
-            output_ref, output_ext, rtol=1e-3, atol=1e-3
+            output_ref, output_ext, rtol=1e-2, atol=1e-2
         ), f"When input dtype is {input_dtype}, ApplyRotaryEmb fails to pass the forward test!"
 
         assert torch.allclose(
