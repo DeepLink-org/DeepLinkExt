@@ -25,7 +25,7 @@ def test_multi_cases_for_mixed_rms_norm():
     input_dtype_list = [torch.float16, torch.bfloat16, torch.float32, torch.float32]
     weight_dtype_list = [torch.float16, torch.bfloat16, torch.float16, torch.bfloat16]
     for input_dtype, weight_dtype in zip(input_dtype_list, weight_dtype_list):
-        hidden_states = torch.rand(
+        hidden_states = torch.randn(
             1, 64, 32, 64, dtype=input_dtype, device="cuda", requires_grad=True
         )
         # Note: For ascend, only the normalized shape is currently supported as the last dimension size of the input.
