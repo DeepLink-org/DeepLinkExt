@@ -50,6 +50,3 @@ def test_multi_cases_for_mixed_rms_norm():
             grad_ref, grad_ext
         ), f"When input dtype is {input_dtype} and weight dtype is {weight_dtype}, MixedRMSNorm fails to pass the backward test!"
     print("Pass all forward and backward test cases of MixedRMSNorm successfully!")
-
-
-test_multi_cases_for_mixed_rms_norm()
