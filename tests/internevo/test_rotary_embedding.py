@@ -98,6 +98,7 @@ def _run_rotary_embedding_qkv_(
 
 
 def test_multi_cases_for_rotary_embedding_qkv_():
+    # Note: For ascend, when dtype of input is fp32, the difference in calculation results is significant.
     input_dtype_list = [torch.float16, torch.bfloat16]
     interleaved = False
     for input_dtype in input_dtype_list:
@@ -123,6 +124,3 @@ def test_multi_cases_for_rotary_embedding_qkv_():
             grad_ref, grad_ext
         ), f"When input dtype is {input_dtype}, ApplyRotaryEmb fails to pass the backward test!"
     print("Pass all forward and backward test cases of ApplyRotaryEmb successfully!")
-
-
-test_multi_cases_for_rotary_embedding_qkv_()
