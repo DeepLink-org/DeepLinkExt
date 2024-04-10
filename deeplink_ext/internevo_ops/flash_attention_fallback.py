@@ -28,7 +28,23 @@ class SelfAttention(nn.Module):
         self.softmax_scale = softmax_scale
         self.drop = nn.Dropout(attention_dropout)
 
-    def forward(self, qkv, causal=None, key_padding_mask=None):
+    def forward(
+        self,
+        qkv=None,
+        q=None,
+        k=None,
+        v=None,
+        kv=None,
+        causal=None,
+        cu_seqlens=None,
+        max_seqlen=None,
+        cu_seqlens_q=None,
+        cu_seqlens_k=None,
+        max_seqlen_q=None,
+        max_seqlen_k=None,
+        softmax_scale=None,
+        dropout_p=0.0,
+    ):
         """Only supports the padded mode"""
         """Implements the multihead softmax attention.
         Arguments
@@ -38,29 +54,48 @@ class SelfAttention(nn.Module):
             key_padding_mask: boolean mask to apply to the attention weights. True means to keep,
                 False means to mask out. (B, S)
         """
-        batch_size, seqlen = qkv.shape[0], qkv.shape[1]
+        if qkv is not None:
+            query, key, value = qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2]
+            device = query.device
+        elif kv is not None:
+            assert q is not None, "q should not be None, when kv is not None"
+            assert q.device == kv.device, "the devices of q and kv should be same"
+            query = q
+            key = kv[:, :, 0], kv[:, :, 1]
+            device = query.device
+        else:
+            assert (
+                q is not None and k is not None and q is not None
+            ), "q, k, v should not be None"
+            assert (
+                q.device == k.device and k.device == v.device
+            ), "the devices of q, k and v should be same"
+            query = q
+            key, value = k, v
+            device = query.device
+
+        batch_size, seqlen = query.shape[0], query.shape[1]
         causal = self.causal if causal is None else causal
-        q, k, v = qkv.unbind(dim=2)
         softmax_scale = self.softmax_scale or 1.0 / math.sqrt(q.shape[-1])
-        scores = torch.einsum("bthd,bshd->bhts", q, k * softmax_scale)
-        if key_padding_mask is not None:
-            padding_mask = torch.full(
-                (batch_size, seqlen), -10000.0, dtype=scores.dtype, device=scores.device
-            )
-            padding_mask.masked_fill_(key_padding_mask, 0.0)
-            # TD [2022-09-30]: Adding is faster than masked_fill_ (idk why, just better kernel I guess)
-            scores = scores + rearrange(padding_mask, "b s -> b 1 1 s")
+        scores = torch.einsum("bthd,bshd->bhts", query, key * softmax_scale)
+        # if key_padding_mask is not None:
+        #     padding_mask = torch.full(
+        #         (batch_size, seqlen), -10000.0, dtype=scores.dtype, device=scores.device
+        #     )
+        #     padding_mask.masked_fill_(key_padding_mask, 0.0)
+        #     # TD [2022-09-30]: Adding is faster than masked_fill_ (idk why, just better kernel I guess)
+        #     scores = scores + rearrange(padding_mask, "b s -> b 1 1 s")
         if causal:
             # "triu_tril_cuda_template" not implemented for 'BFloat16'
             # So we have to construct the mask in float
             causal_mask = torch.triu(
-                torch.full((seqlen, seqlen), -10000.0, device=scores.device), 1
+                torch.full((seqlen, seqlen), -10000.0, device=device), 1
             )
             # TD [2022-09-30]: Adding is faster than masked_fill_ (idk why, just better kernel I guess)
             scores = scores + causal_mask.to(dtype=scores.dtype)
         attention = torch.softmax(scores, dim=-1, dtype=v.dtype)
         attention_drop = self.drop(attention)
-        output = torch.einsum("bhts,bshd->bthd", attention_drop, v)
+        output = torch.einsum("bhts,bshd->bthd", attention_drop, value)
         return output
 
 
