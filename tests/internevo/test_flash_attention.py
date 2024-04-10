@@ -1,4 +1,5 @@
 import torch
+from tests.core import copy_to_cpu, allclose, call_module, call_func
 
 from deeplink_ext.internevo_ops.flash_attention import (
     FlashSelfAttention,
@@ -11,64 +12,59 @@ from deeplink_ext.internevo_ops.flash_attention_fallback import (
 
 
 def test_self_attention():
-    batch = 8
-    seqlen = 32
-    nheads = 16
-    headdim = 64
+    batch, seqlen, nheads, headdim = [8, 32, 16, 64]
 
-    q_ref = torch.rand([batch, seqlen, nheads, headdim], requires_grad=True)
-    k_ref = torch.rand([batch, seqlen, nheads, headdim], requires_grad=True)
-    v_ref = torch.rand([batch, seqlen, nheads, headdim], requires_grad=True)
-    qkv_ref = torch.stack([q_ref, k_ref, v_ref], 2)
-    q_ext = q_ref.clone().detach().to(torch.float16).cuda().requires_grad_()
-    k_ext = k_ref.clone().detach().to(torch.float16).cuda().requires_grad_()
-    v_ext = v_ref.clone().detach().to(torch.float16).cuda().requires_grad_()
+    q_gpu = torch.rand(
+        [batch, seqlen, nheads, headdim],
+        dtype=torch.float16,
+        requires_grad=True,
+        device="cuda",
+    )
+    k_gpu = torch.rand(
+        [batch, seqlen, nheads, headdim],
+        dtype=torch.float16,
+        requires_grad=True,
+        device="cuda",
+    )
+    v_gpu = torch.rand(
+        [batch, seqlen, nheads, headdim],
+        dtype=torch.float16,
+        requires_grad=True,
+        device="cuda",
+    )
 
-    model_ref = SelfAttention()
-    model_ext = FlashSelfAttention()
-    out_ref = model_ref(None, q_ref, k_ref, v_ref, None)
-    out_ext = model_ext(None, q_ext, k_ext, v_ext, None)
-    out_ref.backward(torch.ones_like(out_ref))
-    out_ext.backward(torch.ones_like(out_ext))
-
-    assert torch.allclose(
-        out_ext.cpu(), out_ref.to(torch.float16), rtol=1e-3, atol=1e-3
+    q_cpu, k_cpu, v_cpu = copy_to_cpu([q_gpu, k_gpu, v_gpu])
+    ouput_forward_cpu, grads_cpu = call_module(
+        SelfAttention(), None, q_cpu, k_cpu, v_cpu, None
     )
-    assert torch.allclose(
-        q_ext.grad.cpu(), q_ref.grad.to(torch.float16), rtol=1e-3, atol=1e-3
+    ouput_forward_gpu, grads_gpu = call_module(
+        FlashSelfAttention().cuda(), None, q_gpu, k_gpu, v_gpu, None
     )
-    assert torch.allclose(
-        k_ext.grad.cpu(), k_ref.grad.to(torch.float16), rtol=1e-3, atol=1e-3
-    )
-    assert torch.allclose(
-        v_ext.grad.cpu(), v_ref.grad.to(torch.float16), rtol=1e-3, atol=1e-3
-    )
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-3, atol=1e-3)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
 
 
 def test_cross_attention():
-    batch = 8
-    seqlen = 32
-    nheads = 16
-    headdim = 64
+    batch, seqlen, nheads, headdim = [8, 32, 16, 64]
 
-    q_ref = torch.rand([batch, seqlen, nheads, headdim], requires_grad=True)
-    kv_ref = torch.rand([batch, seqlen, 2, nheads, headdim], requires_grad=True)
-    q_ext = q_ref.clone().detach().to(torch.float16).cuda().requires_grad_()
-    kv_ext = kv_ref.clone().detach().to(torch.float16).cuda().requires_grad_()
+    q_gpu = torch.rand(
+        [batch, seqlen, nheads, headdim],
+        dtype=torch.float16,
+        requires_grad=True,
+        device="cuda",
+    )
+    kv_gpu = torch.rand(
+        [batch, seqlen, 2, nheads, headdim],
+        dtype=torch.float16,
+        requires_grad=True,
+        device="cuda",
+    )
 
-    model_ref = CrossAttention()
-    model_ext = FlashCrossAttention()
-    out_ref = model_ref(q_ref, kv_ref)
-    out_ext = model_ext(q_ext, kv_ext)
-    out_ref.backward(torch.ones_like(out_ref))
-    out_ext.backward(torch.ones_like(out_ext))
+    q_cpu, kv_cpu = copy_to_cpu([q_gpu, kv_gpu])
+    ouput_forward_cpu, grads_cpu = call_module(CrossAttention(), q_cpu, kv_cpu)
+    ouput_forward_gpu, grads_gpu = call_module(
+        FlashCrossAttention().cuda(), q_gpu, kv_gpu
+    )
 
-    assert torch.allclose(
-        out_ext.cpu(), out_ref.to(torch.float16), rtol=1e-3, atol=1e-3
-    )
-    assert torch.allclose(
-        q_ext.grad.cpu(), q_ref.grad.to(torch.float16), rtol=1e-3, atol=1e-3
-    )
-    assert torch.allclose(
-        kv_ext.grad.cpu(), kv_ref.grad.to(torch.float16), rtol=1e-3, atol=1e-3
-    )
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-3, atol=1e-3)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
