@@ -43,7 +43,7 @@ class SelfAttention(nn.Module):
         max_seqlen_q=None,
         max_seqlen_k=None,
         softmax_scale=None,
-        dropout_p=0.0
+        dropout_p=0.0,
     ):
         """Only supports the padded mode"""
         """Implements the multihead softmax attention.
@@ -73,7 +73,7 @@ class SelfAttention(nn.Module):
             query = q
             key, value = k, v
             device = query.device
-        
+
         batch_size, seqlen = query.shape[0], query.shape[1]
         causal = self.causal if causal is None else causal
         softmax_scale = self.softmax_scale or 1.0 / math.sqrt(q.shape[-1])

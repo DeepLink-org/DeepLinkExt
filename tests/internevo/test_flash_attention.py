@@ -31,7 +31,9 @@ def test_self_attention():
     out_ref.backward(torch.ones_like(out_ref))
     out_ext.backward(torch.ones_like(out_ext))
 
-    assert torch.allclose(out_ext.cpu(), out_ref.to(torch.float16), rtol=1e-3, atol=1e-3)
+    assert torch.allclose(
+        out_ext.cpu(), out_ref.to(torch.float16), rtol=1e-3, atol=1e-3
+    )
     assert torch.allclose(
         q_ext.grad.cpu(), q_ref.grad.to(torch.float16), rtol=1e-3, atol=1e-3
     )
@@ -61,7 +63,9 @@ def test_cross_attention():
     out_ref.backward(torch.ones_like(out_ref))
     out_ext.backward(torch.ones_like(out_ext))
 
-    assert torch.allclose(out_ext.cpu(), out_ref.to(torch.float16), rtol=1e-3, atol=1e-3)
+    assert torch.allclose(
+        out_ext.cpu(), out_ref.to(torch.float16), rtol=1e-3, atol=1e-3
+    )
     assert torch.allclose(
         q_ext.grad.cpu(), q_ref.grad.to(torch.float16), rtol=1e-3, atol=1e-3
     )
