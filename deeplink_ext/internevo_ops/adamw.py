@@ -48,7 +48,7 @@ def fused_adamw(
             grad = grads[i]
         exp_avg = exp_avgs[i]
         exp_avg_sq = exp_avg_sqs[i]
-        step = state_steps[i]
+        step = state_steps[0]
         if not max_exp_avg_sqs:
             max_exp_avg_sq = None
         else:

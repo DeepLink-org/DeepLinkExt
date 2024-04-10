@@ -49,13 +49,13 @@ def fused_adamw_fallback(
         param = params[i]
         exp_avg = exp_avgs[i]
         exp_avg_sq = exp_avg_sqs[i]
-        max_exp_avg_sq = max_exp_avg_sqs[i]
+        max_exp_avg_sq = None
 
         param -= lr_float * weight_decay * param
         exp_avg = beta1 * exp_avg + (1 - beta1) * grad
         exp_avg_sq = beta2 * exp_avg_sq + (1 - beta2) * grad * grad
-        exp_avg_bias_corrected = exp_avg / (1 - pow(beta1, state_steps[i] + 1))
-        exp_avg_sq_bias_corrected = exp_avg_sq / (1 - pow(beta2, state_steps[i] + 1))
+        exp_avg_bias_corrected = exp_avg / (1 - pow(beta1, state_steps[0] + 1))
+        exp_avg_sq_bias_corrected = exp_avg_sq / (1 - pow(beta2, state_steps[0] + 1))
 
         if amsgrad:
             max_exp_avg_sq = max(max_exp_avg_sq, exp_avg_sq_bias_corrected)
@@ -70,5 +70,4 @@ def fused_adamw_fallback(
         params[i] = param
         exp_avgs[i] = exp_avg
         exp_avg_sqs[i] = exp_avg_sq
-        max_exp_avg_sqs[i] = max_exp_avg_sq
     return params, exp_avgs, exp_avg_sqs

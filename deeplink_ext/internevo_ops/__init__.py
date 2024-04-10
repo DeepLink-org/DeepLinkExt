@@ -7,10 +7,7 @@ try:
     from .adamw import fused_adamw
 except Exception as e:
     print(_not_impl.format(op_name="adamw"))
-    # TODO: add the fallback implementation of fused adamw op
-    print(
-        "The fallback implementation of the fused_adamw op is currently not supported!"
-    )
+    from .adamw_fallback import fused_adamw_fallback as fused_adamw_fallback
 
 try:
     from .flash_attention import FlashSelfAttention, FlashCrossAttention
