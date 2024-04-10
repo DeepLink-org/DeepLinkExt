@@ -70,7 +70,7 @@ jobs:
       - name: build
         run: |
           set -euxo pipefail
-          srun --job-name=${GITHUB_JOB} bash -c "source ${ENV_SOURCE} && set -euxo pipefail && cd ${CODE_SOURCE} && pip install -e . -v -t install"
+          srun --job-name=${GITHUB_JOB} bash -c "source ${ENV_SOURCE} && set -euxo pipefail && cd ${CODE_SOURCE} && pip install -e . -v --no-build-isolation -t install"
       - name: clang-tidy
         run: |
           set -euxo pipefail

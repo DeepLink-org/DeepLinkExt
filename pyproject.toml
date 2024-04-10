@@ -1,2 +1,10 @@
+[project]
+name = "deeplink_ext-eggs"
+dynamic = ["version"]
+
+[build-system]
+requires = ["setuptools ~= 65.0"]
+build-backend = "setuptools.build_meta"
+
 [tool.black]
 line-length = 120
