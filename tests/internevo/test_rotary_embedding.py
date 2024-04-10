@@ -104,7 +104,7 @@ def test_multi_cases_for_rotary_embedding_qkv_():
         input_ref = torch.randn(
             1, 64, 3, 32, 64, dtype=input_dtype, device="cuda", requires_grad=True
         )
-        input_ext = input_ref.clone().detach().cuda().requires_grad_()
+        input_ext = input_ref.clone().detach().requires_grad_()
         cos = torch.randn(64, 32, dtype=input_dtype, device="cuda")
         sin = torch.randn(64, 32, dtype=input_dtype, device="cuda")
 
