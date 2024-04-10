@@ -5,7 +5,6 @@ __all__ = ["call_module", "call_func", "copy_to_cpu", "allclose"]
 
 
 def call_module(module: torch.nn.Module, *forward_args):
-    # import pdb;pdb.set_trace()
     output_forward = module(*forward_args)
     grads = []
     if torch.is_tensor(output_forward):
