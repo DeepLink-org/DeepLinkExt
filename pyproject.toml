@@ -3,7 +3,7 @@ name = "deeplink_ext-eggs"
 dynamic = ["version"]
 
 [build-system]
-requires = ["setuptools ~= 65.0"]
+requires = ["setuptools >= 60.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
