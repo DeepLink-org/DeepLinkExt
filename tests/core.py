@@ -13,9 +13,7 @@ def call_module(module: torch.nn.Module, *forward_args):
         assert torch.is_tensor(output_forward[0]), "output_forward[0] is not a tensor"
         output_forward[0].backward(torch.ones_like(output_forward[0]))
     else:
-        raise RuntimeError(
-            "the result of forward is not a tensor or list or tuple of tensor"
-        )
+        raise RuntimeError("the result of forward is not a tensor or list or tuple of tensor")
     for arg in forward_args:
         if torch.is_tensor(arg) and arg.requires_grad:
             grads.append(arg.grad)
@@ -29,10 +27,7 @@ def call_func(f: typing.Callable, args: list):
 def copy_to_cpu(tensors: list[torch.Tensor], dtype=None):
     if dtype is None:
         dtype = torch.float32
-    return [
-        tensor.detach().clone().to(dtype).cpu().requires_grad_(tensor.requires_grad)
-        for tensor in tensors
-    ]
+    return [tensor.detach().clone().to(dtype).cpu().requires_grad_(tensor.requires_grad) for tensor in tensors]
 
 
 def allclose(expected_vals: list, real_vals: list, rtol, atol):
@@ -57,12 +52,8 @@ def allclose(expected_vals: list, real_vals: list, rtol, atol):
         elif isinstance(expected_vals[i], dict):
             assert isinstance(real_vals[i], dict)
             for key, val in expected_vals[i].items():
-                assert key in real_vals.keys(), "key {k} not in real_val.keys()".format(
-                    k=key
-                )
+                assert key in real_vals.keys(), "key {k} not in real_val.keys()".format(k=key)
                 allclose(val, real_vals[key], rtol, atol)
         # Primitive type
         else:
-            return abs(real_vals[i] - expected_vals[i]) <= atol + rtol * abs(
-                expected_vals[i]
-            )
+            return abs(real_vals[i] - expected_vals[i]) <= atol + rtol * abs(expected_vals[i])

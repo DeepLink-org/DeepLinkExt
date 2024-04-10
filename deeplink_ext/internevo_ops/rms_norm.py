@@ -23,11 +23,7 @@ class _MixedFusedRMSNormFunction(torch.autograd.Function):
         input_dtype = hidden_states.dtype
         weight_dtype = weight.dtype
 
-        acc_dtype = (
-            torch.float32
-            if input_dtype in [torch.bfloat16, torch.float16]
-            else input_dtype
-        )
+        acc_dtype = torch.float32 if input_dtype in [torch.bfloat16, torch.float16] else input_dtype
         inv_rms = torch.empty(
             list(hidden_states.shape[:-1]) + [1],
             dtype=acc_dtype,
@@ -35,9 +31,7 @@ class _MixedFusedRMSNormFunction(torch.autograd.Function):
         )
 
         higher_precision = torch.promote_types(input_dtype, weight_dtype)
-        output_higher_precision = torch.empty_like(
-            hidden_states, dtype=higher_precision
-        )
+        output_higher_precision = torch.empty_like(hidden_states, dtype=higher_precision)
         hidden_states_higher_precision = hidden_states.to(dtype=higher_precision)
         weight_higher_precision = weight.to(dtype=higher_precision)
 
@@ -51,9 +45,7 @@ class _MixedFusedRMSNormFunction(torch.autograd.Function):
             eps,
         )
 
-        ctx.save_for_backward(
-            hidden_states_higher_precision, inv_rms, weight_higher_precision
-        )
+        ctx.save_for_backward(hidden_states_higher_precision, inv_rms, weight_higher_precision)
         ctx.eps = eps
         ctx.normalized_shape = normalized_shape
         ctx.input_dtype = input_dtype

@@ -8,18 +8,14 @@ try:
 except Exception as e:
     print(_not_impl.format(op_name="adamw"))
     # TODO: add the fallback implementation of fused adamw op
-    print(
-        "The fallback implementation of the fused_adamw op is currently not supported!"
-    )
+    print("The fallback implementation of the fused_adamw op is currently not supported!")
 
 try:
     from .flash_attention import FlashSelfAttention, FlashCrossAttention
 except Exception as e:
     print(_not_impl.format(op_name="flash attention"))
     # TODO: add the fallback implementation of varlen flash attention op
-    print(
-        "The fallback implementation of the flash attention op currently only supports the padded mode!"
-    )
+    print("The fallback implementation of the flash attention op currently only supports the padded mode!")
     from .flash_attention_fallback import SelfAttention as FlashSelfAttention
     from .flash_attention_fallback import CrossAttention as FlashCrossAttention
 

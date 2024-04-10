@@ -27,9 +27,7 @@ def _patch_lightllm():
     PATCH_LIST_ENV_NAME = "DEEPLINKEXT_LIGHTLLM_PATCH_LIST"
     patch_list_env = os.environ.get(PATCH_LIST_ENV_NAME)
     use_custom_patch_list = patch_list_env is not None
-    patch_list = (
-        patch_list_env.split(",") if use_custom_patch_list else DEFAULT_PATCH_LIST
-    )
+    patch_list = patch_list_env.split(",") if use_custom_patch_list else DEFAULT_PATCH_LIST
     if use_custom_patch_list:
         print(f"[deeplink_ext] use custom lightllm patch list: {patch_list}\n", end="")
 
@@ -41,25 +39,19 @@ def _patch_lightllm():
             apply_penalty_pack.apply_penalty = ext.apply_penalty
 
         def patch_context_attention_inference():
-            context_attention_pack.context_attention_fwd = (
-                ext.context_attention_inference
-            )
+            context_attention_pack.context_attention_fwd = ext.context_attention_inference
 
         def patch_token_attention_inference():
             token_attention_pack.token_att_fwd = ext.token_attention_inference
 
         def patch_token_softmax_reducev_inference():
-            token_attention_softmax_reducev_pack.token_softmax_reducev_fwd = (
-                ext.token_softmax_reducev_inference
-            )
+            token_attention_softmax_reducev_pack.token_softmax_reducev_fwd = ext.token_softmax_reducev_inference
 
         def patch_rms_norm_lightllm():
             def rms_norm(input, weight, eps):
                 output = torch.empty_like(input)
                 inv_rms_shape = list(input.shape[:-1]) + [1]
-                inv_rms = torch.empty(
-                    inv_rms_shape, dtype=torch.float32, device=input.device
-                )
+                inv_rms = torch.empty(inv_rms_shape, dtype=torch.float32, device=input.device)
                 ext.rms_norm(output, inv_rms, input, None, weight, None, eps)
 
                 return output

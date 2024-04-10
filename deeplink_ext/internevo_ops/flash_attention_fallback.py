@@ -64,12 +64,8 @@ class SelfAttention(nn.Module):
             key = kv[:, :, 0], kv[:, :, 1]
             device = query.device
         else:
-            assert (
-                q is not None and k is not None and q is not None
-            ), "q, k, v should not be None"
-            assert (
-                q.device == k.device and k.device == v.device
-            ), "the devices of q, k and v should be same"
+            assert q is not None and k is not None and q is not None, "q, k, v should not be None"
+            assert q.device == k.device and k.device == v.device, "the devices of q, k and v should be same"
             query = q
             key, value = k, v
             device = query.device
@@ -88,9 +84,7 @@ class SelfAttention(nn.Module):
         if causal:
             # "triu_tril_cuda_template" not implemented for 'BFloat16'
             # So we have to construct the mask in float
-            causal_mask = torch.triu(
-                torch.full((seqlen, seqlen), -10000.0, device=device), 1
-            )
+            causal_mask = torch.triu(torch.full((seqlen, seqlen), -10000.0, device=device), 1)
             # TD [2022-09-30]: Adding is faster than masked_fill_ (idk why, just better kernel I guess)
             scores = scores + causal_mask.to(dtype=scores.dtype)
         attention = torch.softmax(scores, dim=-1, dtype=v.dtype)
@@ -148,15 +142,9 @@ class CrossAttention(nn.Module):
             scores = scores + rearrange(padding_mask, "b s -> b 1 1 s")
         if causal:
             # causal mask needs to take into account the difference between seqlen_q and seqlen_k
-            row_idx = rearrange(
-                torch.arange(seqlen_q, device=q.device, dtype=torch.long), "s -> s 1"
-            )
+            row_idx = rearrange(torch.arange(seqlen_q, device=q.device, dtype=torch.long), "s -> s 1")
             col_idx = torch.arange(seqlen_k, device=kv.device, dtype=torch.long)
-            sk = (
-                seqlen_k
-                if key_padding_mask is None
-                else rearrange(key_padding_mask.sum(-1), "b -> b 1 1 1")
-            )
+            sk = seqlen_k if key_padding_mask is None else rearrange(key_padding_mask.sum(-1), "b -> b 1 1 1")
             causal_mask = col_idx > row_idx + sk - seqlen_q
             scores = scores.masked_fill(causal_mask, -10000.0)
         attention = torch.softmax(scores, dim=-1, dtype=v.dtype)

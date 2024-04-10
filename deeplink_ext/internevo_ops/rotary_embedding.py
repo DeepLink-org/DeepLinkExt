@@ -98,25 +98,11 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
         assert rotary_dim <= headdim
         cos_k = cos if cos_k is None else cos_k
         sin_k = sin if sin_k is None else sin_k
-        assert (
-            sin.shape == cos_k.shape == sin_k.shape == (rotary_seqlen, rotary_dim // 2)
-        )
+        assert sin.shape == cos_k.shape == sin_k.shape == (rotary_seqlen, rotary_dim // 2)
 
-        q_ro = (
-            qkv[:, 0, :, :rotary_dim]
-            if len(qkv.shape) == 4
-            else qkv[:, :, 0, :, :rotary_dim]
-        )
-        re_cos = (
-            rearrange(cos, "s d -> s 1 d")
-            if len(qkv.shape) == 4
-            else rearrange(cos[:seqlen], "s d -> s 1 d")
-        )
-        re_sin = (
-            rearrange(sin, "s d -> s 1 d")
-            if len(qkv.shape) == 4
-            else rearrange(sin[:seqlen], "s d -> s 1 d")
-        )
+        q_ro = qkv[:, 0, :, :rotary_dim] if len(qkv.shape) == 4 else qkv[:, :, 0, :, :rotary_dim]
+        re_cos = rearrange(cos, "s d -> s 1 d") if len(qkv.shape) == 4 else rearrange(cos[:seqlen], "s d -> s 1 d")
+        re_sin = rearrange(sin, "s d -> s 1 d") if len(qkv.shape) == 4 else rearrange(sin[:seqlen], "s d -> s 1 d")
         ext.apply_rotary(
             q_ro,
             q_ro,
@@ -126,20 +112,12 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
             interleaved,
         )
 
-        k_ro = (
-            qkv[:, 1, :, :rotary_dim]
-            if len(qkv.shape) == 4
-            else qkv[:, :, 1, :, :rotary_dim]
-        )
+        k_ro = qkv[:, 1, :, :rotary_dim] if len(qkv.shape) == 4 else qkv[:, :, 1, :, :rotary_dim]
         re_cos_k = (
-            rearrange(cos_k, "s d -> s 1 d")
-            if len(qkv.shape) == 4
-            else rearrange(cos_k[:seqlen], "s d -> s 1 d")
+            rearrange(cos_k, "s d -> s 1 d") if len(qkv.shape) == 4 else rearrange(cos_k[:seqlen], "s d -> s 1 d")
         )
         re_sin_k = (
-            rearrange(sin_k, "s d -> s 1 d")
-            if len(qkv.shape) == 4
-            else rearrange(sin_k[:seqlen], "s d -> s 1 d")
+            rearrange(sin_k, "s d -> s 1 d") if len(qkv.shape) == 4 else rearrange(sin_k[:seqlen], "s d -> s 1 d")
         )
         ext.apply_rotary(
             k_ro,
@@ -160,11 +138,7 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
         rotary_dim = re_cos.shape[-1]
         rotary_dim *= 2
 
-        dq_ro = (
-            dqkv[:, 0, :, :rotary_dim]
-            if len(dqkv.shape) == 4
-            else dqkv[:, :, 0, :, :rotary_dim]
-        )
+        dq_ro = dqkv[:, 0, :, :rotary_dim] if len(dqkv.shape) == 4 else dqkv[:, :, 0, :, :rotary_dim]
         ext.apply_rotary(
             dq_ro,
             dq_ro,
@@ -174,11 +148,7 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
             ctx.interleaved,
         )
 
-        dk_ro = (
-            dqkv[:, 1, :, :rotary_dim]
-            if len(dqkv.shape) == 4
-            else dqkv[:, :, 1, :, :rotary_dim]
-        )
+        dk_ro = dqkv[:, 1, :, :rotary_dim] if len(dqkv.shape) == 4 else dqkv[:, :, 1, :, :rotary_dim]
         ext.apply_rotary(
             dk_ro,
             dk_ro,

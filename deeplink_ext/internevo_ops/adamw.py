@@ -31,13 +31,9 @@ def fused_adamw(
     if found_inf is not None:
         raise RuntimeError("Deeplink Adamw with fused=True does not support found_inf")
     if maximize is not None and maximize is True:
-        raise RuntimeError(
-            "Deeplink Adamw with fused=True does not support maximize=True"
-        )
+        raise RuntimeError("Deeplink Adamw with fused=True does not support maximize=True")
     if amsgrad is not None and amsgrad is True:
-        raise RuntimeError(
-            "Deeplink Adamw with fused=True does not support amsgrad=True"
-        )
+        raise RuntimeError("Deeplink Adamw with fused=True does not support amsgrad=True")
     lr_float = lr
     if isinstance(lr, torch.Tensor):
         lr_float = float(lr.item())

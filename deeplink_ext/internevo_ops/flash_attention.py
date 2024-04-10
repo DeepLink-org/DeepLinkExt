@@ -36,12 +36,8 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
             key, value = kv[:, :, 0], kv[:, :, 1]
             device = kv.device
         else:
-            assert (
-                q is not None and k is not None and q is not None
-            ), "q, k, v should not be None"
-            assert (
-                q.device == k.device and k.device == v.device
-            ), "the devices of q, k and v should be same"
+            assert q is not None and k is not None and q is not None, "q, k, v should not be None"
+            assert q.device == k.device and k.device == v.device, "the devices of q, k and v should be same"
             query = q
             key, value = k, v
             device = q.device
@@ -330,9 +326,7 @@ class FlashSelfAttention(nn.Module):
             )
         else:
             # unpadded
-            raise RuntimeError(
-                "DeepLinkSelfAttention does not support the unpadded mode now"
-            )
+            raise RuntimeError("DeepLinkSelfAttention does not support the unpadded mode now")
 
 
 class FlashCrossAttention(nn.Module):
@@ -363,6 +357,4 @@ class FlashCrossAttention(nn.Module):
             )
         else:
             # unpadded
-            raise RuntimeError(
-                "DeepLinkCrossAttention does not support the unpadded mode now"
-            )
+            raise RuntimeError("DeepLinkCrossAttention does not support the unpadded mode now")
