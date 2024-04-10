@@ -1,7 +1,6 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-from torch.optim import AdamW
 from typing import List, Optional, Union
 
 
@@ -39,26 +38,37 @@ def fused_adamw_fallback(
     lr_float = float(lr.item()) if isinstance(lr, torch.Tensor) else lr
 
     for i in range(len(params)):
-
         if grad_scale is not None:
             grad = grads[i].float() * grad_scale
         else:
             grad = grads[i]
-        grad = -grad if maximize else grad
+
+        if maximize:
+            grad = -grad
 
         param = params[i]
         exp_avg = exp_avgs[i]
         exp_avg_sq = exp_avg_sqs[i]
+        max_exp_avg_sq = max_exp_avg_sqs[i]
 
-        param = param - lr_float * weight_decay * param
+        param -= lr_float * weight_decay * param
         exp_avg = beta1 * exp_avg + (1 - beta1) * grad
         exp_avg_sq = beta2 * exp_avg_sq + (1 - beta2) * grad * grad
-        exp_avg = exp_avg / (1 - pow(beta1, state_steps[0]))
-        exp_avg_sq = exp_avg_sq / (1 - pow(beta1, state_steps[0]))
-        if amsgrad:
-            max_exp_avg_sq = max(max_exp_avg_sq, exp_avg_sq)
-            param = param - lr_float * exp_avg / (torch.sqrt(max_exp_avg_sq) + eps)
-        else:
-            param = param - lr_float * exp_avg / (torch.sqrt(exp_avg_sq) + eps)
+        exp_avg_bias_corrected = exp_avg / (1 - pow(beta1, state_steps[i] + 1))
+        exp_avg_sq_bias_corrected = exp_avg_sq / (1 - pow(beta2, state_steps[i] + 1))
 
+        if amsgrad:
+            max_exp_avg_sq = max(max_exp_avg_sq, exp_avg_sq_bias_corrected)
+            param = param - lr_float * exp_avg_bias_corrected / (
+                max_exp_avg_sq**0.5 + eps
+            )
+        else:
+            param = param - lr_float * exp_avg_bias_corrected / (
+                exp_avg_sq_bias_corrected**0.5 + eps
+            )
+
+        params[i] = param
+        exp_avgs[i] = exp_avg
+        exp_avg_sqs[i] = exp_avg_sq
+        max_exp_avg_sqs[i] = max_exp_avg_sq
     return params, exp_avgs, exp_avg_sqs
