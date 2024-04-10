@@ -26,12 +26,12 @@ def test_self_attention():
 
     model_ref = SelfAttention()
     model_ext = FlashSelfAttention()
-    out_ref = model_ref(qkv_ref)
-    out = model_ext(None, q_ext, k_ext, v_ext, None)
+    out_ref = model_ref(None, q_ref, k_ref, v_ref, None)
+    out_ext = model_ext(None, q_ext, k_ext, v_ext, None)
     out_ref.backward(torch.ones_like(out_ref))
-    out.backward(torch.ones_like(out))
+    out_ext.backward(torch.ones_like(out_ext))
 
-    assert torch.allclose(out.cpu(), out_ref.to(torch.float16), rtol=1e-3, atol=1e-3)
+    assert torch.allclose(out_ext.cpu(), out_ref.to(torch.float16), rtol=1e-3, atol=1e-3)
     assert torch.allclose(
         q_ext.grad.cpu(), q_ref.grad.to(torch.float16), rtol=1e-3, atol=1e-3
     )
@@ -57,11 +57,11 @@ def test_cross_attention():
     model_ref = CrossAttention()
     model_ext = FlashCrossAttention()
     out_ref = model_ref(q_ref, kv_ref)
-    out = model_ext(q_ext, kv_ext)
+    out_ext = model_ext(q_ext, kv_ext)
     out_ref.backward(torch.ones_like(out_ref))
-    out.backward(torch.ones_like(out))
+    out_ext.backward(torch.ones_like(out_ext))
 
-    assert torch.allclose(out.cpu(), out_ref.to(torch.float16), rtol=1e-3, atol=1e-3)
+    assert torch.allclose(out_ext.cpu(), out_ref.to(torch.float16), rtol=1e-3, atol=1e-3)
     assert torch.allclose(
         q_ext.grad.cpu(), q_ref.grad.to(torch.float16), rtol=1e-3, atol=1e-3
     )
