@@ -118,9 +118,11 @@ def test_multi_cases_for_rotary_embedding_qkv_():
 
         assert torch.allclose(
             output_ref, output_ext, rtol=1e-2, atol=1e-2
-        ), f"When input dtype is {input_dtype}, ApplyRotaryEmb fails to pass the forward test!"
+        ), f"When input dtype is {input_dtype}, ApplyRotaryEmbQKV_ fails to pass the forward test!"
 
         assert torch.allclose(
             grad_ref, grad_ext
-        ), f"When input dtype is {input_dtype}, ApplyRotaryEmb fails to pass the backward test!"
-    print("Pass all forward and backward test cases of ApplyRotaryEmb successfully!")
+        ), f"When input dtype is {input_dtype}, ApplyRotaryEmbQKV_ fails to pass the backward test!"
+    print(
+        "Pass all forward and backward test cases of ApplyRotaryEmbQKV_ successfully!"
+    )
