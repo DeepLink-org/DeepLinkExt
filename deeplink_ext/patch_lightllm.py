@@ -8,7 +8,7 @@ def _patch_lightllm():
     import os
     import deeplink_ext.cpp_extensions as ext
     import lightllm.common.basemodel.triton_kernel.destindex_copy_kv as destindex_copy_kv_pack  # type: ignore
-    import lightllm.common.basemodel.triton_kernel.apply_penalty as apply_penalty_pack  # type: ignore
+    # import lightllm.common.basemodel.triton_kernel.apply_penalty as apply_penalty_pack  # type: ignore
     import lightllm.models.llama.triton_kernel.context_flashattention_nopad as context_attention_pack  # type: ignore
     import lightllm.models.llama.triton_kernel.token_attention_nopad_att1 as token_attention_pack  # type: ignore
     import lightllm.models.llama.triton_kernel.token_attention_softmax_and_reducev as token_attention_softmax_reducev_pack  # type: ignore
@@ -18,13 +18,14 @@ def _patch_lightllm():
 
     DEFAULT_PATCH_LIST = [
         "dest_index_copy_kv",
-        "apply_penalty",
+        # "apply_penalty",
         "context_attention_inference",
         "token_attention_inference",
         "token_softmax_reducev_inference",
         "rms_norm_lightllm",
         "rotary_emb",
     ]
+    mask_cache = {}
     PATCH_LIST_ENV_NAME = "DEEPLINKEXT_LIGHTLLM_PATCH_LIST"
     patch_list_env = os.environ.get(PATCH_LIST_ENV_NAME)
     use_custom_patch_list = patch_list_env is not None
@@ -38,8 +39,8 @@ def _patch_lightllm():
         def patch_dest_index_copy_kv():
             destindex_copy_kv_pack.destindex_copy_kv = ext.dest_index_copy_kv
 
-        def patch_apply_penalty():
-            apply_penalty_pack.apply_penalty = ext.apply_penalty
+        # def patch_apply_penalty():
+        #     apply_penalty_pack.apply_penalty = ext.apply_penalty
 
         def patch_context_attention_inference():
             def flash_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len):
@@ -55,9 +56,13 @@ def _patch_lightllm():
                     single_v = v[start:end].view(1, single_seq_len, -1)
 
                     single_out = out[start:end, :].view(1, single_seq_len, -1)
-                    mask = torch.tril(torch.ones(single_seq_len, single_seq_len, dtype=torch.bool), diagonal=0).cuda()
-                    mask = mask.repeat(1, 1, 1)
-                    mask = torch.logical_not(mask)
+                    if single_seq_len not in mask_cache:
+                        mask = torch.tril(torch.ones(single_seq_len, single_seq_len, dtype=torch.bool), diagonal=0).cuda()
+                        mask = mask.repeat(1, 1, 1)
+                        mask = torch.logical_not(mask)
+                        mask_cache[single_seq_len] = mask
+                        print(f"cache mask in context attention, seqLen:{single_seq_len}")
+                    mask = mask_cache[single_seq_len]
                     ext.prompt_flash_attention(single_out, single_q, single_k, single_v, None, mask, [], head, scale, 2147473647, 0, "BSH", 0)
                 return out
 
@@ -68,7 +73,7 @@ def _patch_lightllm():
 
         def patch_token_attention_inference():
             token_attention_pack.token_att_fwd = ext.token_attention_inference
-            token_attention_pack.token_decode_attention_fwd = ext.token_decode_attention_inference
+            token_attention_pack.token_decode_attention_fwd = ext.token_decode_attention_inference_batch_one#ext.token_decode_attention_inference
 
         def patch_token_softmax_reducev_inference():
             token_attention_softmax_reducev_pack.token_softmax_reducev_fwd = (
