@@ -1,8 +1,9 @@
 # DeepLinkExt
-该仓库用提供了一套国产硬件进行大型模型训练、微调、推理的解决方案。对下调用[DIOPI](https://github.com/DeepLink-org/DIOPI)支持的大模型算子（如flash_attention和rms_norm），对上承接大模型训练、微调、推理框架；并对应提供了一套大模型算子的组合来实现。
+该仓库提供了一套在国产硬件上进行大模型训练、微调、推理的解决方案。对下调用[DIOPI](https://github.com/DeepLink-org/DIOPI)支持的大模型算子（如flash_attention和rms_norm），对上承接大模型训练、微调、推理框架；并对应提供了对应的大模型算子的torch组合实现。
 
-DIOPI的具体内容请参考[DIOPI INTRODUCTION](https://deeplink.readthedocs.io/zh-cn/latest/doc/DIOPI/Introduction.html)
-目前支持的框架以及对应的算子可以查看[框架算子](https://github.com/DeepLink-org/DeepLinkExt/tree/main/deeplink_ext).
+DIOPI的具体内容请参考[DIOPI INTRODUCTION](https://deeplink.readthedocs.io/zh-cn/latest/doc/DIOPI/Introduction.html).
+
+目前支持的框架以及对应的算子可以查看[框架与算子](https://github.com/DeepLink-org/DeepLinkExt/tree/main/deeplink_ext).
 
 ## Install
 DeepLinkExt依赖deeplink.framework/dipu，需要先完成dipu的编译安装，具体请参考[dipu quick_start](https://deeplink.readthedocs.io/zh-cn/latest/doc/DIPU/quick_start.html)
