@@ -27,6 +27,7 @@
 
 #include "diopi_helper.h"
 #include "pybind_type_cast.h"
+#include "torch/library.h"
 
 namespace dipu::dipu_ext {
 
@@ -360,6 +361,59 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiScaledMaskedSoftmaxBackward != nullptr) {
     m.def("scaled_masked_softmax_bwd", &extScaledMaskedSoftmaxBackward,
           "deeplink ext_scaled_masked_softmax_bwd");
+  }
+}
+
+at::Tensor& apply_penalty(at::Tensor& logits, const at::Tensor& presence_penalty,
+                     const at::Tensor& frequency_penalty,
+                     const at::Tensor& p_token_ids,
+                     const at::Tensor& p_token_counts,
+                     const at::Tensor& p_cumsum_seq_len,
+                     int64_t p_max_len_in_batch) {
+  callDiopi(diopiApplyPenalty, logits, presence_penalty, frequency_penalty,
+            p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
+  return logits;
+}
+
+at::Tensor& dest_index_copy_kv(const at::Tensor& k, const at::Tensor& dest_loc,
+                        at::Tensor& out) {
+  callDiopi(diopiDestIndexCopyKV, out, k, dest_loc);
+  return out;
+}
+
+TORCH_LIBRARY(ops, m) {
+  //m.def("adamw(Tensor(a!) input, Tensor(b!) grad, Tensor(c!) exp_avg, Tensor(d!) exp_avg_sq, Tensor(e!) max_exp_avg_sq, float lr, float beta1, float beta2, float eps, float weight_decay, int step, bool amsgrad)->(Tensor(a!), Tensor(b!), Tensor(c!), Tensor(d!))");
+  m.def("apply_penalty(Tensor(a!) logits, Tensor presence_penalty, Tensor frequency_penalty, Tensor p_token_ids, Tensor p_token_counts, Tensor p_cumsum_seq_len, int p_max_len_in_batch)->Tensor(a!)");
+  m.def("dest_index_copy_kv(Tensor(a!) out, Tensor k, Tensor dest_loc)->Tensor(a!)");
+}
+
+// impl for dipu
+TORCH_LIBRARY_IMPL(ops, XPU, m) {
+  if (reinterpret_cast<void*>(diopiApplyPenalty) != nullptr) {
+    m.impl("apply_penalty", apply_penalty);
+  }
+  if (reinterpret_cast<void*>(diopiDestIndexCopyKV) != nullptr) {
+    m.impl("dest_index_copy_kv", dest_index_copy_kv);
+  }
+}
+
+// impl for torch
+TORCH_LIBRARY_IMPL(ops, CUDA, m) {
+  if (reinterpret_cast<void*>(diopiApplyPenalty) != nullptr) {
+    m.impl("apply_penalty", apply_penalty);
+  }
+  if (reinterpret_cast<void*>(diopiDestIndexCopyKV) != nullptr) {
+    m.impl("dest_index_copy_kv", dest_index_copy_kv);
+  }
+}
+
+// impl for torch_npu
+TORCH_LIBRARY_IMPL(ops, PrivateUse1, m) {
+  if (reinterpret_cast<void*>(diopiApplyPenalty) != nullptr) {
+    m.impl("apply_penalty", apply_penalty);
+  }
+  if (reinterpret_cast<void*>(diopiDestIndexCopyKV) != nullptr) {
+    m.impl("dest_index_copy_kv", dest_index_copy_kv);
   }
 }
 
