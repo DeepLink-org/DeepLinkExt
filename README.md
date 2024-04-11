@@ -11,7 +11,8 @@ DeepLinkExt依赖deeplink.framework/dipu，需要先完成dipu的编译安装，
 export PYTHONPATH=$WORKDIR/deeplink.framework/dipu/:$PYTHONPATH
 export DIPU_ROOT=$WORKDIR/deeplink.framework/dipu/torch_dipu
 export DIOPI_PATH=$WORKDIR/deeplink.framework/dipu/third_party/DIOPI/proto
-export VENDOR_INCLUDE_DIRS=${PATH_TO_VENDOR_INCLUDE} # 底层软件栈的include路径，例如/usr/local/Ascend/ascend-toolkit/latest/include
+# 底层软件栈的include路径，例如/usr/local/Ascend/ascend-toolkit/latest/include
+export VENDOR_INCLUDE_DIRS=${PATH_TO_VENDOR_INCLUDE} 
 ```
 
 完成上述准备工作后，使用如下命令即可安装DeepLinkExt
@@ -21,9 +22,9 @@ pip install -e .
 ```
 
 ## Usage
-以InternEvo、LightLLM大模型训练框架为例，参考如下代码，即可实现在训练/推理时使用DeepLinkExt的扩展算子。
+以InternEvo、LightLLM大模型训练/推理框架为例，参考如下代码，即可实现在训练/推理时使用DeepLinkExt的扩展算子。
 ### InternEvo
-DeepLinkExt已完全接入InternEvo，在完成DeepLinkExt的编译安装后，将其添加到PYTHONPATH，使用InternEvo进行训练即可。
+InternEvo已接入DeepLink作为计算后端。在完成DeepLinkExt的编译安装后，将其添加到PYTHONPATH，使用InternEvo进行训练即可。
 ### LightLLM
 对于LightLLM，在启动推理的脚本中，需要添加如下代码，即可实现使用DeepLinkExt扩展算子。
 ```python
