@@ -34,7 +34,7 @@ def test_adamw():
             for i in range(param_num)
         ]
 
-        state_steps_cpu = [torch.tensor([step])]
+        state_steps_cpu = [torch.tensor([step])] * param_num
 
         # define device parameters
         params_cuda = [i.cuda() for i in params_cpu]
@@ -152,7 +152,7 @@ def test_adamw_bfloat16():
             for i in range(param_num)
         ]
 
-        state_steps = [torch.tensor([step]).cuda()]
+        state_steps = [torch.tensor([step]).cuda()] * param_num
 
         max_exp_avg_sqs = None
 

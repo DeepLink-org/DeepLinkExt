@@ -7,7 +7,7 @@ try:
     from .adamw import fused_adamw
 except Exception as e:
     print(_not_impl.format(op_name="adamw"))
-    from .adamw_fallback import fused_adamw_fallback as fused_adamw_fallback
+    from .adamw_fallback import fused_adamw_fallback as fused_adamw
 
 try:
     from .flash_attention import FlashSelfAttention, FlashCrossAttention
