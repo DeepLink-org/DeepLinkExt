@@ -15,7 +15,7 @@ export VENDOR_INCLUDE_DIRS=${PATH_TO_VENDOR_INCLUDE} # 底层软件栈的include
 
 ```
 
-完成上述准备工作后，使用如下命令即可安装DeepLinkExt
+完成上述准备工作后，使用如下命令即可安装DeepLinkExt。提供两种安装实例如下：
 
 ### 1. inplace安装
 
