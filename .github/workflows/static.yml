@@ -102,6 +102,5 @@ jobs:
           source scripts/ci/ascend/ci_ascend_env.sh
           bash scripts/ci/ascend/ci_ascend_script.sh build_dipu
           cd ${DEEPLINK_PATH}/${{ github.run_number }}/DeepLinkExt
-          python setup.py build
-          cp build/lib.linux-x86_64-cpython-39/deeplink_ext/cpp_extensions.cpython-39-x86_64-linux-gnu.so deeplink_ext/
-          find tests/ -type f -name "test_*.py" -print0 | xargs -0 -n1 python -m pytest
+          python setup.py build_ext --inplace
+          python -m pytest tests
