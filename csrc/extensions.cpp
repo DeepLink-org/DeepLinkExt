@@ -292,7 +292,7 @@ void extApplyPenalty(at::Tensor& logits, const at::Tensor& presence_penalty,
   callDiopi(diopiApplyPenalty, logits, presence_penalty, frequency_penalty,
             p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
 }
-
+#if 0
 // 判断是否有对应的 diopi 实现:
 //   如果有, 则直接 pybind 上去;
 //   否则不注册, 等到 python 层处理.
@@ -363,6 +363,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           "deeplink ext_scaled_masked_softmax_bwd");
   }
 }
+#endif
 
 at::Tensor& apply_penalty(at::Tensor& logits, const at::Tensor& presence_penalty,
                      const at::Tensor& frequency_penalty,
@@ -381,40 +382,27 @@ at::Tensor& dest_index_copy_kv(const at::Tensor& k, const at::Tensor& dest_loc,
   return out;
 }
 
-TORCH_LIBRARY(ops, m) {
-  //m.def("adamw(Tensor(a!) input, Tensor(b!) grad, Tensor(c!) exp_avg, Tensor(d!) exp_avg_sq, Tensor(e!) max_exp_avg_sq, float lr, float beta1, float beta2, float eps, float weight_decay, int step, bool amsgrad)->(Tensor(a!), Tensor(b!), Tensor(c!), Tensor(d!))");
+at::Tensor& example_for_all_backend(at::Tensor& inout) {
+  std::cout << __FUNCTION__ << ": "<< inout.options() << std::endl;
+  return inout;
+}
+
+at::Tensor& example_only_for_xpu(at::Tensor& inout) {
+  std::cout << __FUNCTION__ << ": " << inout.options() << std::endl;
+  return inout;
+}
+
+// By default, all backends (XPU, AutocastXPU, AutoGradXPU, CUDA, PrivateUse1, AutogradPrivateUse1 etc) are registered. If you need to register separately for a certain backend, separate registration for a certain backend is also supported.
+TORCH_LIBRARY(deeplink_ext_, m) {
+  m.def("adamw(Tensor(a!) input, Tensor(b!) grad, Tensor(c!) exp_avg, Tensor(d!) exp_avg_sq, Tensor(e!) max_exp_avg_sq, float lr, float beta1, float beta2, float eps, float weight_decay, int step, bool amsgrad)->(Tensor(a!), Tensor(b!), Tensor(c!), Tensor(d!))");
   m.def("apply_penalty(Tensor(a!) logits, Tensor presence_penalty, Tensor frequency_penalty, Tensor p_token_ids, Tensor p_token_counts, Tensor p_cumsum_seq_len, int p_max_len_in_batch)->Tensor(a!)");
   m.def("dest_index_copy_kv(Tensor(a!) out, Tensor k, Tensor dest_loc)->Tensor(a!)");
+  m.def("example(Tensor(a!) inout)->Tensor(a!)", example_for_all_backend);
 }
 
-// impl for dipu
-TORCH_LIBRARY_IMPL(ops, XPU, m) {
-  if (reinterpret_cast<void*>(diopiApplyPenalty) != nullptr) {
-    m.impl("apply_penalty", apply_penalty);
-  }
-  if (reinterpret_cast<void*>(diopiDestIndexCopyKV) != nullptr) {
-    m.impl("dest_index_copy_kv", dest_index_copy_kv);
-  }
-}
-
-// impl for torch
-TORCH_LIBRARY_IMPL(ops, CUDA, m) {
-  if (reinterpret_cast<void*>(diopiApplyPenalty) != nullptr) {
-    m.impl("apply_penalty", apply_penalty);
-  }
-  if (reinterpret_cast<void*>(diopiDestIndexCopyKV) != nullptr) {
-    m.impl("dest_index_copy_kv", dest_index_copy_kv);
-  }
-}
-
-// impl for torch_npu
-TORCH_LIBRARY_IMPL(ops, PrivateUse1, m) {
-  if (reinterpret_cast<void*>(diopiApplyPenalty) != nullptr) {
-    m.impl("apply_penalty", apply_penalty);
-  }
-  if (reinterpret_cast<void*>(diopiDestIndexCopyKV) != nullptr) {
-    m.impl("dest_index_copy_kv", dest_index_copy_kv);
-  }
+// only impl for dipu
+TORCH_LIBRARY_IMPL(deeplink_ext_, XPU, m) {
+  // m.impl("example", example_only_for_xpu);
 }
 
 }  // namespace dipu::dipu_ext
