@@ -292,7 +292,7 @@ void extApplyPenalty(at::Tensor& logits, const at::Tensor& presence_penalty,
   callDiopi(diopiApplyPenalty, logits, presence_penalty, frequency_penalty,
             p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
 }
-#if 0
+
 // 判断是否有对应的 diopi 实现:
 //   如果有, 则直接 pybind 上去;
 //   否则不注册, 等到 python 层处理.
@@ -363,7 +363,18 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           "deeplink ext_scaled_masked_softmax_bwd");
   }
 }
-#endif
+
+std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> adamw(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
+              const c10::optional<at::Tensor>& max_exp_avg_sq_opt, const at::Tensor& grad,
+              double lr, double beta1, double beta2, double epsilon,
+              double weight_decay, int64_t step, bool amsgrad) {
+  // the diopiAdamW func has no "maximize" param
+  at::Tensor& grad_ref = const_cast<at::Tensor&>(grad); // todo: grad is const value
+  at::Tensor max_exp_avg_sq_opt_value = max_exp_avg_sq_opt.value_or(at::Tensor());
+  callDiopi(diopiAdamW, param, grad_ref, exp_avg, exp_avg_sq, max_exp_avg_sq_opt_value,
+            lr, beta1, beta2, epsilon, weight_decay, step, amsgrad);
+  return std::tie(param, exp_avg, exp_avg_sq);
+}
 
 at::Tensor& apply_penalty(at::Tensor& logits, const at::Tensor& presence_penalty,
                      const at::Tensor& frequency_penalty,
@@ -394,9 +405,9 @@ at::Tensor& example_only_for_xpu(at::Tensor& inout) {
 
 // By default, all backends (XPU, AutocastXPU, AutoGradXPU, CUDA, PrivateUse1, AutogradPrivateUse1 etc) are registered. If you need to register separately for a certain backend, separate registration for a certain backend is also supported.
 TORCH_LIBRARY(deeplink_ext_, m) {
-  m.def("adamw(Tensor(a!) input, Tensor(b!) grad, Tensor(c!) exp_avg, Tensor(d!) exp_avg_sq, Tensor(e!) max_exp_avg_sq, float lr, float beta1, float beta2, float eps, float weight_decay, int step, bool amsgrad)->(Tensor(a!), Tensor(b!), Tensor(c!), Tensor(d!))");
-  m.def("apply_penalty(Tensor(a!) logits, Tensor presence_penalty, Tensor frequency_penalty, Tensor p_token_ids, Tensor p_token_counts, Tensor p_cumsum_seq_len, int p_max_len_in_batch)->Tensor(a!)");
-  m.def("dest_index_copy_kv(Tensor(a!) out, Tensor k, Tensor dest_loc)->Tensor(a!)");
+  m.def("adamw(Tensor(a!) param, Tensor(b!) exp_avg, Tensor(c!) exp_avg_sq, Tensor? max_exp_avg_sq_opt, Tensor grad, float lr, float beta1, float beta2, float epsilon, float weight_decay, int step, bool amsgrad)->(Tensor(a!), Tensor(b!), Tensor(c!))", adamw);
+  m.def("apply_penalty(Tensor(a!) logits, Tensor presence_penalty, Tensor frequency_penalty, Tensor p_token_ids, Tensor p_token_counts, Tensor p_cumsum_seq_len, int p_max_len_in_batch)->Tensor(a!)", apply_penalty);
+  m.def("dest_index_copy_kv(Tensor(a!) out, Tensor k, Tensor dest_loc)->Tensor(a!)", dest_index_copy_kv);
   m.def("example(Tensor(a!) inout)->Tensor(a!)", example_for_all_backend);
 }
 
