@@ -135,14 +135,12 @@ class CrossAttention(nn.Module):
             softmax_scale = self.softmax_scale or 1.0 / math.sqrt(q.shape[-1])
             scores = torch.einsum("bthd,bshd->bhts", q, k * softmax_scale)
             if causal:
-                # causal mask needs to take into account the difference between seqlen_q and seqlen_k
                 row_idx = rearrange(
                     torch.arange(seqlen_q, device=q.device, dtype=torch.long),
                     "s -> s 1",
                 )
                 col_idx = torch.arange(seqlen_k, device=kv.device, dtype=torch.long)
-                sk = seqlen_k
-                causal_mask = col_idx > row_idx + sk - seqlen_q
+                causal_mask = col_idx > row_idx
                 scores = scores.masked_fill(causal_mask, -10000.0)
             attention = torch.softmax(scores, dim=-1, dtype=v.dtype)
             attention_drop = self.drop(attention)
