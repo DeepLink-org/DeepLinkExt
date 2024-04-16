@@ -408,6 +408,25 @@ std::tuple<at::Tensor&, at::Tensor&> rms_norm(
   return std::tie(output, inv_rms);
 }
 
+std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> rms_norm_backward(
+    at::Tensor& grad_input, at::Tensor& grad_weight, at::Tensor& grad_bias_opt,
+    const at::Tensor& grad_output, const at::Tensor& input,
+    const at::Tensor& weight, const c10::optional<at::Tensor>& bias_opt,
+    const at::Tensor& inv_rms, const OptionalIntArray& normalized_shape,
+    double eps) {
+  callDiopi(diopiRMSNormBackward, grad_input, grad_weight, grad_bias_opt,
+            grad_output, input, weight, bias_opt, inv_rms, normalized_shape,
+            eps);
+  return std::tie(grad_input, grad_weight, grad_bias_opt);
+}
+
+at::Tensor& apply_rotary(at::Tensor& output, const at::Tensor& input,
+                         const at::Tensor& cos, const at::Tensor& sin,
+                         const bool conj, const bool interleaved) {
+  callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj, interleaved);
+  return output;
+}
+
 at::Tensor& example_for_all_backend(at::Tensor& inout) {
   std::cout << __FUNCTION__ << ": " << inout.options() << "\n";
   return inout;
@@ -443,6 +462,18 @@ TORCH_LIBRARY(deeplink_ext_, m) {
       "normalized_shape, Tensor weight, Tensor? bias_opt, float eps) -> "
       "(Tensor(a!), Tensor(b!))",
       rms_norm);
+
+  m.def(
+      "rms_norm_backward(Tensor(a!) grad_input, Tensor(b!) grad_weight, "
+      "Tensor(c!) grad_bias_opt, Tensor grad_output, Tensor input, Tensor "
+      "weight, Tensor? bias_opt, Tensor inv_rms, int[]? normalized_shape, "
+      "float eps) -> (Tensor(a!), Tensor(b!), Tensor(c!))",
+      rms_norm_backward);
+
+  m.def(
+      "apply_rotary(Tensor(a!) output, Tensor input, Tensor cos, Tensor sin, "
+      "bool conj, bool interleaved) -> Tensor(a!)",
+      apply_rotary);
 
   m.def("example(Tensor(a!) inout)->Tensor(a!)", example_for_all_backend);
 }
