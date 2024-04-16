@@ -442,38 +442,49 @@ at::Tensor& example_only_for_xpu(at::Tensor& inout) {
 // for a certain backend, separate registration for a certain backend is also
 // supported.
 TORCH_LIBRARY(deeplink_ext_, m) {
-  m.def(
-      "adamw(Tensor(a!) param, Tensor(b!) exp_avg, Tensor(c!) exp_avg_sq, "
-      "Tensor? max_exp_avg_sq_opt, Tensor grad, float lr, float beta1, float "
-      "beta2, float epsilon, float weight_decay, int step, bool "
-      "amsgrad)->(Tensor(a!), Tensor(b!), Tensor(c!))",
-      adamw);
-  m.def(
-      "apply_penalty(Tensor(a!) logits, Tensor presence_penalty, Tensor "
-      "frequency_penalty, Tensor p_token_ids, Tensor p_token_counts, Tensor "
-      "p_cumsum_seq_len, int p_max_len_in_batch)->Tensor(a!)",
-      apply_penalty);
-  m.def(
-      "dest_index_copy_kv(Tensor(a!) out, Tensor k, Tensor "
-      "dest_loc)->Tensor(a!)",
-      dest_index_copy_kv);
-  m.def(
-      "rms_norm(Tensor(a!) output, Tensor(b!) inv_rms, Tensor input, int[]? "
-      "normalized_shape, Tensor weight, Tensor? bias_opt, float eps) -> "
-      "(Tensor(a!), Tensor(b!))",
-      rms_norm);
+  if (&diopiAdamW != nullptr) {
+    m.def(
+        "adamw(Tensor(a!) param, Tensor(b!) exp_avg, Tensor(c!) exp_avg_sq, "
+        "Tensor? max_exp_avg_sq_opt, Tensor grad, float lr, float beta1, float "
+        "beta2, float epsilon, float weight_decay, int step, bool "
+        "amsgrad)->(Tensor(a!), Tensor(b!), Tensor(c!))",
+        adamw);
+  }
+  if (&diopiApplyPenalty != nullptr) {
+    m.def(
+        "apply_penalty(Tensor(a!) logits, Tensor presence_penalty, Tensor "
+        "frequency_penalty, Tensor p_token_ids, Tensor p_token_counts, Tensor "
+        "p_cumsum_seq_len, int p_max_len_in_batch)->Tensor(a!)",
+        apply_penalty);
+  }
+  if (&diopiDestIndexCopyKV != nullptr) {
+    m.def(
+        "dest_index_copy_kv(Tensor(a!) out, Tensor k, Tensor "
+        "dest_loc)->Tensor(a!)",
+        dest_index_copy_kv);
+  }
+  if (&diopiDestIndexCopyKV != nullptr) {
+    m.def(
+        "rms_norm(Tensor(a!) output, Tensor(b!) inv_rms, Tensor input, int[]? "
+        "normalized_shape, Tensor weight, Tensor? bias_opt, float eps) -> "
+        "(Tensor(a!), Tensor(b!))",
+        rms_norm);
+  }
 
-  m.def(
-      "rms_norm_backward(Tensor(a!) grad_input, Tensor(b!) grad_weight, "
-      "Tensor(c!) grad_bias_opt, Tensor grad_output, Tensor input, Tensor "
-      "weight, Tensor? bias_opt, Tensor inv_rms, int[]? normalized_shape, "
-      "float eps) -> (Tensor(a!), Tensor(b!), Tensor(c!))",
-      rms_norm_backward);
-
-  m.def(
-      "apply_rotary(Tensor(a!) output, Tensor input, Tensor cos, Tensor sin, "
-      "bool conj, bool interleaved) -> Tensor(a!)",
-      apply_rotary);
+  if (&diopiRMSNormBackward != nullptr) {
+    m.def(
+        "rms_norm_backward(Tensor(a!) grad_input, Tensor(b!) grad_weight, "
+        "Tensor(c!) grad_bias_opt, Tensor grad_output, Tensor input, Tensor "
+        "weight, Tensor? bias_opt, Tensor inv_rms, int[]? normalized_shape, "
+        "float eps) -> (Tensor(a!), Tensor(b!), Tensor(c!))",
+        rms_norm_backward);
+  }
+  if (&diopiRotaryEmbedding != nullptr) {
+    m.def(
+        "apply_rotary(Tensor(a!) output, Tensor input, Tensor cos, Tensor sin, "
+        "bool conj, bool interleaved) -> Tensor(a!)",
+        apply_rotary);
+  }
 
   m.def("example(Tensor(a!) inout)->Tensor(a!)", example_for_all_backend);
 }
@@ -482,5 +493,10 @@ TORCH_LIBRARY(deeplink_ext_, m) {
 TORCH_LIBRARY_IMPL(deeplink_ext_, XPU, m) {
   // m.impl("example", example_only_for_xpu);
 }
+
+int n = [](){
+  std::cout << "deeplink_ext_ loaded" << std::endl;
+  return 0;
+}();
 
 }  // namespace dipu::dipu_ext

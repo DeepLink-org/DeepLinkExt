@@ -1,7 +1,9 @@
 import torch
 import torch_dipu
 import deeplink_ext
-torch.ops.load_library(deeplink_ext.__path__[0] + "/cpp_extensions.cpython-39-x86_64-linux-gnu.so")
+
+so_path = deeplink_ext.__path__[0] + "/cpp_extensions.cpython-39-x86_64-linux-gnu.so"
+torch.ops.load_library(so_path)
 print(f"torch.ops.loaded_libraries:{torch.ops.loaded_libraries}")
 
 #print(torch.ops.deeplink_ext_.dest_index_copy_kv)
