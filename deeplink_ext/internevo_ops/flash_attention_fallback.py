@@ -72,8 +72,12 @@ class SelfAttention(nn.Module):
             elif kv is not None:
                 assert q is not None, "q should not be None, when kv is not None"
                 assert q.device == kv.device, "the devices of q and kv should be same"
-                query = q
-                key, value = kv[:, :, 0], kv[:, :, 1]
+                # adapt to GQA
+                if kv.shape[3] != q.shape[2]:  # MQA/GQA
+                    kv = repeat(
+                        kv, "... hkv d -> ... (hkv g) d", g=q.shape[2] // kv.shape[3]
+                    )
+                key, value = kv.unbind(dim=2)
                 device = query.device
             else:
                 assert (
@@ -82,6 +86,14 @@ class SelfAttention(nn.Module):
                 assert (
                     q.device == k.device and k.device == v.device
                 ), "the devices of q, k and v should be same"
+                # adapt to GQA
+                if k.shape[2] != q.shape[2] and v.shape[2] != q.shape[2]:  # MQA/GQA
+                    k = repeat(
+                        k, ".. hkv d -> .. (hkv g) d", g=q.shape[2] // k.shape[2]
+                    )
+                    v = repeat(
+                        v, ".. hkv d -> .. (hkv g) d", g=q.shape[2] // v.shape[2]
+                    )
                 query = q
                 key, value = k, v
                 device = query.device
