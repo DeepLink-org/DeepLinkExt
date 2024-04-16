@@ -1,11 +1,12 @@
 // Copyright (c) 2023, DeepLink.
 
 #include <cstdint>
-#include <string>
 #include <iostream>
+#include <string>
 #include <tuple>
 #include <utility>
 
+#include "torch/library.h"
 #include <ATen/core/ATen_fwd.h>
 #include <ATen/core/Generator.h>
 #include <ATen/core/TensorBody.h>
@@ -28,7 +29,6 @@
 
 #include "diopi_helper.h"
 #include "pybind_type_cast.h"
-#include "torch/library.h"
 
 namespace dipu::dipu_ext {
 
@@ -365,47 +365,51 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
 }
 
-std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> adamw(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
-              const c10::optional<at::Tensor>& max_exp_avg_sq_opt, const at::Tensor& grad,
-              double lr, double beta1, double beta2, double epsilon,
-              double weight_decay, int64_t step, bool amsgrad) {
+std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> adamw(
+    at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
+    const c10::optional<at::Tensor>& max_exp_avg_sq_opt, const at::Tensor& grad,
+    double lr, double beta1, double beta2, double epsilon, double weight_decay,
+    int64_t step, bool amsgrad) {
   // the diopiAdamW func has no "maximize" param
-  at::Tensor& grad_ref = const_cast<at::Tensor&>(grad); // todo: grad is const value
-  at::Tensor max_exp_avg_sq_opt_value = max_exp_avg_sq_opt.value_or(at::Tensor());
-  callDiopi(diopiAdamW, param, grad_ref, exp_avg, exp_avg_sq, max_exp_avg_sq_opt_value,
-            lr, beta1, beta2, epsilon, weight_decay, step, amsgrad);
+  at::Tensor& grad_ref =
+      const_cast<at::Tensor&>(grad);  // todo: grad is const value
+  at::Tensor max_exp_avg_sq_opt_value =
+      max_exp_avg_sq_opt.value_or(at::Tensor());
+  callDiopi(diopiAdamW, param, grad_ref, exp_avg, exp_avg_sq,
+            max_exp_avg_sq_opt_value, lr, beta1, beta2, epsilon, weight_decay,
+            step, amsgrad);
   return std::tie(param, exp_avg, exp_avg_sq);
 }
 
-at::Tensor& apply_penalty(at::Tensor& logits, const at::Tensor& presence_penalty,
-                     const at::Tensor& frequency_penalty,
-                     const at::Tensor& p_token_ids,
-                     const at::Tensor& p_token_counts,
-                     const at::Tensor& p_cumsum_seq_len,
-                     int64_t p_max_len_in_batch) {
+at::Tensor& apply_penalty(at::Tensor& logits,
+                          const at::Tensor& presence_penalty,
+                          const at::Tensor& frequency_penalty,
+                          const at::Tensor& p_token_ids,
+                          const at::Tensor& p_token_counts,
+                          const at::Tensor& p_cumsum_seq_len,
+                          int64_t p_max_len_in_batch) {
   callDiopi(diopiApplyPenalty, logits, presence_penalty, frequency_penalty,
             p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
   return logits;
 }
 
 at::Tensor& dest_index_copy_kv(const at::Tensor& k, const at::Tensor& dest_loc,
-                        at::Tensor& out) {
+                               at::Tensor& out) {
   callDiopi(diopiDestIndexCopyKV, out, k, dest_loc);
   return out;
 }
 
-std::tuple<at::Tensor&, at::Tensor&> rms_norm(at::Tensor& output, at::Tensor& inv_rms,
-                const at::Tensor& input,
-                const OptionalIntArray& normalized_shape,
-                const at::Tensor& weight,
-                const c10::optional<at::Tensor>& bias_opt, double eps) {
+std::tuple<at::Tensor&, at::Tensor&> rms_norm(
+    at::Tensor& output, at::Tensor& inv_rms, const at::Tensor& input,
+    const OptionalIntArray& normalized_shape, const at::Tensor& weight,
+    const c10::optional<at::Tensor>& bias_opt, double eps) {
   callDiopi(diopiRMSNorm, output, inv_rms, input, normalized_shape, weight,
-         bias_opt, eps);
+            bias_opt, eps);
   return std::tie(output, inv_rms);
 }
 
 at::Tensor& example_for_all_backend(at::Tensor& inout) {
-  std::cout << __FUNCTION__ << ": "<< inout.options() << "\n";
+  std::cout << __FUNCTION__ << ": " << inout.options() << "\n";
   return inout;
 }
 
@@ -414,12 +418,31 @@ at::Tensor& example_only_for_xpu(at::Tensor& inout) {
   return inout;
 }
 
-// By default, all backends (XPU, AutocastXPU, AutoGradXPU, CUDA, PrivateUse1, AutogradPrivateUse1 etc) are registered. If you need to register separately for a certain backend, separate registration for a certain backend is also supported.
+// By default, all backends (XPU, AutocastXPU, AutoGradXPU, CUDA, PrivateUse1,
+// AutogradPrivateUse1 etc) are registered. If you need to register separately
+// for a certain backend, separate registration for a certain backend is also
+// supported.
 TORCH_LIBRARY(deeplink_ext_, m) {
-  m.def("adamw(Tensor(a!) param, Tensor(b!) exp_avg, Tensor(c!) exp_avg_sq, Tensor? max_exp_avg_sq_opt, Tensor grad, float lr, float beta1, float beta2, float epsilon, float weight_decay, int step, bool amsgrad)->(Tensor(a!), Tensor(b!), Tensor(c!))", adamw);
-  m.def("apply_penalty(Tensor(a!) logits, Tensor presence_penalty, Tensor frequency_penalty, Tensor p_token_ids, Tensor p_token_counts, Tensor p_cumsum_seq_len, int p_max_len_in_batch)->Tensor(a!)", apply_penalty);
-  m.def("dest_index_copy_kv(Tensor(a!) out, Tensor k, Tensor dest_loc)->Tensor(a!)", dest_index_copy_kv);
-  m.def("rms_norm(Tensor(a!) output, Tensor(b!) inv_rms, Tensor input, int[]? normalized_shape, Tensor weight, Tensor? bias_opt, float eps) -> (Tensor(a!), Tensor(b!))", rms_norm);
+  m.def(
+      "adamw(Tensor(a!) param, Tensor(b!) exp_avg, Tensor(c!) exp_avg_sq, "
+      "Tensor? max_exp_avg_sq_opt, Tensor grad, float lr, float beta1, float "
+      "beta2, float epsilon, float weight_decay, int step, bool "
+      "amsgrad)->(Tensor(a!), Tensor(b!), Tensor(c!))",
+      adamw);
+  m.def(
+      "apply_penalty(Tensor(a!) logits, Tensor presence_penalty, Tensor "
+      "frequency_penalty, Tensor p_token_ids, Tensor p_token_counts, Tensor "
+      "p_cumsum_seq_len, int p_max_len_in_batch)->Tensor(a!)",
+      apply_penalty);
+  m.def(
+      "dest_index_copy_kv(Tensor(a!) out, Tensor k, Tensor "
+      "dest_loc)->Tensor(a!)",
+      dest_index_copy_kv);
+  m.def(
+      "rms_norm(Tensor(a!) output, Tensor(b!) inv_rms, Tensor input, int[]? "
+      "normalized_shape, Tensor weight, Tensor? bias_opt, float eps) -> "
+      "(Tensor(a!), Tensor(b!))",
+      rms_norm);
 
   m.def("example(Tensor(a!) inout)->Tensor(a!)", example_for_all_backend);
 }
