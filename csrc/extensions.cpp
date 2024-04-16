@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <iostream>
 #include <tuple>
 #include <utility>
 
@@ -393,13 +394,23 @@ at::Tensor& dest_index_copy_kv(const at::Tensor& k, const at::Tensor& dest_loc,
   return out;
 }
 
+std::tuple<at::Tensor&, at::Tensor&> rms_norm(at::Tensor& output, at::Tensor& inv_rms,
+                const at::Tensor& input,
+                const OptionalIntArray& normalized_shape,
+                const at::Tensor& weight,
+                const c10::optional<at::Tensor>& bias_opt, double eps) {
+  callDiopi(diopiRMSNorm, output, inv_rms, input, normalized_shape, weight,
+         bias_opt, eps);
+  return std::tie(output, inv_rms);
+}
+
 at::Tensor& example_for_all_backend(at::Tensor& inout) {
-  std::cout << __FUNCTION__ << ": "<< inout.options() << std::endl;
+  std::cout << __FUNCTION__ << ": "<< inout.options() << "\n";
   return inout;
 }
 
 at::Tensor& example_only_for_xpu(at::Tensor& inout) {
-  std::cout << __FUNCTION__ << ": " << inout.options() << std::endl;
+  std::cout << __FUNCTION__ << ": " << inout.options() << "\n";
   return inout;
 }
 
@@ -408,6 +419,8 @@ TORCH_LIBRARY(deeplink_ext_, m) {
   m.def("adamw(Tensor(a!) param, Tensor(b!) exp_avg, Tensor(c!) exp_avg_sq, Tensor? max_exp_avg_sq_opt, Tensor grad, float lr, float beta1, float beta2, float epsilon, float weight_decay, int step, bool amsgrad)->(Tensor(a!), Tensor(b!), Tensor(c!))", adamw);
   m.def("apply_penalty(Tensor(a!) logits, Tensor presence_penalty, Tensor frequency_penalty, Tensor p_token_ids, Tensor p_token_counts, Tensor p_cumsum_seq_len, int p_max_len_in_batch)->Tensor(a!)", apply_penalty);
   m.def("dest_index_copy_kv(Tensor(a!) out, Tensor k, Tensor dest_loc)->Tensor(a!)", dest_index_copy_kv);
+  m.def("rms_norm(Tensor(a!) output, Tensor(b!) inv_rms, Tensor input, int[]? normalized_shape, Tensor weight, Tensor? bias_opt, float eps) -> (Tensor(a!), Tensor(b!))", rms_norm);
+
   m.def("example(Tensor(a!) inout)->Tensor(a!)", example_for_all_backend);
 }
 
