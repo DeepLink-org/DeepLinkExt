@@ -47,22 +47,23 @@ def test_self_attention_mha():
 
 
 def test_self_attention_gqa():
-    batch, seqlen, num_heads, headdim = [8, 32, 32, 64]
+    batch, seqlen, num_q_heads, headdim = [8, 32, 32, 64]
+    num_kv_heads = 8
 
     q_gpu = torch.rand(
-        [batch, seqlen, num_heads, headdim],
+        [batch, seqlen, num_q_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
     k_gpu = torch.rand(
-        [batch, seqlen, num_heads, headdim],
+        [batch, seqlen, num_kv_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
     v_gpu = torch.rand(
-        [batch, seqlen, num_heads, headdim],
+        [batch, seqlen, num_kv_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",

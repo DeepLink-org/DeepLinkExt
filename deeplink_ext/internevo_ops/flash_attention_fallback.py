@@ -89,10 +89,10 @@ class SelfAttention(nn.Module):
                 # adapt to GQA
                 if k.shape[2] != q.shape[2] and v.shape[2] != q.shape[2]:  # MQA/GQA
                     k = repeat(
-                        k, ".. hkv d -> .. (hkv g) d", g=q.shape[2] // k.shape[2]
+                        k, "... hkv d -> ... (hkv g) d", g=q.shape[2] // k.shape[2]
                     )
                     v = repeat(
-                        v, ".. hkv d -> .. (hkv g) d", g=q.shape[2] // v.shape[2]
+                        v, "... hkv d -> ... (hkv g) d", g=q.shape[2] // v.shape[2]
                     )
                 query = q
                 key, value = k, v
