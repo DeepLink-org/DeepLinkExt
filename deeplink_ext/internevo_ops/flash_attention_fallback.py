@@ -67,8 +67,7 @@ class SelfAttention(nn.Module):
         if cu_seqlens is None:
             # padded
             if qkv is not None:
-                query, key, value = qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2]
-                device = query.device
+                query, key, value = qkv.unbind(dim=2)
             elif kv is not None:
                 assert q is not None, "q should not be None, when kv is not None"
                 assert q.device == kv.device, "the devices of q and kv should be same"
@@ -77,8 +76,8 @@ class SelfAttention(nn.Module):
                     kv = repeat(
                         kv, "... hkv d -> ... (hkv g) d", g=q.shape[2] // kv.shape[3]
                     )
+                query = q
                 key, value = kv.unbind(dim=2)
-                device = query.device
             else:
                 assert (
                     q is not None and k is not None and q is not None
@@ -96,8 +95,7 @@ class SelfAttention(nn.Module):
                     )
                 query = q
                 key, value = k, v
-                device = query.device
-
+            device = query.device
             seqlen = query.shape[1]
             causal = self.causal if causal is None else causal
             softmax_scale = self.softmax_scale or 1.0 / math.sqrt(q.shape[-1])
@@ -107,7 +105,7 @@ class SelfAttention(nn.Module):
                     torch.full((seqlen, seqlen), -10000.0, device=device), 1
                 )
                 scores = scores + causal_mask.to(dtype=scores.dtype)
-            attention = torch.softmax(scores, dim=-1, dtype=v.dtype)
+            attention = torch.softmax(scores, dim=-1, dtype=value.dtype)
             attention_drop = self.drop(attention)
             output = torch.einsum("bhts,bshd->bthd", attention_drop, value)
             return output
