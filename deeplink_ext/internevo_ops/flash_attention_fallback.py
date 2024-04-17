@@ -102,9 +102,15 @@ class SelfAttention(nn.Module):
             scores = torch.einsum("bthd,bshd->bhts", query, key * softmax_scale)
             if causal:
                 causal_mask = torch.triu(
-                    torch.full((seqlen, seqlen), -10000.0, device=device), 1
+                    torch.full(
+                        (seqlen, seqlen),
+                        float("-inf"),
+                        device=device,
+                        dtype=scores.dtype,
+                    ),
+                    1,
                 )
-                scores = scores + causal_mask.to(dtype=scores.dtype)
+                scores.add_(causal_mask)
             attention = torch.softmax(scores, dim=-1, dtype=value.dtype)
             attention_drop = self.drop(attention)
             output = torch.einsum("bhts,bshd->bthd", attention_drop, value)
@@ -135,7 +141,6 @@ class CrossAttention(nn.Module):
             # padded
             batch_size, seqlen_q = q.shape[0], q.shape[1]
             causal = self.causal if causal is None else causal
-            seqlen_k = kv.shape[1]
             assert kv.shape[0] == batch_size and kv.shape[4] == q.shape[3]
             if kv.shape[3] != q.shape[2]:  # MQA/GQA
                 kv = repeat(
@@ -145,13 +150,16 @@ class CrossAttention(nn.Module):
             softmax_scale = self.softmax_scale or 1.0 / math.sqrt(q.shape[-1])
             scores = torch.einsum("bthd,bshd->bhts", q, k * softmax_scale)
             if causal:
-                row_idx = rearrange(
-                    torch.arange(seqlen_q, device=q.device, dtype=torch.long),
-                    "s -> s 1",
+                causal_mask = torch.triu(
+                    torch.full(
+                        (seqlen_q, seqlen_q),
+                        float("-inf"),
+                        device=q.device,
+                        dtype=scores.dtype,
+                    ),
+                    1,
                 )
-                col_idx = torch.arange(seqlen_k, device=kv.device, dtype=torch.long)
-                causal_mask = col_idx > row_idx
-                scores = scores.masked_fill(causal_mask, -10000.0)
+                scores.add_(causal_mask)
             attention = torch.softmax(scores, dim=-1, dtype=v.dtype)
             attention_drop = self.drop(attention)
             output = torch.einsum("bhts,bshd->bthd", attention_drop, v)
