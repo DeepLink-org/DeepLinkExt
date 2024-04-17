@@ -95,7 +95,7 @@ jobs:
           # ! unset user and token when respository opensource
           git clone https://github.com/DeepLink-org/DeepLinkExt.git && cd DeepLinkExt
           git checkout ${{ github.event.pull_request.head.sha }} && git merge --no-edit ${{ github.base_ref }}
-      - name: build dipu and deeplink_ext\
+      - name: build dipu and deeplink_ext
         run: |
           cd ${DEEPLINK_PATH}/${{ github.run_number }}/deeplink.framework/dipu
           source /home/autolink/dipu_env.sh
