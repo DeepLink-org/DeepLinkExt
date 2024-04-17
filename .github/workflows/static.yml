@@ -109,7 +109,7 @@ jobs:
     runs-on: tps-ascend-ci-910b
     needs: [build-on-ascend]
     steps:
-      - name: run unit tests on ascend\
+      - name: run unit tests on ascend
         run: |
           cd ${DEEPLINK_PATH}/${{ github.run_number }}/deeplink.framework/dipu
           source /home/autolink/dipu_env.sh
