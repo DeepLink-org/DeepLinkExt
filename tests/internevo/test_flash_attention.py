@@ -46,7 +46,7 @@ def test_self_attention_mha():
     assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
 
 
-def test_self_attention_gqa_1():
+def test_self_attention_q_k_v_gqa():
     batch, seqlen, num_q_heads, headdim = [8, 32, 32, 64]
     num_kv_heads = 8
 
@@ -80,7 +80,7 @@ def test_self_attention_gqa_1():
     assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
 
 
-def test_self_attention_gqa_2():
+def test_self_attention_q_kv_gqa():
     batch, seqlen, num_q_heads, headdim = [8, 32, 32, 64]
     num_kv_heads = 8
 
