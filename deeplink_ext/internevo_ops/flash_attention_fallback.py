@@ -98,7 +98,7 @@ class SelfAttention(nn.Module):
             device = query.device
             seqlen = query.shape[1]
             causal = self.causal if causal is None else causal
-            softmax_scale = self.softmax_scale or 1.0 / math.sqrt(q.shape[-1])
+            softmax_scale = self.softmax_scale or 1.0 / math.sqrt(query.shape[-1])
             scores = torch.einsum("bthd,bshd->bhts", query, key * softmax_scale)
             if causal:
                 causal_mask = torch.triu(
