@@ -23,8 +23,6 @@
 #include <csrc_dipu/runtime/core/DIPUStream.h>
 #include <csrc_dipu/runtime/device/basedef.h>
 
-#include "pybind_type_cast.h"
-
 namespace dipu::dipu_ext {
 
 namespace type_traits {
