@@ -81,21 +81,21 @@ jobs:
           set -euxo pipefail
           rm -rf ${CODE_SOURCE}/build/.cache
 
-  run-unittest-on-ascend:
-    name: run unittest on ascend
+  build-on-ascend:
+    name: build on ascend
     runs-on: tps-ascend-ci-910b
     steps:
       - name: prepare code
         run: |
           set -ex
           mkdir -p ${DEEPLINK_PATH}/${{ github.run_number }} && cd ${DEEPLINK_PATH}/${{ github.run_number }}
-          git clone https://github.com/DeepLink-org/deeplink.framework.git && cd deeplink.framework
+          rm -rf deeplink.framework && git clone https://github.com/DeepLink-org/deeplink.framework.git && cd deeplink.framework
           git submodule update --init --recursive
           cd dipu/third_party/DIOPI && git checkout main && cd ../../../..
           # ! unset user and token when respository opensource
           git clone https://github.com/DeepLink-org/DeepLinkExt.git && cd DeepLinkExt
           git checkout ${{ github.event.pull_request.head.sha }} && git merge --no-edit ${{ github.base_ref }}
-      - name: build dipu and deeplink_ext then run unittest with pytest\
+      - name: build dipu and deeplink_ext\
         run: |
           cd ${DEEPLINK_PATH}/${{ github.run_number }}/deeplink.framework/dipu
           source /home/autolink/dipu_env.sh
@@ -103,4 +103,16 @@ jobs:
           bash scripts/ci/ascend/ci_ascend_script.sh build_dipu
           cd ${DEEPLINK_PATH}/${{ github.run_number }}/DeepLinkExt
           python setup.py build_ext --inplace
+  
+  test-on-ascend:
+    name: test on ascend
+    runs-on: tps-ascend-ci-910b
+    needs: [build-on-ascend]
+    steps:
+      - name: run unit tests on ascend\
+        run: |
+          cd ${DEEPLINK_PATH}/${{ github.run_number }}/deeplink.framework/dipu
+          source /home/autolink/dipu_env.sh
+          source scripts/ci/ascend/ci_ascend_env.sh
+          cd ${DEEPLINK_PATH}/${{ github.run_number }}/DeepLinkExt
           python -m pytest tests
