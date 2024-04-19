@@ -5,8 +5,7 @@ import torch.nn as nn
 import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
-# assert hasattr(ext, "fa_fwd_v3") 
-# assert hasattr(ext, "fa_bwd_v3")
+assert hasattr(ext, "fa_fwd_v3") and hasattr(ext, "fa_bwd_v3")
 
 __all__ = ["FlashSelfAttention", "FlashCrossAttention"]
 
