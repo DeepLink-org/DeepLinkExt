@@ -24,8 +24,8 @@ def call_module(module: torch.nn.Module, *forward_args):
     return output_forward, grads
 
 
-def call_func(f: typing.Callable, args: list):
-    return f(args)
+def call_func(f: typing.Callable, *args: list):
+    return f(*args)
 
 
 def copy_to_cpu(tensors: list[torch.Tensor], dtype=None):
