@@ -219,7 +219,7 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
         q_seq_len = query.shape[1]
         head_num = query.shape[2]
         out = torch.empty_like(query)
-        softmax_lse = torch.empty([batch_size, head_num, q_seq_len], dtype=query.dtype, device=query.device)
+        softmax_lse = torch.empty([batch_size, head_num, q_seq_len], dtype=torch.float32, device=query.device)
 
         ext.fa_fwd_v3(
             out,
@@ -421,7 +421,7 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
         q_seq_len = q.shape[1]
         head_num = q.shape[2]
         out = torch.empty_like(q)
-        softmax_lse = torch.empty([batch_size, head_num, q_seq_len], dtype=q.dtype, device=q.device)
+        softmax_lse = torch.empty([batch_size, head_num, q_seq_len], dtype=torch.float32, device=q.device)
         ext.fa_fwd_v3(
             out,
             softmax_lse,
