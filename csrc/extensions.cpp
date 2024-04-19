@@ -41,7 +41,7 @@ void extAdamW(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
 
 void extRmsNorm(at::Tensor& output, at::Tensor& inv_rms,
                 const at::Tensor& input,
-                const OptionalIntArray& normalized_shape,
+                const at::IntArrayRef& normalized_shape,
                 const at::Tensor& weight,
                 const c10::optional<at::Tensor>& bias_opt, double eps) {
   callDiopi(diopiRMSNorm, output, inv_rms, input, normalized_shape, weight,
@@ -54,7 +54,7 @@ void extRmsNormBackward(at::Tensor& grad_input, at::Tensor& grad_weight,
                         const at::Tensor& weight,
                         const c10::optional<at::Tensor>& bias_opt,
                         const at::Tensor& inv_rms,
-                        const OptionalIntArray& normalized_shape, double eps) {
+                        const at::IntArrayRef& normalized_shape, double eps) {
   callDiopi(diopiRMSNormBackward, grad_input, grad_weight, grad_bias_opt,
             grad_output, input, weight, bias_opt, inv_rms, normalized_shape,
             eps);
