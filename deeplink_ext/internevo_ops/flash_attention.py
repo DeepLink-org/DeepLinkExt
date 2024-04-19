@@ -50,24 +50,45 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
 
         head_num = query.shape[2]
         out = torch.empty_like(query)
-        (
-            attention_mask,
-            dropout_mask,
-            softmax_max,
-            softmax_sum,
-            softmax_out,
-        ) = ext.fa_fwd(
-            out,
-            query,
-            key,
-            value,
-            gen,
-            dropout_p,
-            softmax_scale,
-            causal,
-            head_num,
-            input_layout,
-        )
+
+        if torch_dipu.dipu.vendor_type == 'MLU':
+            (
+                attention_mask,
+                dropout_mask,
+                softmax_max,
+                softmax_sum,
+                softmax_out,
+            ) = ext.fa_fwd_v3(
+                out,
+                query,
+                key,
+                value,
+                gen,
+                dropout_p,
+                softmax_scale,
+                causal,
+                head_num,
+                input_layout,
+            )
+        else:
+            (
+                attention_mask,
+                dropout_mask,
+                softmax_max,
+                softmax_sum,
+                softmax_out,
+            ) = ext.fa_fwd(
+                out,
+                query,
+                key,
+                value,
+                gen,
+                dropout_p,
+                softmax_scale,
+                causal,
+                head_num,
+                input_layout,
+            )
 
         ctx.save_for_backward(
             qkv,
@@ -106,72 +127,135 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
 
         if qkv is not None:
             dqkv = torch.empty_like(qkv)
-            ext.fa_bwd(
-                dqkv[:, :, 0],
-                dqkv[:, :, 1],
-                dqkv[:, :, 2],
-                dout,
-                qkv[:, :, 0],
-                qkv[:, :, 1],
-                qkv[:, :, 2],
-                out,
-                attention_mask,
-                dropout_mask,
-                softmax_max,
-                softmax_sum,
-                softmax_out,
-                ctx.dropout_p,
-                ctx.softmax_scale,
-                ctx.head_num,
-                ctx.input_layout,
-            )
+            if torch_dipu.dipu.vendor_type == 'MLU':
+                ext.fa_bwd_v3(
+                    dqkv[:, :, 0],
+                    dqkv[:, :, 1],
+                    dqkv[:, :, 2],
+                    dout,
+                    qkv[:, :, 0],
+                    qkv[:, :, 1],
+                    qkv[:, :, 2],
+                    out,
+                    attention_mask,
+                    dropout_mask,
+                    softmax_max,
+                    softmax_sum,
+                    softmax_out,
+                    ctx.dropout_p,
+                    ctx.softmax_scale,
+                    ctx.head_num,
+                    ctx.input_layout,
+                )
+            else:
+                ext.fa_bwd(
+                    dqkv[:, :, 0],
+                    dqkv[:, :, 1],
+                    dqkv[:, :, 2],
+                    dout,
+                    qkv[:, :, 0],
+                    qkv[:, :, 1],
+                    qkv[:, :, 2],
+                    out,
+                    attention_mask,
+                    dropout_mask,
+                    softmax_max,
+                    softmax_sum,
+                    softmax_out,
+                    ctx.dropout_p,
+                    ctx.softmax_scale,
+                    ctx.head_num,
+                    ctx.input_layout,
+                )
             return dqkv, None, None, None, None, None, None, None
         elif kv is not None:
             dq = torch.empty_like(q)
             dkv = torch.empty_like(kv)
-            ext.fa_bwd(
-                dq,
-                dkv[:, :, 0],
-                dkv[:, :, 1],
-                dout,
-                q,
-                kv[:, :, 0],
-                kv[:, :, 1],
-                out,
-                attention_mask,
-                dropout_mask,
-                softmax_max,
-                softmax_sum,
-                softmax_out,
-                ctx.dropout_p,
-                ctx.softmax_scale,
-                ctx.head_num,
-                ctx.input_layout,
-            )
+            if torch_dipu.dipu.vendor_type == 'MLU':
+                ext.fa_bwd_v3(
+                    dq,
+                    dkv[:, :, 0],
+                    dkv[:, :, 1],
+                    dout,
+                    q,
+                    kv[:, :, 0],
+                    kv[:, :, 1],
+                    out,
+                    attention_mask,
+                    dropout_mask,
+                    softmax_max,
+                    softmax_sum,
+                    softmax_out,
+                    ctx.dropout_p,
+                    ctx.softmax_scale,
+                    ctx.head_num,
+                    ctx.input_layout,
+                )
+            else:
+                ext.fa_bwd(
+                    dq,
+                    dkv[:, :, 0],
+                    dkv[:, :, 1],
+                    dout,
+                    q,
+                    kv[:, :, 0],
+                    kv[:, :, 1],
+                    out,
+                    attention_mask,
+                    dropout_mask,
+                    softmax_max,
+                    softmax_sum,
+                    softmax_out,
+                    ctx.dropout_p,
+                    ctx.softmax_scale,
+                    ctx.head_num,
+                    ctx.input_layout,
+                )
             return None, dq, None, None, dkv, None, None, None
         else:
             dq = torch.empty_like(q)
             dk = torch.empty_like(k)
             dv = torch.empty_like(v)
-            ext.fa_bwd(
-                dq,
-                dk,
-                dv,
-                dout,
-                q,
-                k,
-                v,
-                out,
-                attention_mask,
-                dropout_mask,
-                softmax_max,
-                softmax_sum,
-                softmax_out,
-                ctx.dropout_p,
-                ctx.softmax_scale,
-                ctx.head_num,
-                ctx.input_layout,
-            )
+            if torch_dipu.dipu.vendor_type == 'MLU':
+                ext.fa_bwd_v3(
+                    dq,
+                    dk,
+                    dv,
+                    dout,
+                    q,
+                    k,
+                    v,
+                    out,
+                    attention_mask,
+                    dropout_mask,
+                    softmax_max,
+                    softmax_sum,
+                    softmax_out,
+                    ctx.dropout_p,
+                    ctx.softmax_scale,
+                    ctx.head_num,
+                    ctx.input_layout,
+                )
+            else:
+                ext.fa_bwd(
+                    dq,
+                    dk,
+                    dv,
+                    dout,
+                    q,
+                    k,
+                    v,
+                    out,
+                    attention_mask,
+                    dropout_mask,
+                    softmax_max,
+                    softmax_sum,
+                    softmax_out,
+                    ctx.dropout_p,
+                    ctx.softmax_scale,
+                    ctx.head_num,
+                    ctx.input_layout,
+                )
             return None, dq, dk, dv, None, None, None, None
 
 
