@@ -26,17 +26,13 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
     ):
         # The current default input layout for flash attention is BSND
         input_layout = "BSND"
-        device = None
         if qkv is not None:
-            query = qkv[:, :, 0]
-            key, value = qkv[:, :, 1], qkv[:, :, 2]
-            device = qkv.device
+            query, key, value = qkv.unbind(dim=2)
         elif kv is not None:
             assert q is not None, "q should not be None, when kv is not None"
             assert q.device == kv.device, "the devices of q and kv should be same"
             query = q
-            key, value = kv[:, :, 0], kv[:, :, 1]
-            device = kv.device
+            key, value = kv.unbind(dim=2)
         else:
             assert (
                 q is not None and k is not None and q is not None
@@ -44,9 +40,9 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
             assert (
                 q.device == k.device and k.device == v.device
             ), "the devices of q, k and v should be same"
-            query = q
-            key, value = k, v
-            device = q.device
+            query, key, value = q, k, v
+
+        device = query.device
         gen = torch.Generator(device)
 
         if softmax_scale is None:
