@@ -405,7 +405,7 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
         dq = torch.empty_like(q)
         dkv = torch.empty_like(kv)
 
-        ext.fa_bwd_v3(
+        ext.fa_bwd(
             dq,
             dkv[:, :, 0],
             dkv[:, :, 1],
@@ -533,7 +533,7 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
                 ctx.input_layout,
             )
         else:
-            ext.fa_bwd(
+            ext.fa_bwd_v3(
                 dq,
                 dkv[:, :, 0],
                 dkv[:, :, 1],
@@ -611,7 +611,7 @@ class FlashSelfAttention(nn.Module):
         if cu_seqlens is None:
             # padded
             if torch_dipu.dipu.vendor_type == 'MLU':
-                return FlashAttentionQKVPackedFunc.apply(
+                return FlashAttentionQKVPackedFuncV3.apply(
                     qkv,
                     q,
                     k,
@@ -622,7 +622,7 @@ class FlashSelfAttention(nn.Module):
                     causal if causal is not None else self.causal,
                 )
             else:
-                return FlashAttentionQKVPackedFuncV3.apply(
+                return FlashAttentionQKVPackedFunc.apply(
                     qkv,
                     q,
                     k,
@@ -659,7 +659,7 @@ class FlashCrossAttention(nn.Module):
         if cu_seqlens is None:
             # padded
             if torch_dipu.dipu.vendor_type == 'MLU':
-                return FlashAttentionKVPackedFunc.apply(
+                return FlashAttentionKVPackedFuncV3.apply(
                     q,
                     kv,
                     self.dropout_p if self.training else 0.0,
@@ -667,7 +667,7 @@ class FlashCrossAttention(nn.Module):
                     causal if causal is not None else self.causal,
                 )
             else:
-                return FlashAttentionKVPackedFuncV3.apply(
+                return FlashAttentionKVPackedFunc.apply(
                     q,
                     kv,
                     self.dropout_p if self.training else 0.0,
