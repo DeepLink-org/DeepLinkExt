@@ -6,7 +6,7 @@ import torch.nn as nn
 import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
-# assert hasattr(ext, "fa_fwd_v3") and hasattr(ext, "fa_bwd_v3")
+assert hasattr(ext, "fa_fwd_v3") and hasattr(ext, "fa_bwd_v3")
 
 __all__ = ["FlashSelfAttention", "FlashCrossAttention"]
 
@@ -188,15 +188,14 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
 
         head_num = q.shape[2]
         out = torch.empty_like(q)
-        if torch_dipu.dipu.vendor_type == 'NPU':
+        if torch_dipu.dipu.vendor_type == 'MLU':
             (
                 attention_mask,
                 dropout_mask,
                 softmax_max,
                 softmax_sum,
                 softmax_out,
-            # ) = ext.fa_fwd_v3(
-            ) = ext.fa_fwd(
+            ) = ext.fa_fwd_v3(
                 out,
                 q,
                 kv[:, :, 0],
@@ -260,25 +259,46 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
         dq = torch.empty_like(q)
         dkv = torch.empty_like(kv)
 
-        ext.fa_bwd(
-            dq,
-            dkv[:, :, 0],
-            dkv[:, :, 1],
-            dout,
-            q,
-            kv[:, :, 0],
-            kv[:, :, 1],
-            out,
-            attention_mask,
-            dropout_mask,
-            softmax_max,
-            softmax_sum,
-            softmax_out,
-            ctx.dropout_p,
-            ctx.softmax_scale,
-            ctx.head_num,
-            ctx.input_layout,
-        )
+        if torch_dipu.dipu.vendor_type == 'MLU':
+            ext.fa_bwd_v3(
+                dq,
+                dkv[:, :, 0],
+                dkv[:, :, 1],
+                dout,
+                q,
+                kv[:, :, 0],
+                kv[:, :, 1],
+                out,
+                attention_mask,
+                dropout_mask,
+                softmax_max,
+                softmax_sum,
+                softmax_out,
+                ctx.dropout_p,
+                ctx.softmax_scale,
+                ctx.head_num,
+                ctx.input_layout,
+            )
+        else:
+            ext.fa_bwd(
+                dq,
+                dkv[:, :, 0],
+                dkv[:, :, 1],
+                dout,
+                q,
+                kv[:, :, 0],
+                kv[:, :, 1],
+                out,
+                attention_mask,
+                dropout_mask,
+                softmax_max,
+                softmax_sum,
+                softmax_out,
+                ctx.dropout_p,
+                ctx.softmax_scale,
+                ctx.head_num,
+                ctx.input_layout,
+            )
         return dq, dkv, None, None, None, None
 
 

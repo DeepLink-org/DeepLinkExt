@@ -344,11 +344,11 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiFlashAttentionV2 != nullptr) {
     m.def("fa_fwd_v2", &extFlashAttentionV2, "deeplink ext_fa_fwd_v2");
   }
-  if (&diopiFlashAttentionV3 != nullptr) {
-    m.def("fa_fwd_v3", &extFlashAttentionV3, "deeplink ext_fa_fwd_v3");
-  }
   if (&diopiFlashAttentionBackward != nullptr) {
     m.def("fa_bwd", &extFlashAttentionBackward, "deeplink ext_fa_bwd");
+  }
+  if (&diopiFlashAttentionV3 != nullptr) {
+    m.def("fa_fwd_v3", &extFlashAttentionV3, "deeplink ext_fa_fwd_v3");
   }
   if (&diopiFlashAttentionV3Backward != nullptr) {
     m.def("fa_bwd_v3", &extFlashAttentionV3Backward, "deeplink ext_fa_bwd_v3");
