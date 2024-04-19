@@ -234,6 +234,7 @@ auto extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
                          std::move(grad_v));
 }
 
+// TODO(zmz): add parameter
 auto extFlashAttentionV3(at::Tensor& out, const at::Tensor& q,
                          const at::Tensor& k, const at::Tensor& v,
                          at::Generator& gen, double p_dropout,
@@ -244,13 +245,27 @@ auto extFlashAttentionV3(at::Tensor& out, const at::Tensor& q,
   //                          const at::Tensor& k, const at::Tensor& v,
   //                          double p_dropout, double softmax_scale,
   //                          bool is_causal) {
+  diopiTensorHandle_t attention_mask = nullptr;
+  diopiTensorHandle_t dropout_mask = nullptr;
+  diopiTensorHandle_t softmax_max = nullptr;
+  diopiTensorHandle_t softmax_sum = nullptr;
+  diopiTensorHandle_t softmax_out = nullptr;
   [[maybe_unused]] auto context =
       callDiopiKeepContext(diopiFlashAttentionV3, out, softmax_lse, gen, q, k,
                            v, p_dropout, softmax_scale, is_causal);
 
-  return;
+  return std::make_tuple(
+      attention_mask
+          ? *dipu::diopi_helper::fromDiopiTensorHandle(attention_mask)
+          : at::Tensor(),
+      dropout_mask ? *dipu::diopi_helper::fromDiopiTensorHandle(dropout_mask)
+                   : at::Tensor(),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_max),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_sum),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
 }
 
+// TODO(zmz): add parameter
 auto extFlashAttentionV3Backward(
     at::Tensor& grad_q, at::Tensor& grad_k, at::Tensor& grad_v,
     const at::Tensor& grad_out, const at::Tensor& q, const at::Tensor& k,
@@ -271,7 +286,8 @@ auto extFlashAttentionV3Backward(
   callDiopi(diopiFlashAttentionV3Backward, grad_q, grad_k, grad_v, grad_out,
             gen, q, k, v, out, softmax_lse, p_dropout, softmax_scale,
             is_causal);
-  return;
+  return std::make_tuple(std::move(grad_q), std::move(grad_k),
+                         std::move(grad_v));
 }
 
 void extScaledMaskedSoftmax(at::Tensor& out, const at::Tensor& input,
