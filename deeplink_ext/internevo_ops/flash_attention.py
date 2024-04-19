@@ -216,7 +216,6 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
         out = torch.empty_like(query)
 
         (
-            genout,
             softmax_lse,
         ) = ext.fa_fwd_v3(
             out,
@@ -227,8 +226,6 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
             dropout_p,
             softmax_scale,
             causal,
-            head_num,
-            input_layout,
         )
         ctx.save_for_backward(
             qkv,
@@ -237,13 +234,11 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
             v,
             kv,
             out,
-            genout,
+            gen,
             softmax_lse,
         )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
-        ctx.head_num = head_num
-        ctx.input_layout = input_layout
         ctx.causal = causal
         return out
 
@@ -256,7 +251,7 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
             v,
             kv,
             out,
-            genout,
+            gen,
             softmax_lse,
         ) = ctx.saved_tensors
 
@@ -271,13 +266,11 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
                 qkv[:, :, 1],
                 qkv[:, :, 2],
                 out,
-                genout,
+                gen,
                 softmax_lse,
                 ctx.causal,
                 ctx.dropout_p,
                 ctx.softmax_scale,
-                ctx.head_num,
-                ctx.input_layout,
             )
             return dqkv, None, None, None, None, None, None, None
         elif kv is not None:
@@ -292,13 +285,11 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
                 kv[:, :, 0],
                 kv[:, :, 1],
                 out,
-                genout,
+                gen,
                 softmax_lse,
                 ctx.causal,
                 ctx.dropout_p,
                 ctx.softmax_scale,
-                ctx.head_num,
-                ctx.input_layout,
             )
             return None, dq, None, None, dkv, None, None, None
         else:
@@ -314,13 +305,11 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
                 k,
                 v,
                 out,
-                genout,
+                gen,
                 softmax_lse,
                 ctx.causal,
                 ctx.dropout_p,
                 ctx.softmax_scale,
-                ctx.head_num,
-                ctx.input_layout,
             )
             return None, dq, dk, dv, None, None, None, None
 
@@ -427,7 +416,6 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
         head_num = q.shape[2]
         out = torch.empty_like(q)
         (
-            genout,
             softmax_lse,
         ) = ext.fa_fwd_v3(
             out,
@@ -438,21 +426,17 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
             dropout_p,
             softmax_scale,
             causal,
-            head_num,
-            input_layout,
         )
 
         ctx.save_for_backward(
             q,
             kv,
             out,
-            genout,
+            gen,
             softmax_lse,
         )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
-        ctx.head_num = head_num
-        ctx.input_layout = input_layout
         ctx.causal = causal
         return out
 
@@ -462,7 +446,7 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
             q,
             kv,
             out,
-            genout,
+            gen,
             softmax_lse,
         ) = ctx.saved_tensors
 
@@ -478,13 +462,11 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
             kv[:, :, 0],
             kv[:, :, 1],
             out,
-            genout,
+            gen,
             softmax_lse,
             ctx.causal,
             ctx.dropout_p,
             ctx.softmax_scale,
-            ctx.head_num,
-            ctx.input_layout,
         )
         return dq, dkv, None, None, None, None
 
