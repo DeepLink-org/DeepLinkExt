@@ -6,7 +6,7 @@ import torch.nn as nn
 import deeplink_ext.cpp_extensions as ext
 
 
-if torch_dipu.dipu.vendor_type == 'MLU':
+if torch_dipu.dipu.vendor_type == "MLU":
     assert hasattr(ext, "fa_fwd_v3") and hasattr(ext, "fa_bwd_v3")
 else:
     assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
@@ -192,7 +192,6 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
         causal=False,
     ):
         # The current default input layout for flash attention is BSND
-        input_layout = "BSND"
         if qkv is not None:
             query, key, value = qkv.unbind(dim=2)
         elif kv is not None:
@@ -216,10 +215,12 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
             softmax_scale = key.shape[-1] ** (-0.5)
 
         batch_size = query.shape[0]
-        q_seq_len = query.shape[1]
+        seqlen_q = query.shape[1]
         head_num = query.shape[2]
         out = torch.empty_like(query)
-        softmax_lse = torch.empty([batch_size, head_num, q_seq_len], dtype=torch.float32, device=query.device)
+        softmax_lse = torch.empty(
+            [batch_size, head_num, seqlen_q], dtype=torch.float32, device=device
+        )
 
         ext.fa_fwd_v3(
             out,
@@ -318,7 +319,6 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
             return None, dq, dk, dv, None, None, None, None
 
 
-
 class FlashAttentionKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
@@ -405,12 +405,10 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
         return dq, dkv, None, None, None, None
 
 
-
 class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
         # The current default input layout for flash attention is BSND
-        input_layout = "BSND"
         assert q.device == kv.device, "the devices of q and kv should be same"
         gen = torch.Generator(device=q.device)
 
@@ -418,10 +416,13 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
             softmax_scale = kv[:, :, 0].shape[-1] ** (-0.5)
 
         batch_size = q.shape[0]
-        q_seq_len = q.shape[1]
+        seqlen_q = q.shape[1]
         head_num = q.shape[2]
         out = torch.empty_like(q)
-        softmax_lse = torch.empty([batch_size, head_num, q_seq_len], dtype=torch.float32, device=q.device)
+        softmax_lse = torch.empty(
+            [batch_size, head_num, seqlen_q], dtype=torch.float32, device=q.device
+        )
+
         ext.fa_fwd_v3(
             out,
             softmax_lse,
@@ -531,7 +532,7 @@ class FlashSelfAttention(nn.Module):
         """
         if cu_seqlens is None:
             # padded
-            if torch_dipu.dipu.vendor_type == 'MLU':
+            if torch_dipu.dipu.vendor_type == "MLU":
                 return FlashAttentionQKVPackedFuncV3.apply(
                     qkv,
                     q,
@@ -579,7 +580,7 @@ class FlashCrossAttention(nn.Module):
     ):
         if cu_seqlens is None:
             # padded
-            if torch_dipu.dipu.vendor_type == 'MLU':
+            if torch_dipu.dipu.vendor_type == "MLU":
                 return FlashAttentionKVPackedFuncV3.apply(
                     q,
                     kv,
