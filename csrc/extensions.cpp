@@ -234,6 +234,43 @@ auto extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
                          std::move(grad_v));
 }
 
+auto extFlashAttentionV3(at::Tensor& out, at::Tensor& softmax_lse,
+                         at::Generator& gen, const at::Tensor& q,
+                         const at::Tensor& k, const at::Tensor& v,
+                         double p_dropout, double softmax_scale,
+                         bool is_causal) {
+  // TODO(zmz): 修改参数列表
+  diopiTensorHandle_t dropout_mask = nullptr;
+  diopiTensorHandle_t softmax_max = nullptr;
+  diopiTensorHandle_t softmax_sum = nullptr;
+  diopiTensorHandle_t softmax_out = nullptr;
+
+  [[maybe_unused]] auto context =
+      callDiopiKeepContext(diopiFlashAttentionV3, out, softmax_lse, gen, q, k,
+                           v, p_dropout, softmax_scale, is_causal);
+
+  return std::make_tuple(
+      dropout_mask ? *dipu::diopi_helper::fromDiopiTensorHandle(dropout_mask)
+                   : at::Tensor(),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_max),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_sum),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
+}
+
+auto extFlashAttentionV3Backward(
+    at::Tensor& grad_q, at::Tensor& grad_k, at::Tensor& grad_v,
+    const at::Tensor& grad_out, const at::Tensor& q, const at::Tensor& k,
+    const at::Tensor& v, const at::Tensor& out,
+    const c10::optional<at::Tensor>& attention_mask,
+    const c10::optional<at::Tensor>& dropout_mask,
+    const at::Tensor& softmax_max, const at::Tensor& softmax_sum,
+    const at::Tensor& softmax_out, double p_dropout, double softmax_scale,
+    int64_t head_num, const std::string& input_layout) {
+  // TODO: 实现内部逻辑
+  return std::make_tuple(std::move(grad_q), std::move(grad_k),
+                         std::move(grad_v));
+}
+
 void extScaledMaskedSoftmax(at::Tensor& out, const at::Tensor& input,
                             const at::Tensor& mask, double scale,
                             bool fixed_triu_mask) {
@@ -307,8 +344,18 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiFlashAttentionV2 != nullptr) {
     m.def("fa_fwd_v2", &extFlashAttentionV2, "deeplink ext_fa_fwd_v2");
   }
+  // todo: just test
+  // if (&diopiFlashAttentionV3 != nullptr) {
+  if (&diopiFlashAttention != nullptr) {
+    m.def("fa_fwd_v3", &extFlashAttentionV3, "deeplink ext_fa_fwd_v3");
+  }
   if (&diopiFlashAttentionBackward != nullptr) {
     m.def("fa_bwd", &extFlashAttentionBackward, "deeplink ext_fa_bwd");
+  }
+  // todo: just test
+  // if (&diopiFlashAttentionV3Backward != nullptr) {
+  if (&diopiFlashAttentionBackward != nullptr) {
+    m.def("fa_bwd_v3", &extFlashAttentionV3Backward, "deeplink ext_fa_bwd_v3");
   }
   if (&diopiRMSNorm != nullptr) {
     m.def("rms_norm", &extRmsNorm, "deeplink ext_rms_norm");

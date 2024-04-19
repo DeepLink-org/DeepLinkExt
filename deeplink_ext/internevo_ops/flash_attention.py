@@ -5,6 +5,8 @@ import torch.nn as nn
 import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
+# assert hasattr(ext, "fa_fwd_v3") 
+# assert hasattr(ext, "fa_bwd_v3")
 
 __all__ = ["FlashSelfAttention", "FlashCrossAttention"]
 
@@ -190,6 +192,7 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
 
         head_num = q.shape[2]
         out = torch.empty_like(q)
+        print(f"flashattention device: {q.device}, {out.device}")
         (
             attention_mask,
             dropout_mask,
