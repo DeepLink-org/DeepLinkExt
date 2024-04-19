@@ -24,8 +24,16 @@ def call_module(module: torch.nn.Module, *forward_args):
     return output_forward, grads
 
 
-def call_func(f: typing.Callable, *args: list):
-    return f(*args)
+def call_func(f: torch.autograd.Function, device, dtype, *args: list):
+    class Module(torch.nn.Module):
+        def __init__(self, func):
+            super(Module, self).__init__()
+            self.func = func
+
+        def forward(self, *args):
+            return self.func.apply(*args)
+
+    return call_module(Module(f).to(device).to(dtype), *args)
 
 
 def copy_to_cpu(tensors: list[torch.Tensor], dtype=None):
@@ -37,7 +45,7 @@ def copy_to_cpu(tensors: list[torch.Tensor], dtype=None):
     ]
 
 
-def allclose(expected_vals: list, real_vals: list, rtol, atol):
+def allclose(expected_vals: list, real_vals: list, rtol=1e-05, atol=1e-08):
     assert len(expected_vals) == len(real_vals), "length of outputs is not same"
     for i in range(len(expected_vals)):
         assert type(expected_vals[i]) == type(
