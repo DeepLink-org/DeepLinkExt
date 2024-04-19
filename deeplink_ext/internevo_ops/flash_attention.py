@@ -5,8 +5,11 @@ import torch_dipu
 import torch.nn as nn
 import deeplink_ext.cpp_extensions as ext
 
-assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
-assert hasattr(ext, "fa_fwd_v3") and hasattr(ext, "fa_bwd_v3")
+
+if torch_dipu.dipu.vendor_type == 'MLU':
+    assert hasattr(ext, "fa_fwd_v3") and hasattr(ext, "fa_bwd_v3")
+else:
+    assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
 
 __all__ = ["FlashSelfAttention", "FlashCrossAttention"]
 
@@ -216,7 +219,7 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
         q_seq_len = query.shape[1]
         head_num = query.shape[2]
         out = torch.empty_like(query)
-        softmax_lse = torch.tensor([batch_size, head_num, q_seq_len], dtype=query.dtype)
+        softmax_lse = torch.tensor([batch_size, head_num, q_seq_len], dtype=query.dtype, device=query.device)
 
         ext.fa_fwd_v3(
             out,
@@ -419,7 +422,7 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
         q_seq_len = q.shape[1]
         head_num = q.shape[2]
         out = torch.empty_like(q)
-        softmax_lse = torch.tensor([batch_size, head_num, q_seq_len], dtype=q.dtype)
+        softmax_lse = torch.tensor([batch_size, head_num, q_seq_len], dtype=q.dtype, device=q.device)
         ext.fa_fwd_v3(
             out,
             softmax_lse,
@@ -531,7 +534,6 @@ class FlashSelfAttention(nn.Module):
         if cu_seqlens is None:
             # padded
             if torch_dipu.dipu.vendor_type == 'MLU':
-                print("TEST FlashAttentionQKVPackedFuncV3")
                 return FlashAttentionQKVPackedFuncV3.apply(
                     qkv,
                     q,
@@ -543,7 +545,6 @@ class FlashSelfAttention(nn.Module):
                     causal if causal is not None else self.causal,
                 )
             else:
-                print("TEST FlashAttentionQKVPackedFunc    CUDA")
                 return FlashAttentionQKVPackedFunc.apply(
                     qkv,
                     q,
@@ -581,7 +582,6 @@ class FlashCrossAttention(nn.Module):
         if cu_seqlens is None:
             # padded
             if torch_dipu.dipu.vendor_type == 'MLU':
-                print("TEST FlashAttentionKVPackedFuncV3")
                 return FlashAttentionKVPackedFuncV3.apply(
                     q,
                     kv,
@@ -590,7 +590,6 @@ class FlashCrossAttention(nn.Module):
                     causal if causal is not None else self.causal,
                 )
             else:
-                print("TEST FlashAttentionKVPackedFunc    CUDA")
                 return FlashAttentionKVPackedFunc.apply(
                     q,
                     kv,
