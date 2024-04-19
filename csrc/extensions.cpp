@@ -271,12 +271,9 @@ auto extFlashAttentionV3(at::Tensor& out, const at::Tensor& q,
 auto extFlashAttentionV3Backward(
     at::Tensor& grad_q, at::Tensor& grad_k, at::Tensor& grad_v,
     const at::Tensor& grad_out, const at::Tensor& q, const at::Tensor& k,
-    const at::Tensor& v, const at::Tensor& out,
-    const c10::optional<at::Tensor>& attention_mask,
-    const c10::optional<at::Tensor>& dropout_mask,
-    const at::Tensor& softmax_max, const at::Tensor& softmax_sum,
-    const at::Tensor& softmax_out, double p_dropout, double softmax_scale,
-    int64_t head_num, const std::string& input_layout) {
+    const at::Tensor& v, const at::Tensor& out, at::Generator& gen,
+    const at::Tensor& softmax_lse, bool is_causal, double p_dropout,
+    double softmax_scale, int64_t head_num, const std::string& input_layout) {
   // auto extFlashAttentionV3Backward(at::Tensor& grad_q, at::Tensor& grad_k,
   //                                  at::Tensor& grad_v, const at::Tensor&
   //                                  grad_out, at::Generator& gen, const

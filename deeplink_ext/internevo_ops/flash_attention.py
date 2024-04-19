@@ -215,35 +215,32 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
         head_num = query.shape[2]
         out = torch.empty_like(query)
 
-        if torch_dipu.dipu.vendor_type == 'MLU':
-            (
-                genout,
-                softmax_lse,
-            ) = ext.fa_fwd_v3(
-                out,
-                query,
-                key,
-                value,
-                gen,
-                dropout_p,
-                softmax_scale,
-                causal,
-                head_num,
-                input_layout,
-            )
-            ctx.save_for_backward(
-                qkv,
-                q,
-                k,
-                v,
-                kv,
-                out,
-                attention_mask,
-                dropout_mask,
-                softmax_max,
-                softmax_sum,
-                softmax_out,
-            )
+        (
+            genout,
+            softmax_lse,
+        ) = ext.fa_fwd_v3(
+            out,
+            query,
+            key,
+            value,
+            gen,
+            dropout_p,
+            softmax_scale,
+            causal,
+            head_num,
+            input_layout,
+        )
+        ctx.save_for_backward(
+            qkv,
+            q,
+            k,
+            v,
+            kv,
+            out,
+            genout,
+            softmax_lse,
+            causal,
+        )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.head_num = head_num
@@ -259,84 +256,73 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
             v,
             kv,
             out,
-            attention_mask,
-            dropout_mask,
-            softmax_max,
-            softmax_sum,
-            softmax_out,
+            genout,
+            softmax_lse,
+            causal,
         ) = ctx.saved_tensors
 
         if qkv is not None:
             dqkv = torch.empty_like(qkv)
-            if torch_dipu.dipu.vendor_type == 'MLU':
-                ext.fa_bwd_v3(
-                    dqkv[:, :, 0],
-                    dqkv[:, :, 1],
-                    dqkv[:, :, 2],
-                    dout,
-                    qkv[:, :, 0],
-                    qkv[:, :, 1],
-                    qkv[:, :, 2],
-                    out,
-                    attention_mask,
-                    dropout_mask,
-                    softmax_max,
-                    softmax_sum,
-                    softmax_out,
-                    ctx.dropout_p,
-                    ctx.softmax_scale,
-                    ctx.head_num,
-                    ctx.input_layout,
-                )
+            ext.fa_bwd_v3(
+                dqkv[:, :, 0],
+                dqkv[:, :, 1],
+                dqkv[:, :, 2],
+                dout,
+                qkv[:, :, 0],
+                qkv[:, :, 1],
+                qkv[:, :, 2],
+                out,
+                genout,
+                softmax_lse,
+                causal,
+                ctx.dropout_p,
+                ctx.softmax_scale,
+                ctx.head_num,
+                ctx.input_layout,
+            )
             return dqkv, None, None, None, None, None, None, None
         elif kv is not None:
             dq = torch.empty_like(q)
             dkv = torch.empty_like(kv)
-            if torch_dipu.dipu.vendor_type == 'MLU':
-                ext.fa_bwd_v3(
-                    dq,
-                    dkv[:, :, 0],
-                    dkv[:, :, 1],
-                    dout,
-                    q,
-                    kv[:, :, 0],
-                    kv[:, :, 1],
-                    out,
-                    attention_mask,
-                    dropout_mask,
-                    softmax_max,
-                    softmax_sum,
-                    softmax_out,
-                    ctx.dropout_p,
-                    ctx.softmax_scale,
-                    ctx.head_num,
-                    ctx.input_layout,
-                )
+            ext.fa_bwd_v3(
+                dq,
+                dkv[:, :, 0],
+                dkv[:, :, 1],
+                dout,
+                q,
+                kv[:, :, 0],
+                kv[:, :, 1],
+                out,
+                genout,
+                softmax_lse,
+                causal,
+                ctx.dropout_p,
+                ctx.softmax_scale,
+                ctx.head_num,
+                ctx.input_layout,
+            )
             return None, dq, None, None, dkv, None, None, None
         else:
             dq = torch.empty_like(q)
             dk = torch.empty_like(k)
             dv = torch.empty_like(v)
-            if torch_dipu.dipu.vendor_type == 'MLU':
-                ext.fa_bwd_v3(
-                    dq,
-                    dk,
-                    dv,
-                    dout,
-                    q,
-                    k,
-                    v,
-                    out,
-                    attention_mask,
-                    dropout_mask,
-                    softmax_max,
-                    softmax_sum,
-                    softmax_out,
-                    ctx.dropout_p,
-                    ctx.softmax_scale,
-                    ctx.head_num,
-                    ctx.input_layout,
-                )
+            ext.fa_bwd_v3(
+                dq,
+                dk,
+                dv,
+                dout,
+                q,
+                k,
+                v,
+                out,
+                genout,
+                softmax_lse,
+                causal,
+                ctx.dropout_p,
+                ctx.softmax_scale,
+                ctx.head_num,
+                ctx.input_layout,
+            )
             return None, dq, dk, dv, None, None, None, None
 
 
@@ -441,54 +427,29 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
 
         head_num = q.shape[2]
         out = torch.empty_like(q)
-        if torch_dipu.dipu.vendor_type == 'MLU':
-            (
-                attention_mask,
-                dropout_mask,
-                softmax_max,
-                softmax_sum,
-                softmax_out,
-            ) = ext.fa_fwd_v3(
-                out,
-                q,
-                kv[:, :, 0],
-                kv[:, :, 1],
-                gen,
-                dropout_p,
-                softmax_scale,
-                causal,
-                head_num,
-                input_layout,
-            )
-        else :
-            (
-                attention_mask,
-                dropout_mask,
-                softmax_max,
-                softmax_sum,
-                softmax_out,
-            ) = ext.fa_fwd(
-                out,
-                q,
-                kv[:, :, 0],
-                kv[:, :, 1],
-                gen,
-                dropout_p,
-                softmax_scale,
-                causal,
-                head_num,
-                input_layout,
-            )
+        (
+            genout,
+            softmax_lse,
+        ) = ext.fa_fwd_v3(
+            out,
+            q,
+            kv[:, :, 0],
+            kv[:, :, 1],
+            gen,
+            dropout_p,
+            softmax_scale,
+            causal,
+            head_num,
+            input_layout,
+        )
 
         ctx.save_for_backward(
             q,
             kv,
             out,
-            attention_mask,
-            dropout_mask,
-            softmax_max,
-            softmax_sum,
-            softmax_out,
+            genout,
+            softmax_lse,
+            causal,
         )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
@@ -502,56 +463,31 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
             q,
             kv,
             out,
-            attention_mask,
-            dropout_mask,
-            softmax_max,
-            softmax_sum,
-            softmax_out,
+            genout,
+            softmax_lse,
+            causal,
         ) = ctx.saved_tensors
 
         dq = torch.empty_like(q)
         dkv = torch.empty_like(kv)
 
-        if torch_dipu.dipu.vendor_type == 'MLU':
-            ext.fa_bwd_v3(
-                dq,
-                dkv[:, :, 0],
-                dkv[:, :, 1],
-                dout,
-                q,
-                kv[:, :, 0],
-                kv[:, :, 1],
-                out,
-                attention_mask,
-                dropout_mask,
-                softmax_max,
-                softmax_sum,
-                softmax_out,
-                ctx.dropout_p,
-                ctx.softmax_scale,
-                ctx.head_num,
-                ctx.input_layout,
-            )
-        else:
-            ext.fa_bwd_v3(
-                dq,
-                dkv[:, :, 0],
-                dkv[:, :, 1],
-                dout,
-                q,
-                kv[:, :, 0],
-                kv[:, :, 1],
-                out,
-                attention_mask,
-                dropout_mask,
-                softmax_max,
-                softmax_sum,
-                softmax_out,
-                ctx.dropout_p,
-                ctx.softmax_scale,
-                ctx.head_num,
-                ctx.input_layout,
-            )
+        ext.fa_bwd_v3(
+            dq,
+            dkv[:, :, 0],
+            dkv[:, :, 1],
+            dout,
+            q,
+            kv[:, :, 0],
+            kv[:, :, 1],
+            out,
+            genout,
+            softmax_lse,
+            causal,
+            ctx.dropout_p,
+            ctx.softmax_scale,
+            ctx.head_num,
+            ctx.input_layout,
+        )
         return dq, dkv, None, None, None, None
 
 
