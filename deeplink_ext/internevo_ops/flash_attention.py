@@ -239,9 +239,9 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
             v,
             kv,
             out,
-            gen,
             softmax_lse,
         )
+        ctx.gen = gen
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.causal = causal
@@ -256,7 +256,6 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
             v,
             kv,
             out,
-            gen,
             softmax_lse,
         ) = ctx.saved_tensors
 
@@ -271,7 +270,7 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
                 qkv[:, :, 1],
                 qkv[:, :, 2],
                 out,
-                gen,
+                ctx.gen,
                 softmax_lse,
                 ctx.causal,
                 ctx.dropout_p,
@@ -290,7 +289,7 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
                 kv[:, :, 0],
                 kv[:, :, 1],
                 out,
-                gen,
+                ctx.gen,
                 softmax_lse,
                 ctx.causal,
                 ctx.dropout_p,
@@ -310,7 +309,7 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
                 k,
                 v,
                 out,
-                gen,
+                ctx.gen,
                 softmax_lse,
                 ctx.causal,
                 ctx.dropout_p,
@@ -439,9 +438,9 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
             q,
             kv,
             out,
-            gen,
             softmax_lse,
         )
+        ctx.gen = gen
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.causal = causal
@@ -453,7 +452,6 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
             q,
             kv,
             out,
-            gen,
             softmax_lse,
         ) = ctx.saved_tensors
 
@@ -469,7 +467,7 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
             kv[:, :, 0],
             kv[:, :, 1],
             out,
-            gen,
+            ctx.gen,
             softmax_lse,
             ctx.causal,
             ctx.dropout_p,
