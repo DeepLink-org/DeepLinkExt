@@ -212,13 +212,15 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
         if softmax_scale is None:
             softmax_scale = key.shape[-1] ** (-0.5)
 
+        batch_size = query.shape[0]
+        q_seq_len = query.shape[1]
         head_num = query.shape[2]
         out = torch.empty_like(query)
+        softmax_lse = torch.tensor([batch_size, head_num, q_seq_len], dtype=query.dtype)
 
-        (
-            softmax_lse,
-        ) = ext.fa_fwd_v3(
+        ext.fa_fwd_v3(
             out,
+            softmax_lse,
             query,
             key,
             value,
@@ -413,12 +415,14 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
         if softmax_scale is None:
             softmax_scale = kv[:, :, 0].shape[-1] ** (-0.5)
 
+        batch_size = q.shape[0]
+        q_seq_len = q.shape[1]
         head_num = q.shape[2]
         out = torch.empty_like(q)
-        (
-            softmax_lse,
-        ) = ext.fa_fwd_v3(
+        softmax_lse = torch.tensor([batch_size, head_num, q_seq_len], dtype=q.dtype)
+        ext.fa_fwd_v3(
             out,
+            softmax_lse,
             q,
             kv[:, :, 0],
             kv[:, :, 1],
