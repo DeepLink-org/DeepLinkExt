@@ -239,12 +239,12 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
             out,
             genout,
             softmax_lse,
-            causal,
         )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.head_num = head_num
         ctx.input_layout = input_layout
+        ctx.causal = causal
         return out
 
     @staticmethod
@@ -258,7 +258,6 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
             out,
             genout,
             softmax_lse,
-            causal,
         ) = ctx.saved_tensors
 
         if qkv is not None:
@@ -274,7 +273,7 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
                 out,
                 genout,
                 softmax_lse,
-                causal,
+                ctx.causal,
                 ctx.dropout_p,
                 ctx.softmax_scale,
                 ctx.head_num,
@@ -295,7 +294,7 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
                 out,
                 genout,
                 softmax_lse,
-                causal,
+                ctx.causal,
                 ctx.dropout_p,
                 ctx.softmax_scale,
                 ctx.head_num,
@@ -317,7 +316,7 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
                 out,
                 genout,
                 softmax_lse,
-                causal,
+                ctx.causal,
                 ctx.dropout_p,
                 ctx.softmax_scale,
                 ctx.head_num,
@@ -449,12 +448,12 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
             out,
             genout,
             softmax_lse,
-            causal,
         )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.head_num = head_num
         ctx.input_layout = input_layout
+        ctx.causal = causal
         return out
 
     @staticmethod
@@ -465,7 +464,6 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
             out,
             genout,
             softmax_lse,
-            causal,
         ) = ctx.saved_tensors
 
         dq = torch.empty_like(q)
@@ -482,7 +480,7 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
             out,
             genout,
             softmax_lse,
-            causal,
+            ctx.causal,
             ctx.dropout_p,
             ctx.softmax_scale,
             ctx.head_num,

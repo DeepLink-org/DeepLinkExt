@@ -245,25 +245,11 @@ auto extFlashAttentionV3(at::Tensor& out, const at::Tensor& q,
   //                          const at::Tensor& k, const at::Tensor& v,
   //                          double p_dropout, double softmax_scale,
   //                          bool is_causal) {
-  // diopiTensorHandle_t attention_mask = nullptr;
-  // diopiTensorHandle_t dropout_mask = nullptr;
-  // diopiTensorHandle_t softmax_max = nullptr;
-  // diopiTensorHandle_t softmax_sum = nullptr;
-  // diopiTensorHandle_t softmax_out = nullptr;
   diopiTensorHandle_t softmax_lse = nullptr;
   [[maybe_unused]] auto context =
       callDiopiKeepContext(diopiFlashAttentionV3, out, softmax_lse, gen, q, k,
                            v, p_dropout, softmax_scale, is_causal);
 
-  // return std::make_tuple(
-  //     attention_mask
-  //         ? *dipu::diopi_helper::fromDiopiTensorHandle(attention_mask)
-  //         : at::Tensor(),
-  //     dropout_mask ? *dipu::diopi_helper::fromDiopiTensorHandle(dropout_mask)
-  //                  : at::Tensor(),
-  //     *dipu::diopi_helper::fromDiopiTensorHandle(softmax_max),
-  //     *dipu::diopi_helper::fromDiopiTensorHandle(softmax_sum),
-  //     *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
   return std::make_tuple(gen, softmax_lse);
 }
 
