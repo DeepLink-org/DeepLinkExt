@@ -215,7 +215,7 @@ auto extFlashAttentionV2(at::Tensor& out, const at::Tensor& q,
       *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
 }
 
-auto extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
+void extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
                                at::Tensor& grad_v, const at::Tensor& grad_out,
                                const at::Tensor& q, const at::Tensor& k,
                                const at::Tensor& v, const at::Tensor& out,
@@ -230,8 +230,6 @@ auto extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
             v, out, attention_mask, dropout_mask, softmax_max, softmax_sum,
             softmax_out, p_dropout, softmax_scale, head_num,
             input_layout.c_str());
-  return std::make_tuple(std::move(grad_q), std::move(grad_k),
-                         std::move(grad_v));
 }
 
 // for ascend
@@ -264,7 +262,7 @@ auto extFlashAttentionVarLen(at::Tensor& out, const at::Tensor& q,
 }
 
 // for ascend
-auto extFlashAttentionVarLenBackward(
+void extFlashAttentionVarLenBackward(
     at::Tensor& grad_q, at::Tensor& grad_k, at::Tensor& grad_v,
     const at::Tensor& grad_out, const at::Tensor& q, const at::Tensor& k,
     const at::Tensor& v, const at::IntArrayRef& cum_seq_q,
@@ -275,8 +273,6 @@ auto extFlashAttentionVarLenBackward(
   callDiopi(diopiFlashAttentionVarLenBackward, grad_q, grad_k, grad_v, grad_out,
             q, k, v, cum_seq_q, cum_seq_k, out, attention_mask, dropout_mask,
             softmax_max, softmax_sum, softmax_out, p_dropout, softmax_scale);
-  return std::make_tuple(std::move(grad_q), std::move(grad_k),
-                         std::move(grad_v));
 }
 
 void extScaledMaskedSoftmax(at::Tensor& out, const at::Tensor& input,
