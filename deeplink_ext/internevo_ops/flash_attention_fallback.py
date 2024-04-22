@@ -148,7 +148,7 @@ class SelfAttention(nn.Module):
                 # adapt to GQA
                 if kv.shape[2] != q.shape[1]:  # MQA/GQA
                     kv = repeat(
-                        kv, "... hkv d -> ... (hkv g) d", g=q.shape[2] // kv.shape[3]
+                        kv, "... hkv d -> ... (hkv g) d", g=q.shape[1] // kv.shape[2]
                     )
                 query = q
                 key, value = kv.unbind(dim=1)
