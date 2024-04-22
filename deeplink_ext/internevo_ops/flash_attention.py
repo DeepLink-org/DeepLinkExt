@@ -13,14 +13,14 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
-        qkv=None,
-        q=None,
-        k=None,
-        v=None,
-        kv=None,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
+        qkv,
+        q,
+        k,
+        v,
+        kv,
+        dropout_p,
+        softmax_scale,
+        causal,
     ):
         # The current default input layout for flash attention is BSND
         input_layout = "BSND"
@@ -177,16 +177,16 @@ class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
-        qkv=None,
-        q=None,
-        k=None,
-        v=None,
-        kv=None,
-        cu_seqlens=None,
-        max_seqlen=None,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
+        qkv,
+        q,
+        k,
+        v,
+        kv,
+        cu_seqlens,
+        max_seqlen,
+        dropout_p,
+        softmax_scale,
+        causal,
     ):
         # The current default input layout for varlen flash attention is TND
         if qkv is not None:
