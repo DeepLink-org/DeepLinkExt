@@ -43,8 +43,6 @@ class SelfAttention(nn.Module):
         cu_seqlens_k=None,
         max_seqlen_q=None,
         max_seqlen_k=None,
-        softmax_scale=None,
-        dropout_p=0.0,
     ):
         """Performs self-attention on the input sequences.
 
