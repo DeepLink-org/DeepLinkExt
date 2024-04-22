@@ -429,7 +429,18 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
 
 class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, q, kv, cu_seqlens, max_seqlen, dropout_p, softmax_scale, causal):
+    def forward(
+        ctx,
+        q,
+        kv,
+        cu_seqlens_q,
+        cu_seqlens_k,
+        max_seqlen_q,
+        max_seqlen_k,
+        dropout_p,
+        softmax_scale,
+        causal,
+    ):
         # The current default input layout for varlen flash attention is TND
         assert q.device == kv.device, "the devices of q and kv should be same"
         gen = torch.Generator(device=q.device)
@@ -438,9 +449,10 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
             softmax_scale = kv[:, :, 0].shape[-1] ** (-0.5)
 
         assert (
-            cu_seqlens is not None
-        ), "cu_seqlens should not be None, when using varlen flash attention"
-        cu_seqlens = cu_seqlens[1:].tolist()
+            cu_seqlens_q is not None and cu_seqlens_k is not None
+        ), "cu_seqlens_q and cu_seqlens_k should not be None, when using varlen flash attention"
+        cu_seqlens_q = cu_seqlens_q[1:].tolist()
+        cu_seqlens_k = cu_seqlens_k[1:].tolist()
 
         out = torch.empty_like(q)
         (
@@ -472,7 +484,8 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
         )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
-        ctx.cu_seqlens = cu_seqlens
+        ctx.cu_seqlens_q = cu_seqlens_q
+        ctx.cu_seqlens_k = cu_seqlens_k
         return out
 
     @staticmethod
@@ -499,8 +512,8 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
             q,
             kv[:, :, 0],
             kv[:, :, 1],
-            ctx.cu_seqlens,
-            ctx.cu_seqlens,
+            ctx.cu_seqlens_q,
+            ctx.cu_seqlens_k,
             out,
             attention_mask,
             dropout_mask,
@@ -578,8 +591,17 @@ class FlashSelfAttention(nn.Module):
             )
         else:
             # unpadded
-            raise RuntimeError(
-                "DeepLinkSelfAttention does not support the unpadded mode now"
+            return FlashAttentionVarlenQKVPackedFunc.apply(
+                qkv,
+                q,
+                k,
+                v,
+                kv,
+                cu_seqlens,
+                max_seqlen,
+                self.dropout_p if self.training else 0.0,
+                self.softmax_scale,
+                causal if causal is not None else self.causal,
             )
 
 
@@ -611,6 +633,14 @@ class FlashCrossAttention(nn.Module):
             )
         else:
             # unpadded
-            raise RuntimeError(
-                "DeepLinkCrossAttention does not support the unpadded mode now"
+            return FlashAttentionVarlenKVPackedFunc.apply(
+                q,
+                kv,
+                cu_seqlens,
+                cu_seqlens_k,
+                max_seqlen,
+                max_seqlen_k,
+                self.dropout_p if self.training else 0.0,
+                self.softmax_scale,
+                causal if causal is not None else self.causal,
             )
