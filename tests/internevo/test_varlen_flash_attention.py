@@ -60,48 +60,73 @@ def test_self_attention_varlen_qkv_mha():
     assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
 
 
-# def test_self_attention_varlen_q_k_v_gqa():
-#     total_seqlen, num_q_heads, headdim = [256, 32, 64]
-#     num_kv_heads = 8
+def test_self_attention_varlen_q_k_v_gqa():
+    total_seqlen, num_q_heads, headdim = [256, 32, 64]
+    num_kv_heads = 8
 
-#     q_gpu = torch.rand(
-#         [total_seqlen, num_q_heads, headdim],
-#         dtype=torch.float16,
-#         requires_grad=True,
-#         device="cuda",
-#     )
-#     k_gpu = torch.rand(
-#         [total_seqlen, num_kv_heads, headdim],
-#         dtype=torch.float16,
-#         requires_grad=True,
-#         device="cuda",
-#     )
-#     v_gpu = torch.rand(
-#         [total_seqlen, num_kv_heads, headdim],
-#         dtype=torch.float16,
-#         requires_grad=True,
-#         device="cuda",
-#     )
+    q_gpu = torch.rand(
+        [total_seqlen, num_q_heads, headdim],
+        dtype=torch.float16,
+        requires_grad=True,
+        device="cuda",
+    )
+    k_gpu = torch.rand(
+        [total_seqlen, num_kv_heads, headdim],
+        dtype=torch.float16,
+        requires_grad=True,
+        device="cuda",
+    )
+    v_gpu = torch.rand(
+        [total_seqlen, num_kv_heads, headdim],
+        dtype=torch.float16,
+        requires_grad=True,
+        device="cuda",
+    )
 
-#     q_cpu, k_cpu, v_cpu = copy_to_cpu([q_gpu, k_gpu, v_gpu])
-#     ouput_forward_cpu, grads_cpu = call_module(
-#         SelfAttention(),
-#         None,
-#         q_cpu,
-#         k_cpu,
-#         v_cpu,
-#         None,
-#     )
-#     ouput_forward_gpu, grads_gpu = call_module(
-#         FlashSelfAttention().cuda(),
-#         None,
-#         q_gpu,
-#         k_gpu,
-#         v_gpu,
-#         None,
-#     )
-#     assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-3, atol=1e-3)
-#     assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
+    cu_seqlens_q_gpu = torch.tensor(
+        [0, 32, 64, 128, 256], dtype=torch.int64, device="cuda"
+    )
+    cu_seqlens_k_gpu = torch.tensor(
+        [0, 32, 64, 128, 256], dtype=torch.int64, device="cuda"
+    )
+    max_seqlen = 128
+
+    q_cpu, k_cpu, v_cpu = copy_to_cpu([q_gpu, k_gpu, v_gpu])
+    cu_seqlens_q_cpu = cu_seqlens_q_gpu.cpu()
+    cu_seqlens_k_cpu = cu_seqlens_k_gpu.cpu()
+
+    ouput_forward_cpu, grads_cpu = call_module(
+        SelfAttention(),
+        None,
+        q_cpu,
+        k_cpu,
+        v_cpu,
+        None,
+        None,
+        None,
+        None,
+        cu_seqlens_q_cpu,
+        cu_seqlens_k_cpu,
+        max_seqlen,
+        max_seqlen,
+    )
+    ouput_forward_gpu, grads_gpu = call_module(
+        FlashSelfAttention().cuda(),
+        None,
+        q_gpu,
+        k_gpu,
+        v_gpu,
+        None,
+        None,
+        None,
+        None,
+        cu_seqlens_q_cpu,
+        cu_seqlens_k_cpu,
+        max_seqlen,
+        max_seqlen,
+    )
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-3, atol=1e-3)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
 
 
 def test_self_attention_varlen_q_kv_gqa():
@@ -147,7 +172,6 @@ def test_self_attention_varlen_q_kv_gqa():
         cu_seqlens_k_cpu,
         max_seqlen,
         max_seqlen,
-        
     )
     ouput_forward_gpu, grads_gpu = call_module(
         FlashSelfAttention().cuda(),
