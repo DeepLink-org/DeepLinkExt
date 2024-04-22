@@ -104,42 +104,68 @@ def test_self_attention_varlen_qkv_mha():
 #     assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
 
 
-# def test_self_attention_q_kv_gqa():
-#     batch, seqlen, num_q_heads, headdim = [8, 32, 32, 64]
-#     num_kv_heads = 8
+def test_self_attention_varlen_q_kv_gqa():
+    total_seqlen, num_q_heads, headdim = [256, 32, 64]
+    num_kv_heads = 8
 
-#     q_gpu = torch.rand(
-#         [batch, seqlen, num_q_heads, headdim],
-#         dtype=torch.float16,
-#         requires_grad=True,
-#         device="cuda",
-#     )
-#     kv_gpu = torch.rand(
-#         [batch, seqlen, 2, num_kv_heads, headdim],
-#         dtype=torch.float16,
-#         requires_grad=True,
-#         device="cuda",
-#     )
+    q_gpu = torch.rand(
+        [total_seqlen, num_q_heads, headdim],
+        dtype=torch.float16,
+        requires_grad=True,
+        device="cuda",
+    )
+    kv_gpu = torch.rand(
+        [total_seqlen, 2, num_kv_heads, headdim],
+        dtype=torch.float16,
+        requires_grad=True,
+        device="cuda",
+    )
 
-#     q_cpu, kv_cpu = copy_to_cpu([q_gpu, kv_gpu])
-#     ouput_forward_cpu, grads_cpu = call_module(
-#         SelfAttention(),
-#         None,
-#         q_cpu,
-#         None,
-#         None,
-#         kv_cpu,
-#     )
-#     ouput_forward_gpu, grads_gpu = call_module(
-#         FlashSelfAttention().cuda(),
-#         None,
-#         q_gpu,
-#         None,
-#         None,
-#         kv_gpu,
-#     )
-#     assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-3, atol=1e-3)
-#     assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
+    cu_seqlens_q_gpu = torch.tensor(
+        [0, 32, 64, 128, 256], dtype=torch.int64, device="cuda"
+    )
+    cu_seqlens_k_gpu = torch.tensor(
+        [0, 32, 64, 128, 256], dtype=torch.int64, device="cuda"
+    )
+    max_seqlen = 128
+
+    q_cpu, kv_cpu = copy_to_cpu([q_gpu, kv_gpu])
+    cu_seqlens_q_cpu = cu_seqlens_q_gpu.cpu()
+    cu_seqlens_k_cpu = cu_seqlens_k_gpu.cpu()
+
+    ouput_forward_cpu, grads_cpu = call_module(
+        SelfAttention(),
+        None,
+        q_cpu,
+        None,
+        None,
+        kv_cpu,
+        None,
+        None,
+        None,
+        cu_seqlens_q_cpu,
+        cu_seqlens_k_cpu,
+        max_seqlen,
+        max_seqlen,
+        
+    )
+    ouput_forward_gpu, grads_gpu = call_module(
+        FlashSelfAttention().cuda(),
+        None,
+        q_gpu,
+        None,
+        None,
+        kv_gpu,
+        None,
+        None,
+        None,
+        cu_seqlens_q_gpu,
+        cu_seqlens_k_gpu,
+        max_seqlen,
+        max_seqlen,
+    )
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-3, atol=1e-3)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
 
 
 def test_cross_attention_varlen_q_kv_mha():

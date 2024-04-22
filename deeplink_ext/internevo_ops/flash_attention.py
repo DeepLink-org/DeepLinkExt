@@ -580,7 +580,7 @@ class FlashSelfAttention(nn.Module):
         Returns:
             torch.Tensor: Output tensor after applying self-attention.
         """
-        padded = cu_seqlens is None and cu_seqlens_k is None
+        padded = all(x is None for x in (cu_seqlens, cu_seqlens_q, cu_seqlens_k))
         if padded:
             # padded
             return FlashAttentionQKVPackedFunc.apply(
@@ -595,6 +595,8 @@ class FlashSelfAttention(nn.Module):
             )
         else:
             # unpadded
+            cu_seqlens = next((x for x in (cu_seqlens, cu_seqlens_q, cu_seqlens_k) if x is not None), None)
+            max_seqlen = next((x for x in (max_seqlen, max_seqlen_q, max_seqlen_k) if x is not None), None)
             return FlashAttentionVarlenQKVPackedFunc.apply(
                 qkv,
                 q,
@@ -626,7 +628,7 @@ class FlashCrossAttention(nn.Module):
         cu_seqlens_k=None,
         max_seqlen_k=None,
     ):
-        padded = cu_seqlens is None and cu_seqlens_k is None
+        padded = all(x is None for x in (cu_seqlens, cu_seqlens_k))
         if padded:
             # padded
             return FlashAttentionKVPackedFunc.apply(

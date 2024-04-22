@@ -86,7 +86,8 @@ class SelfAttention(nn.Module):
         Returns:
             torch.Tensor: Output tensor after applying self-attention.
         """
-        if cu_seqlens is None:
+        padded = all(x is None for x in (cu_seqlens, cu_seqlens_q, cu_seqlens_k))
+        if padded:
             # padded
             if qkv is not None:
                 query, key, value = qkv.unbind(dim=2)
@@ -169,6 +170,8 @@ class SelfAttention(nn.Module):
                 query = q
                 key, value = k, v
 
+            cu_seqlens = next((var for var in (cu_seqlens, cu_seqlens_q, cu_seqlens_k) if var is not None), None)
+            max_seqlen = next((x for x in (max_seqlen, max_seqlen_q, max_seqlen_k) if x is not None), None)
             # In order to compare the accuracy with the baseline value, dropout is not used during testing.
             batch_size = len(cu_seqlens) - 1
             _, head_num, head_dim = query.size()
@@ -232,7 +235,7 @@ class CrossAttention(nn.Module):
         cu_seqlens_k=None,
         max_seqlen_k=None,
     ):
-        padded = cu_seqlens is None and cu_seqlens_k is None
+        padded = all(x is None for x in (cu_seqlens, cu_seqlens_k))
         if padded:
             # padded
             batch_size, seqlen_q = q.shape[0], q.shape[1]
