@@ -5,6 +5,7 @@ import torch.nn as nn
 import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
+assert hasattr(ext, "fa_varlen_fwd") and hasattr(ext, "fa_varlen_bwd")
 
 __all__ = ["FlashSelfAttention", "FlashCrossAttention"]
 
@@ -273,13 +274,13 @@ class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
         if qkv is not None:
             dqkv = torch.empty_like(qkv)
             ext.fa_varlen_bwd(
-                dqkv[:, :, 0],
-                dqkv[:, :, 1],
-                dqkv[:, :, 2],
+                dqkv[:, 0],
+                dqkv[:, 1],
+                dqkv[:, 2],
                 dout,
-                qkv[:, :, 0],
-                qkv[:, :, 1],
-                qkv[:, :, 2],
+                qkv[:, 0],
+                qkv[:, 1],
+                qkv[:, 2],
                 ctx.cu_seqlens,
                 ctx.cu_seqlens,
                 out,
@@ -297,12 +298,12 @@ class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
             dkv = torch.empty_like(kv)
             ext.fa_varlen_bwd(
                 dq,
-                dkv[:, :, 0],
-                dkv[:, :, 1],
+                dkv[:, 0],
+                dkv[:, 1],
                 dout,
                 q,
-                kv[:, :, 0],
-                kv[:, :, 1],
+                kv[:, 0],
+                kv[:, 1],
                 ctx.cu_seqlens,
                 ctx.cu_seqlens,
                 out,
@@ -464,9 +465,11 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
         ) = ext.fa_varlen_fwd(
             out,
             q,
-            kv[:, :, 0],
-            kv[:, :, 1],
+            kv[:, 0],
+            kv[:, 1],
             gen,
+            cu_seqlens_q,
+            cu_seqlens_k,
             dropout_p,
             softmax_scale,
             causal,
@@ -523,7 +526,7 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
             ctx.dropout_p,
             ctx.softmax_scale,
         )
-        return dq, dkv, None, None, None, None, None
+        return dq, dkv, None, None, None, None, None, None, None
 
 
 class FlashSelfAttention(nn.Module):
@@ -577,7 +580,8 @@ class FlashSelfAttention(nn.Module):
         Returns:
             torch.Tensor: Output tensor after applying self-attention.
         """
-        if cu_seqlens is None:
+        padded = cu_seqlens is None and cu_seqlens_k is None
+        if padded:
             # padded
             return FlashAttentionQKVPackedFunc.apply(
                 qkv,
@@ -622,7 +626,8 @@ class FlashCrossAttention(nn.Module):
         cu_seqlens_k=None,
         max_seqlen_k=None,
     ):
-        if cu_seqlens is None:
+        padded = cu_seqlens is None and cu_seqlens_k is None
+        if padded:
             # padded
             return FlashAttentionKVPackedFunc.apply(
                 q,
