@@ -234,6 +234,27 @@ auto extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
                          std::move(grad_v));
 }
 
+void extFlashAttentionV3(at::Tensor& out, at::Tensor& softmax_lse,
+                         const at::Tensor& q, const at::Tensor& k,
+                         const at::Tensor& v, at::Generator& gen,
+                         double p_dropout, double softmax_scale,
+                         bool is_causal) {
+  callDiopi(diopiFlashAttentionV3, out, softmax_lse, gen, q, k, v, p_dropout,
+            softmax_scale, is_causal);
+}
+
+void extFlashAttentionV3Backward(at::Tensor& grad_q, at::Tensor& grad_k,
+                                 at::Tensor& grad_v, const at::Tensor& grad_out,
+                                 const at::Tensor& q, const at::Tensor& k,
+                                 const at::Tensor& v, const at::Tensor& out,
+                                 at::Generator& gen,
+                                 const at::Tensor& softmax_lse, bool is_causal,
+                                 double p_dropout, double softmax_scale) {
+  callDiopi(diopiFlashAttentionV3Backward, grad_q, grad_k, grad_v, grad_out,
+            gen, q, k, v, out, softmax_lse, p_dropout, softmax_scale,
+            is_causal);
+}
+
 void extScaledMaskedSoftmax(at::Tensor& out, const at::Tensor& input,
                             const at::Tensor& mask, double scale,
                             bool fixed_triu_mask) {
@@ -309,6 +330,12 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
   if (&diopiFlashAttentionBackward != nullptr) {
     m.def("fa_bwd", &extFlashAttentionBackward, "deeplink ext_fa_bwd");
+  }
+  if (&diopiFlashAttentionV3 != nullptr) {
+    m.def("fa_fwd_v3", &extFlashAttentionV3, "deeplink ext_fa_fwd_v3");
+  }
+  if (&diopiFlashAttentionV3Backward != nullptr) {
+    m.def("fa_bwd_v3", &extFlashAttentionV3Backward, "deeplink ext_fa_bwd_v3");
   }
   if (&diopiRMSNorm != nullptr) {
     m.def("rms_norm", &extRmsNorm, "deeplink ext_rms_norm");
