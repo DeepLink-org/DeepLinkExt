@@ -28,8 +28,9 @@ class _MixedFusedRMSNormFunction(torch.autograd.Function):
             if input_dtype in [torch.bfloat16, torch.float16]
             else input_dtype
         )
+        N = len(normalized_shape)
         inv_rms = torch.empty(
-            list(hidden_states.shape[:-1]) + [1],
+            list(hidden_states.shape[:-N]) + [1] * N,
             dtype=acc_dtype,
             device=hidden_states.device,
         )
