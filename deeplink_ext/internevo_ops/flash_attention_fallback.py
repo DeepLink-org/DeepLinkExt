@@ -15,8 +15,6 @@ def multi_head_attention_func(
     q, k, v, softmax_scale, drop, causal=None, key_padding_mask=None
 ):
     batch_size, seqlen = q.shape[0], q.shape[1]
-    causal = causal if causal is None else causal
-    softmax_scale = softmax_scale or 1.0 / math.sqrt(q.shape[-1])
     scores = torch.einsum("bthd,bshd->bhts", q, k * softmax_scale)
     if key_padding_mask is not None:
         padding_mask = torch.full(
@@ -127,11 +125,13 @@ class SelfAttention(nn.Module):
                 query = q
                 key, value = k, v
 
+            causal = self.causal if causal is None else causal
+            softmax_scale = self.softmax_scale or 1.0 / math.sqrt(query.shape[-1])
             output = multi_head_attention_func(
                 query,
                 key,
                 value,
-                self.softmax_scale,
+                softmax_scale,
                 self.drop,
                 causal,
             )
@@ -240,13 +240,12 @@ class CrossAttention(nn.Module):
         cu_seqlens_k=None,
         max_seqlen_k=None,
     ):
+        causal = self.causal if causal is None else causal
+        softmax_scale = self.softmax_scale or 1.0 / math.sqrt(q.shape[-1])
         padded = all(x is None for x in (cu_seqlens, cu_seqlens_k))
         if padded:
             # padded
-            batch_size, seqlen_q = q.shape[0], q.shape[1]
-            causal = self.causal if causal is None else causal
-            softmax_scale = self.softmax_scale or 1.0 / math.sqrt(q.shape[-1])
-            assert kv.shape[0] == batch_size and kv.shape[4] == q.shape[3]
+            assert kv.shape[0] == q.shape[0] and kv.shape[4] == q.shape[3]
             if kv.shape[3] != q.shape[2]:  # MQA/GQA
                 kv = repeat(
                     kv, "... hkv d -> ... (hkv g) d", g=q.shape[2] // kv.shape[3]
@@ -257,7 +256,7 @@ class CrossAttention(nn.Module):
                 q,
                 k,
                 v,
-                self.softmax_scale,
+                softmax_scale,
                 self.drop,
                 causal,
             )
@@ -274,8 +273,6 @@ class CrossAttention(nn.Module):
             batch_size = len(cu_seqlens) - 1
             _, head_num, head_dim = q.size()
             device = q.device
-            causal = self.causal if causal is None else causal
-            softmax_scale = self.softmax_scale or 1.0 / math.sqrt(q.shape[-1])
 
             padded_shape = (batch_size, max_seqlen, head_num, head_dim)
             query_padded = torch.zeros(padded_shape, dtype=q.dtype, device=device)
