@@ -295,5 +295,5 @@ def test_cross_attention_varlen_q_kv_gqa():
         max_seqlen,
     )
 
-    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-1, atol=5e-1)
-    assert allclose(grads_cpu, grads_gpu, rtol=1e-1, atol=5e-1)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-1, atol=2e-1)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-1, atol=2e-1)

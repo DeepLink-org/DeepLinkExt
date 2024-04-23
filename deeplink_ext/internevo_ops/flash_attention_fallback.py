@@ -14,22 +14,30 @@ __all__ = ["SelfAttention", "CrossAttention"]
 def multi_head_attention_inside(
     q, k, v, softmax_scale, causal=None, key_padding_mask=None
 ):
-    # using for multiheadattention & varlen multiheadattention test
     batch_size, seqlen = q.shape[0], q.shape[1]
     causal = causal if causal is None else causal
     softmax_scale = softmax_scale or 1.0 / math.sqrt(q.shape[-1])
     scores = torch.einsum("bthd,bshd->bhts", q, k * softmax_scale)
     if key_padding_mask is not None:
         padding_mask = torch.full(
-            (batch_size, seqlen), -10000.0, dtype=scores.dtype, device=scores.device
+            (batch_size, seqlen),
+            float("-inf"),
+            dtype=scores.dtype,
+            device=scores.device,
         )
         padding_mask.masked_fill_(key_padding_mask, 0.0)
-        scores = scores + rearrange(padding_mask, "b s -> b 1 1 s")
+        scores.add_(rearrange(padding_mask, "b s -> b 1 1 s"))
     if causal:
         causal_mask = torch.triu(
-            torch.full((seqlen, seqlen), -10000.0, device=scores.device), 1
+            torch.full(
+                (seqlen, seqlen),
+                float("-inf"),
+                dtype=scores.dtype,
+                device=scores.device,
+            ),
+            1,
         )
-        scores = scores + causal_mask.to(dtype=scores.dtype)
+        scores.add_(causal_mask)
     attention = torch.softmax(scores, dim=-1, dtype=v.dtype)
     output = torch.einsum("bhts,bshd->bthd", attention, v)
     return output
@@ -120,7 +128,7 @@ class SelfAttention(nn.Module):
                 key, value = k, v
             device = query.device
             seqlen = query.shape[1]
-            causal = self.causal if causal is None else causal
+            causal = causal or self.causal
             softmax_scale = self.softmax_scale or 1.0 / math.sqrt(query.shape[-1])
             scores = torch.einsum("bthd,bshd->bhts", query, key * softmax_scale)
             if causal:
@@ -170,8 +178,14 @@ class SelfAttention(nn.Module):
                 query = q
                 key, value = k, v
 
-            cu_seqlens = next((var for var in (cu_seqlens, cu_seqlens_q, cu_seqlens_k) if var is not None), None)
-            max_seqlen = next((x for x in (max_seqlen, max_seqlen_q, max_seqlen_k) if x is not None), None)
+            cu_seqlens = next(
+                (x for x in (cu_seqlens, cu_seqlens_q, cu_seqlens_k) if x is not None),
+                None,
+            )
+            max_seqlen = next(
+                (x for x in (max_seqlen, max_seqlen_q, max_seqlen_k) if x is not None),
+                None,
+            )
             # In order to compare the accuracy with the baseline value, dropout is not used during testing.
             batch_size = len(cu_seqlens) - 1
             _, head_num, head_dim = query.size()
