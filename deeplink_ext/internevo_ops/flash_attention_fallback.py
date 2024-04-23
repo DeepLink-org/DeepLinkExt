@@ -176,7 +176,7 @@ class SelfAttention(nn.Module):
                 (x for x in (max_seqlen, max_seqlen_q, max_seqlen_k) if x is not None),
                 None,
             )
-            # In order to compare the accuracy with the baseline value, dropout is not used during testing.
+
             batch_size = len(cu_seqlens) - 1
             _, head_num, head_dim = query.size()
             device = query.device
@@ -269,7 +269,6 @@ class CrossAttention(nn.Module):
                 )
             k, v = kv.unbind(dim=1)
 
-            # In order to compare the accuracy with the baseline value, dropout is not used during testing.
             batch_size = len(cu_seqlens) - 1
             _, head_num, head_dim = q.size()
             device = q.device
