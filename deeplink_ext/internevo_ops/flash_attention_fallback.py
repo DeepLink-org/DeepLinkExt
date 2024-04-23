@@ -211,7 +211,7 @@ class SelfAttention(nn.Module):
                 causal,
                 key_padding_mask,
             )
-            output = torch.zeros(query.shape, dtype=query.dtype, device=device)
+            output = torch.zeros_like(query)
 
             for i in range(batch_size):
                 start_idx = cu_seqlens[i]
@@ -302,7 +302,7 @@ class CrossAttention(nn.Module):
                 causal,
                 key_padding_mask,
             )
-            output = torch.zeros(q.shape, dtype=q.dtype, device=device)
+            output = torch.zeros_like(q)
 
             for i in range(batch_size):
                 start_idx = cu_seqlens[i]
