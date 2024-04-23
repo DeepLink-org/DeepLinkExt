@@ -11,7 +11,7 @@ from einops import rearrange, repeat
 __all__ = ["SelfAttention", "CrossAttention"]
 
 
-def multi_head_attention_inside(
+def multi_head_attention_func(
     q, k, v, softmax_scale, drop, causal=None, key_padding_mask=None
 ):
     batch_size, seqlen = q.shape[0], q.shape[1]
@@ -40,8 +40,7 @@ def multi_head_attention_inside(
         scores.add_(causal_mask)
     attention = torch.softmax(scores, dim=-1, dtype=v.dtype)
     attention_drop = drop(attention)
-    output = torch.einsum("bhts,bshd->bthd", attention_drop, v)
-    return output
+    return torch.einsum("bhts,bshd->bthd", attention_drop, v)
 
 
 class SelfAttention(nn.Module):
@@ -127,25 +126,15 @@ class SelfAttention(nn.Module):
                     )
                 query = q
                 key, value = k, v
-            device = query.device
-            seqlen = query.shape[1]
-            causal = causal or self.causal
-            softmax_scale = self.softmax_scale or 1.0 / math.sqrt(query.shape[-1])
-            scores = torch.einsum("bthd,bshd->bhts", query, key * softmax_scale)
-            if causal:
-                causal_mask = torch.triu(
-                    torch.full(
-                        (seqlen, seqlen),
-                        float("-inf"),
-                        device=device,
-                        dtype=scores.dtype,
-                    ),
-                    1,
-                )
-                scores.add_(causal_mask)
-            attention = torch.softmax(scores, dim=-1, dtype=value.dtype)
-            attention_drop = self.drop(attention)
-            output = torch.einsum("bhts,bshd->bthd", attention_drop, value)
+
+            output = multi_head_attention_func(
+                query,
+                key,
+                value,
+                self.softmax_scale,
+                self.drop,
+                causal,
+            )
             return output
         else:
             # unpadded
@@ -213,7 +202,7 @@ class SelfAttention(nn.Module):
                 key_padded[i, :actual_seq_len, :, :] = key[start_idx:end_idx, :, :]
                 value_padded[i, :actual_seq_len, :, :] = value[start_idx:end_idx, :, :]
 
-            qkv_padded_result = multi_head_attention_inside(
+            qkv_padded_result = multi_head_attention_func(
                 query_padded,
                 key_padded,
                 value_padded,
@@ -263,21 +252,15 @@ class CrossAttention(nn.Module):
                     kv, "... hkv d -> ... (hkv g) d", g=q.shape[2] // kv.shape[3]
                 )
             k, v = kv.unbind(dim=2)
-            scores = torch.einsum("bthd,bshd->bhts", q, k * softmax_scale)
-            if causal:
-                causal_mask = torch.triu(
-                    torch.full(
-                        (seqlen_q, seqlen_q),
-                        float("-inf"),
-                        device=q.device,
-                        dtype=scores.dtype,
-                    ),
-                    1,
-                )
-                scores.add_(causal_mask)
-            attention = torch.softmax(scores, dim=-1, dtype=v.dtype)
-            attention_drop = self.drop(attention)
-            output = torch.einsum("bhts,bshd->bthd", attention_drop, v)
+
+            output = multi_head_attention_func(
+                q,
+                k,
+                v,
+                self.softmax_scale,
+                self.drop,
+                causal,
+            )
             return output
         else:
             # unpadded
@@ -313,7 +296,7 @@ class CrossAttention(nn.Module):
                 key_padded[i, :actual_seq_len, :, :] = k[start_idx:end_idx, :, :]
                 value_padded[i, :actual_seq_len, :, :] = v[start_idx:end_idx, :, :]
 
-            qkv_padded_result = multi_head_attention_inside(
+            qkv_padded_result = multi_head_attention_func(
                 query_padded,
                 key_padded,
                 value_padded,
