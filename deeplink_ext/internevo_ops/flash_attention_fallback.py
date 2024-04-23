@@ -12,7 +12,7 @@ __all__ = ["SelfAttention", "CrossAttention"]
 
 
 def multi_head_attention_inside(
-    q, k, v, softmax_scale, causal=None, key_padding_mask=None
+    q, k, v, softmax_scale, drop, causal=None, key_padding_mask=None
 ):
     batch_size, seqlen = q.shape[0], q.shape[1]
     causal = causal if causal is None else causal
@@ -39,7 +39,8 @@ def multi_head_attention_inside(
         )
         scores.add_(causal_mask)
     attention = torch.softmax(scores, dim=-1, dtype=v.dtype)
-    output = torch.einsum("bhts,bshd->bthd", attention, v)
+    attention_drop = drop(attention)
+    output = torch.einsum("bhts,bshd->bthd", attention_drop, v)
     return output
 
 
@@ -217,6 +218,7 @@ class SelfAttention(nn.Module):
                 key_padded,
                 value_padded,
                 softmax_scale,
+                self.drop,
                 causal,
                 key_padding_mask,
             )
@@ -316,6 +318,7 @@ class CrossAttention(nn.Module):
                 key_padded,
                 value_padded,
                 softmax_scale,
+                self.drop,
                 causal,
                 key_padding_mask,
             )
