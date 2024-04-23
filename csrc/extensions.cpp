@@ -232,6 +232,27 @@ void extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
             input_layout.c_str());
 }
 
+void extFlashAttentionV3(at::Tensor& out, at::Tensor& softmax_lse,
+                         const at::Tensor& q, const at::Tensor& k,
+                         const at::Tensor& v, at::Generator& gen,
+                         double p_dropout, double softmax_scale,
+                         bool is_causal) {
+  callDiopi(diopiFlashAttentionV3, out, softmax_lse, gen, q, k, v, p_dropout,
+            softmax_scale, is_causal);
+}
+
+void extFlashAttentionV3Backward(at::Tensor& grad_q, at::Tensor& grad_k,
+                                 at::Tensor& grad_v, const at::Tensor& grad_out,
+                                 const at::Tensor& q, const at::Tensor& k,
+                                 const at::Tensor& v, const at::Tensor& out,
+                                 at::Generator& gen,
+                                 const at::Tensor& softmax_lse, bool is_causal,
+                                 double p_dropout, double softmax_scale) {
+  callDiopi(diopiFlashAttentionV3Backward, grad_q, grad_k, grad_v, grad_out,
+            gen, q, k, v, out, softmax_lse, p_dropout, softmax_scale,
+            is_causal);
+}
+
 // for ascend
 auto extFlashAttentionVarLen(at::Tensor& out, const at::Tensor& q,
                              const at::Tensor& k, const at::Tensor& v,
@@ -274,48 +295,6 @@ void extFlashAttentionVarLenBackward(
   callDiopi(diopiFlashAttentionVarLenBackward, grad_q, grad_k, grad_v, grad_out,
             q, k, v, cum_seq_q, cum_seq_k, out, attention_mask, dropout_mask,
             softmax_max, softmax_sum, softmax_out, p_dropout, softmax_scale);
-}
-
-void extFlashAttentionV3(at::Tensor& out, at::Tensor& softmax_lse,
-                         const at::Tensor& q, const at::Tensor& k,
-                         const at::Tensor& v, at::Generator& gen,
-                         double p_dropout, double softmax_scale,
-                         bool is_causal) {
-  callDiopi(diopiFlashAttentionV3, out, softmax_lse, gen, q, k, v, p_dropout,
-            softmax_scale, is_causal);
-}
-
-void extFlashAttentionV3Backward(at::Tensor& grad_q, at::Tensor& grad_k,
-                                 at::Tensor& grad_v, const at::Tensor& grad_out,
-                                 const at::Tensor& q, const at::Tensor& k,
-                                 const at::Tensor& v, const at::Tensor& out,
-                                 at::Generator& gen,
-                                 const at::Tensor& softmax_lse, bool is_causal,
-                                 double p_dropout, double softmax_scale) {
-  callDiopi(diopiFlashAttentionV3Backward, grad_q, grad_k, grad_v, grad_out,
-            gen, q, k, v, out, softmax_lse, p_dropout, softmax_scale,
-            is_causal);
-}
-
-void extFlashAttentionV3(at::Tensor& out, at::Tensor& softmax_lse,
-                         const at::Tensor& q, const at::Tensor& k,
-                         const at::Tensor& v, at::Generator& gen,
-                         double p_dropout, double softmax_scale,
-                         bool is_causal) {
-  callDiopi(diopiFlashAttentionV3, out, softmax_lse, gen, q, k, v, p_dropout,
-            softmax_scale, is_causal);
-}
-
-void extFlashAttentionV3Backward(at::Tensor& grad_q, at::Tensor& grad_k,
-                                 at::Tensor& grad_v, const at::Tensor& grad_out,
-                                 const at::Tensor& q, const at::Tensor& k,
-                                 const at::Tensor& v, const at::Tensor& out,
-                                 at::Generator& gen,
-                                 const at::Tensor& softmax_lse, bool is_causal,
-                                 double p_dropout, double softmax_scale) {
-  callDiopi(diopiFlashAttentionV3Backward, grad_q, grad_k, grad_v, grad_out,
-            gen, q, k, v, out, softmax_lse, p_dropout, softmax_scale,
-            is_causal);
 }
 
 void extScaledMaskedSoftmax(at::Tensor& out, const at::Tensor& input,
