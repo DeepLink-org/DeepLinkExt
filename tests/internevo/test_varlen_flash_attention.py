@@ -35,8 +35,8 @@ def test_self_attention_varlen_qkv_mha():
     cu_seqlens_cpu = cu_seqlens_gpu.cpu()
 
     ouput_forward_cpu, grads_cpu = call_module(
-        SelfAttention(),
-        qkv_cpu[0],
+        SelfAttention().cuda(),
+        qkv_gpu,
         None,
         None,
         None,
@@ -96,11 +96,11 @@ def test_self_attention_varlen_q_k_v_gqa():
     cu_seqlens_k_cpu = cu_seqlens_k_gpu.cpu()
 
     ouput_forward_cpu, grads_cpu = call_module(
-        SelfAttention(),
+        SelfAttention().cuda(),
         None,
-        q_cpu,
-        k_cpu,
-        v_cpu,
+        q_gpu,
+        k_gpu,
+        v_gpu,
         None,
         True,
         None,
@@ -159,12 +159,12 @@ def test_self_attention_varlen_q_kv_gqa():
     cu_seqlens_k_cpu = cu_seqlens_k_gpu.cpu()
 
     ouput_forward_cpu, grads_cpu = call_module(
-        SelfAttention(),
+        SelfAttention().cuda(),
         None,
-        q_cpu,
+        q_gpu,
         None,
         None,
-        kv_cpu,
+        kv_gpu,
         True,
         None,
         None,
@@ -221,9 +221,9 @@ def test_cross_attention_varlen_q_kv_mha():
     cu_seqlens_k_cpu = cu_seqlens_k_gpu.cpu()
 
     ouput_forward_cpu, grads_cpu = call_module(
-        CrossAttention(),
-        q_cpu,
-        kv_cpu,
+        CrossAttention().cuda(),
+        q_gpu,
+        kv_gpu,
         True,
         cu_seqlens_cpu,
         max_seqlen,
@@ -241,8 +241,8 @@ def test_cross_attention_varlen_q_kv_mha():
         max_seqlen,
     )
 
-    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-1, atol=5e-1)
-    assert allclose(grads_cpu, grads_gpu, rtol=1e-1, atol=5e-1)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=5e-3, atol=5e-3)
+    assert allclose(grads_cpu, grads_gpu, rtol=5e-3, atol=5e-3)
 
 
 def test_cross_attention_varlen_q_kv_gqa():
@@ -275,9 +275,9 @@ def test_cross_attention_varlen_q_kv_gqa():
     cu_seqlens_k_cpu = cu_seqlens_k_gpu.cpu()
 
     ouput_forward_cpu, grads_cpu = call_module(
-        CrossAttention(),
-        q_cpu,
-        kv_cpu,
+        CrossAttention().cuda(),
+        q_gpu,
+        kv_gpu,
         True,
         cu_seqlens_cpu,
         max_seqlen,
@@ -295,5 +295,5 @@ def test_cross_attention_varlen_q_kv_gqa():
         max_seqlen,
     )
 
-    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-1, atol=2e-1)
-    assert allclose(grads_cpu, grads_gpu, rtol=1e-1, atol=2e-1)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=5e-3, atol=5e-3)
+    assert allclose(grads_cpu, grads_gpu, rtol=5e-3, atol=5e-3)
