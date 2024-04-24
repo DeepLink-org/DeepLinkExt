@@ -16,7 +16,7 @@ from deeplink_ext.internevo_ops.flash_attention_fallback import (
 def test_self_attention_varlen_qkv_mha():
     total_seqlen, num_heads, headdim = [256, 32, 64]
 
-    qkv_gpu = torch.rand(
+    qkv_gpu = torch.randn(
         [total_seqlen, 3, num_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
@@ -64,19 +64,19 @@ def test_self_attention_varlen_q_k_v_gqa():
     total_seqlen, num_q_heads, headdim = [256, 32, 64]
     num_kv_heads = 8
 
-    q_gpu = torch.rand(
+    q_gpu = torch.randn(
         [total_seqlen, num_q_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    k_gpu = torch.rand(
+    k_gpu = torch.randn(
         [total_seqlen, num_kv_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    v_gpu = torch.rand(
+    v_gpu = torch.randn(
         [total_seqlen, num_kv_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
@@ -133,13 +133,13 @@ def test_self_attention_varlen_q_kv_gqa():
     total_seqlen, num_q_heads, headdim = [256, 32, 64]
     num_kv_heads = 8
 
-    q_gpu = torch.rand(
+    q_gpu = torch.randn(
         [total_seqlen, num_q_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    kv_gpu = torch.rand(
+    kv_gpu = torch.randn(
         [total_seqlen, 2, num_kv_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
@@ -195,13 +195,13 @@ def test_self_attention_varlen_q_kv_gqa():
 def test_cross_attention_varlen_q_kv_mha():
     total_seqlen, num_heads, headdim = [256, 32, 64]
 
-    q_gpu = torch.rand(
+    q_gpu = torch.randn(
         [total_seqlen, num_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    kv_gpu = torch.rand(
+    kv_gpu = torch.randn(
         [total_seqlen, 2, num_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
@@ -249,13 +249,13 @@ def test_cross_attention_varlen_q_kv_gqa():
     total_seqlen, num_q_heads, headdim = [256, 32, 64]
     num_kv_heads = 8
 
-    q_gpu = torch.rand(
+    q_gpu = torch.randn(
         [total_seqlen, num_q_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    kv_gpu = torch.rand(
+    kv_gpu = torch.randn(
         [total_seqlen, 2, num_kv_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
