@@ -42,7 +42,7 @@ def test_self_attention_varlen_qkv_mha():
         None,
         None,
         True,
-        cu_seqlens_cpu,
+        cu_seqlens_gpu,
         max_seqlen,
     )
     ouput_forward_gpu, grads_gpu = call_module(
@@ -105,8 +105,8 @@ def test_self_attention_varlen_q_k_v_gqa():
         True,
         None,
         None,
-        cu_seqlens_q_cpu,
-        cu_seqlens_k_cpu,
+        cu_seqlens_q_gpu,
+        cu_seqlens_k_gpu,
         max_seqlen,
         max_seqlen,
     )
@@ -120,8 +120,8 @@ def test_self_attention_varlen_q_k_v_gqa():
         True,
         None,
         None,
-        cu_seqlens_q_cpu,
-        cu_seqlens_k_cpu,
+        cu_seqlens_q_gpu,
+        cu_seqlens_k_gpu,
         max_seqlen,
         max_seqlen,
     )
@@ -168,8 +168,8 @@ def test_self_attention_varlen_q_kv_gqa():
         True,
         None,
         None,
-        cu_seqlens_q_cpu,
-        cu_seqlens_k_cpu,
+        cu_seqlens_q_gpu,
+        cu_seqlens_k_gpu,
         max_seqlen,
         max_seqlen,
     )
@@ -225,9 +225,9 @@ def test_cross_attention_varlen_q_kv_mha():
         q_gpu,
         kv_gpu,
         True,
-        cu_seqlens_cpu,
+        cu_seqlens_gpu,
         max_seqlen,
-        cu_seqlens_k_cpu,
+        cu_seqlens_k_gpu,
         max_seqlen,
     )
     ouput_forward_gpu, grads_gpu = call_module(
@@ -279,9 +279,9 @@ def test_cross_attention_varlen_q_kv_gqa():
         q_gpu,
         kv_gpu,
         True,
-        cu_seqlens_cpu,
+        cu_seqlens_gpu,
         max_seqlen,
-        cu_seqlens_k_cpu,
+        cu_seqlens_k_gpu,
         max_seqlen,
     )
     ouput_forward_gpu, grads_gpu = call_module(
