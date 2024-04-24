@@ -56,8 +56,8 @@ def test_self_attention_varlen_qkv_mha():
         cu_seqlens_gpu,
         max_seqlen,
     )
-    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-3, atol=1e-3)
-    assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-5)
 
 
 def test_self_attention_varlen_q_k_v_gqa():
@@ -125,8 +125,8 @@ def test_self_attention_varlen_q_k_v_gqa():
         max_seqlen,
         max_seqlen,
     )
-    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-3, atol=1e-3)
-    assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-5)
 
 
 def test_self_attention_varlen_q_kv_gqa():
@@ -188,8 +188,8 @@ def test_self_attention_varlen_q_kv_gqa():
         max_seqlen,
         max_seqlen,
     )
-    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-3, atol=1e-3)
-    assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-5)
 
 
 def test_cross_attention_varlen_q_kv_mha():
@@ -241,8 +241,8 @@ def test_cross_attention_varlen_q_kv_mha():
         max_seqlen,
     )
 
-    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=5e-3, atol=5e-3)
-    assert allclose(grads_cpu, grads_gpu, rtol=5e-3, atol=5e-3)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-5)
 
 
 def test_cross_attention_varlen_q_kv_gqa():
@@ -295,5 +295,5 @@ def test_cross_attention_varlen_q_kv_gqa():
         max_seqlen,
     )
 
-    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=5e-3, atol=5e-3)
-    assert allclose(grads_cpu, grads_gpu, rtol=5e-3, atol=5e-3)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-5)
