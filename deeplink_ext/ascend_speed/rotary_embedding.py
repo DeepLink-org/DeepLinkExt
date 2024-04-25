@@ -27,6 +27,8 @@ def apply_rotary(
 class RotaryEmbedding(torch.autograd.Function):
     @staticmethod
     def forward(ctx, t, cos, sin):
+        cos, _ = torch.chunk(cos, 2, -1)
+        sin, _ = torch.chunk(sin, 2, -1)
         ctx.save_for_backward(cos, sin)
         return apply_rotary(t, cos, sin)
 
