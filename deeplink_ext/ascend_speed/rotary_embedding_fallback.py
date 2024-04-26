@@ -38,6 +38,7 @@ class RotaryEmbeddingTorch(torch.autograd.Function):
     Returns:
         Tensor: The input tensor after applying RoPE
     """
+
     @staticmethod
     def forward(ctx, x, cos, sin):
         ctx.save_for_backward(cos, sin)

@@ -31,6 +31,7 @@ class RotaryEmbedding(torch.autograd.Function):
     Returns:
         Tensor: The input tensor after applying RoPE
     """
+
     @staticmethod
     def forward(ctx, x, cos, sin):
         cos, _ = torch.chunk(cos, 2, -1)
