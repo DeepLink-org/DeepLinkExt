@@ -21,6 +21,7 @@ def _patch_lightllm():
         # "apply_penalty",
         "context_attention_inference",
         "token_attention_inference",
+        "paged_token_attention_inference",
         "token_softmax_reducev_inference",
         "rms_norm_lightllm",
         "rotary_emb",
@@ -70,6 +71,27 @@ def _patch_lightllm():
                 # ext.context_attention_inference
                 flash_context_attention
             )
+
+
+        def patch_paged_token_attention_inference():
+            def paged_token_attention(q, k_cache, v_cache, out, b_seq_len, block_table, block_size):
+                batch, head, dim = q.shape
+                kv_cache_len = k_cache.shape[0]
+                q = q.reshape(batch, head*dim).unsqueeze(1)
+                k_cache = k_cache.reshape(kv_cache_len, head*dim).unsqueeze(0)
+                v_cache = v_cache.reshape(kv_cache_len, head*dim).unsqueeze(0)
+                current_lens = b_seq_len.cpu().numpy().tolist()
+                out = out.view(q.shape)
+                ext.paged_attention(out, q, k_cache, v_cache,
+                                    None, None, 
+                                    current_lens, block_table, head, head,
+                                    1.0 / math.sqrt(dim), "BSH", block_size, 1, 
+                                    None, None, None, None, None, None, None, None
+                                    )
+                return out.squeeze().reshape((batch, head, dim))
+            
+            token_attention_pack.paged_token_attention = (paged_token_attention)
+
 
         def patch_token_attention_inference():
             token_attention_pack.token_att_fwd = ext.token_attention_inference
