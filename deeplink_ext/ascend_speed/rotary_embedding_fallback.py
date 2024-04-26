@@ -1,26 +1,33 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-from typing import Optional, Union
-import deeplink_ext.cpp_extensions as ext
 
 
-__all__ = ["RotaryEmbedding"]
+__all__ = ["RotaryEmbeddingTorch"]
 
 
-def apply_rotary(
+def _rotate_half(x):
+    """
+    change sign so the last dimension becomes [-odd, +even]
+    """
+    x1, x2 = torch.chunk(x, 2, dim=-1)
+    return torch.cat((-x2, x1), dim=-1)
+
+
+def apply_rotary_torch(
     x: torch.Tensor,
     cos: torch.Tensor,
     sin: torch.Tensor,
-    interleaved=False,
     conjugate=False,
 ) -> torch.Tensor:
-    output = torch.empty_like(x)
-    ext.apply_rotary(output, x, cos, sin, conjugate, interleaved)
+    x, cos, sin = x.float(), cos.float(), sin.float()
+    if conjugate:
+        torch.neg_(sin)
+    output = x * cos + _rotate_half(x) * sin
     return output
 
 
-class RotaryEmbedding(torch.autograd.Function):
+class RotaryEmbeddingTorch(torch.autograd.Function):
     """
     Apply rotary positional embedding to input tensor x.
     Args:
@@ -33,12 +40,10 @@ class RotaryEmbedding(torch.autograd.Function):
     """
     @staticmethod
     def forward(ctx, x, cos, sin):
-        cos, _ = torch.chunk(cos, 2, -1)
-        sin, _ = torch.chunk(sin, 2, -1)
         ctx.save_for_backward(cos, sin)
-        return apply_rotary(x, cos, sin)
+        return apply_rotary_torch(x, cos, sin)
 
     @staticmethod
     def backward(ctx, grad_output):
         cos, sin = ctx.saved_tensors
-        return apply_rotary(grad_output, cos, sin, conjugate=True), None, None
+        return apply_rotary_torch(grad_output, cos, sin, conjugate=True), None, None
