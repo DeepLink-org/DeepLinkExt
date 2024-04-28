@@ -10,7 +10,7 @@ if torch_dipu.dipu.vendor_type == "MLU":
     assert hasattr(ext, "fa_fwd_v3") and hasattr(ext, "fa_bwd_v3")
 else:
     assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
-    # TODO: After upgrading the software stack, test varlen flash attention op again. 
+    # TODO: After upgrading the software stack, test varlen flash attention op again.
     # There is no corresponding kernel in the 7.0 software stack, so skip the check for now.
     # assert hasattr(ext, "fa_varlen_fwd") and hasattr(ext, "fa_varlen_bwd")
 
