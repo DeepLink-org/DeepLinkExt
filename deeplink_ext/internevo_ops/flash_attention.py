@@ -827,8 +827,14 @@ class FlashSelfAttention(nn.Module):
                 )
         else:
             # unpadded
-            cu_seqlens = next((x for x in (cu_seqlens, cu_seqlens_q, cu_seqlens_k) if x is not None), None)
-            max_seqlen = next((x for x in (max_seqlen, max_seqlen_q, max_seqlen_k) if x is not None), None)
+            cu_seqlens = next(
+                (x for x in (cu_seqlens, cu_seqlens_q, cu_seqlens_k) if x is not None),
+                None,
+            )
+            max_seqlen = next(
+                (x for x in (max_seqlen, max_seqlen_q, max_seqlen_k) if x is not None),
+                None,
+            )
             return FlashAttentionVarlenQKVPackedFunc.apply(
                 qkv,
                 q,
