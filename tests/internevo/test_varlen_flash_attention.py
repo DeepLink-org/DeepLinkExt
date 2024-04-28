@@ -38,7 +38,7 @@ def test_self_attention_varlen_qkv_mha():
         cu_seqlens_gpu,
         max_seqlen,
     )
-    ouput_forward_gpu, grads_gpu = call_module(
+    ouput_forward_ext, grads_ext = call_module(
         FlashSelfAttention().cuda(),
         qkv_gpu,
         None,
@@ -49,8 +49,8 @@ def test_self_attention_varlen_qkv_mha():
         cu_seqlens_gpu,
         max_seqlen,
     )
-    assert allclose(ouput_forward_ref, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-5)
 
 
 def test_self_attention_varlen_q_k_v_gqa():
@@ -99,7 +99,7 @@ def test_self_attention_varlen_q_k_v_gqa():
         max_seqlen,
         max_seqlen,
     )
-    ouput_forward_gpu, grads_gpu = call_module(
+    ouput_forward_ext, grads_ext = call_module(
         FlashSelfAttention().cuda(),
         None,
         q_gpu,
@@ -114,8 +114,8 @@ def test_self_attention_varlen_q_k_v_gqa():
         max_seqlen,
         max_seqlen,
     )
-    assert allclose(ouput_forward_ref, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-5)
 
 
 def test_self_attention_varlen_q_kv_gqa():
@@ -158,7 +158,7 @@ def test_self_attention_varlen_q_kv_gqa():
         max_seqlen,
         max_seqlen,
     )
-    ouput_forward_gpu, grads_gpu = call_module(
+    ouput_forward_ext, grads_ext = call_module(
         FlashSelfAttention().cuda(),
         None,
         q_gpu,
@@ -173,8 +173,8 @@ def test_self_attention_varlen_q_kv_gqa():
         max_seqlen,
         max_seqlen,
     )
-    assert allclose(ouput_forward_ref, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-5)
 
 
 def test_cross_attention_varlen_q_kv_mha():
@@ -211,7 +211,7 @@ def test_cross_attention_varlen_q_kv_mha():
         cu_seqlens_k_gpu,
         max_seqlen,
     )
-    ouput_forward_gpu, grads_gpu = call_module(
+    ouput_forward_ext, grads_ext = call_module(
         FlashCrossAttention().cuda(),
         q_gpu,
         kv_gpu,
@@ -222,8 +222,8 @@ def test_cross_attention_varlen_q_kv_mha():
         max_seqlen,
     )
 
-    assert allclose(ouput_forward_ref, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-5)
 
 
 def test_cross_attention_varlen_q_kv_gqa():
@@ -261,7 +261,7 @@ def test_cross_attention_varlen_q_kv_gqa():
         cu_seqlens_k_gpu,
         max_seqlen,
     )
-    ouput_forward_gpu, grads_gpu = call_module(
+    ouput_forward_ext, grads_ext = call_module(
         FlashCrossAttention().cuda(),
         q_gpu,
         kv_gpu,
@@ -272,5 +272,5 @@ def test_cross_attention_varlen_q_kv_gqa():
         max_seqlen,
     )
 
-    assert allclose(ouput_forward_ref, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-5)
