@@ -106,5 +106,4 @@ jobs:
         run: |
           source /mnt/cache/share/platform/cienv/dipu_latest_ci
           cd ${DEEPLINK_PATH}/${{ github.run_number }}/DeepLinkExt
-          python -m pytest tests/internevo
-          python -m pytest tests/ascend_speed
+          python -m pytest tests
