@@ -96,6 +96,7 @@ jobs:
         run: |
           source /mnt/cache/share/platform/cienv/dipu_latest_ci
           cd ${DEEPLINK_PATH}/${{ github.run_number }}/DeepLinkExt
+          python3 -c "import torch;import torch_dipu; print("dipu path:", torch_dipu.__path__)"
           python setup.py build_ext --inplace
 
   test-on-ascend:
