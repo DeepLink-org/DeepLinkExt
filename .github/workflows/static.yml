@@ -84,6 +84,7 @@ jobs:
   build-on-ascend:
     name: build on ascend
     runs-on: tps-ascend-ci-910b
+    needs: [static-checks-on-sco]
     steps:
       - name: prepare code
         run: |
