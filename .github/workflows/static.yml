@@ -18,8 +18,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  static-checks-on-sco:
-    name: static checks on sco
+  static-checks-on-sco-nvidia:
+    name: static checks on nv
     runs-on: tps-sco-ci
     steps:
       - name: setting up environment
@@ -84,7 +84,6 @@ jobs:
   build-on-ascend:
     name: build on ascend
     runs-on: tps-ascend-ci-910b
-    needs: [static-checks-on-sco]
     steps:
       - name: prepare code
         run: |
@@ -92,11 +91,10 @@ jobs:
           mkdir -p ${DEEPLINK_PATH}/${{ github.run_number }} && cd ${DEEPLINK_PATH}/${{ github.run_number }}
           git clone https://github.com/DeepLink-org/DeepLinkExt.git && cd DeepLinkExt
           git checkout ${{ github.event.pull_request.head.sha }} && git merge --no-edit ${{ github.base_ref }}
-      - name: deeplink_ext
+      - name: build deeplink_ext
         run: |
           source /mnt/cache/share/platform/cienv/dipu_latest_ci
           cd ${DEEPLINK_PATH}/${{ github.run_number }}/DeepLinkExt
-          python3 -c "import torch;import torch_dipu; print("dipu path:", torch_dipu.__path__)"
           python setup.py build_ext --inplace
 
   test-on-ascend:
