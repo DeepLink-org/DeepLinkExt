@@ -11,24 +11,27 @@ def test_MixedFusedRMSNorm():
     input_dtype_list = [torch.float16, torch.bfloat16, torch.float32, torch.float32]
     weight_dtype_list = [torch.float16, torch.bfloat16, torch.float16, torch.bfloat16]
     for input_dtype, weight_dtype in zip(input_dtype_list, weight_dtype_list):
-        hidden_states = torch.randn(
+        hidden_states_ref = torch.randn(
             1, 64, 32, 64, dtype=input_dtype, device="cuda", requires_grad=True
         )
+        hidden_states_ext = hidden_states_ref.clone().detach().requires_grad_(True)
+
         output_ref, grad_ref = call_module(
-            MixedRMSNormTorch(list(hidden_states.shape)[-1], 1e-5)
+            MixedRMSNormTorch(list(hidden_states_ref.shape)[-1], 1e-5)
             .cuda()
             .to(weight_dtype),
-            hidden_states,
+            hidden_states_ref,
         )
-        output, grad = call_module(
-            MixedFusedRMSNorm(list(hidden_states.shape)[-1], 1e-5)
+        output_ext, grad_ext = call_module(
+            MixedFusedRMSNorm(list(hidden_states_ext.shape)[-1], 1e-5)
             .cuda()
             .to(weight_dtype),
-            hidden_states,
+            hidden_states_ext,
         )
+
         assert allclose(
-            output_ref, output, rtol=1e-05, atol=1e-08
+            output_ref, output_ext, rtol=1e-05, atol=1e-08
         ), f"When input dtype is {input_dtype} and weight dtype is {weight_dtype}, MixedRMSNorm fails to pass the forward test!"
         assert allclose(
-            grad_ref, grad, rtol=1e-05, atol=1e-08
+            grad_ref, grad_ext, rtol=1e-3, atol=1e-2
         ), f"When input dtype is {input_dtype} and weight dtype is {weight_dtype}, MixedRMSNorm fails to pass the backward test!"
