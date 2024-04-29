@@ -39,7 +39,7 @@ def test_ApplyRotaryEmb():
 
 
 def test_ApplyRotaryEmbQKV__qkv():
-    # Note: For ascend, when dtype of input is bfp16, fp32, the difference in calculation results is significant.
+    # Note: For ascend, when dtype of input is bfp16 or fp32, the difference in calculation results is significant.
     input_dtype_list = [
         torch.float16,
     ]
