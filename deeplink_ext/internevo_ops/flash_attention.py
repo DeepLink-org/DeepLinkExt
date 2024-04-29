@@ -508,7 +508,7 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
         gen = torch.Generator(device=q.device)
 
         if softmax_scale is None:
-            softmax_scale = kv[:, :, 0].shape[-1] ** (-0.5)
+            softmax_scale = kv.shape[-1] ** (-0.5)
 
         head_num = q.shape[2]
         out = torch.empty_like(q)
@@ -593,7 +593,7 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
         gen = torch.Generator(device=q.device)
 
         if softmax_scale is None:
-            softmax_scale = kv[:, :, 0].shape[-1] ** (-0.5)
+            softmax_scale = kv.shape[-1] ** (-0.5)
 
         batch_size = q.shape[0]
         seqlen_q = q.shape[1]
@@ -676,7 +676,7 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
         gen = torch.Generator(device=q.device)
 
         if softmax_scale is None:
-            softmax_scale = kv[:, :, 0].shape[-1] ** (-0.5)
+            softmax_scale = kv.shape[-1] ** (-0.5)
 
         assert (
             cu_seqlens_q is not None and cu_seqlens_k is not None
