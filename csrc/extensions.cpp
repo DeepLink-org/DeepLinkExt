@@ -258,8 +258,10 @@ auto extFlashAttentionVarLen(at::Tensor& out, const at::Tensor& q,
                              const at::Tensor& k, const at::Tensor& v,
                              at::Generator& gen,
                              const at::IntArrayRef& cum_seq_q,
-                             const at::IntArrayRef& cum_seq_k, double p_dropout,
-                             double softmax_scale, bool is_causal) {
+                             const at::IntArrayRef& cum_seq_k,
+                             int64_t max_seqlen_q, int64_t max_seqlen_kv,
+                             double p_dropout, double softmax_scale,
+                             bool is_causal) {
   diopiTensorHandle_t attention_mask = nullptr;
   diopiTensorHandle_t dropout_mask = nullptr;
   diopiTensorHandle_t softmax_max = nullptr;
@@ -269,7 +271,8 @@ auto extFlashAttentionVarLen(at::Tensor& out, const at::Tensor& q,
   [[maybe_unused]] auto context = callDiopiKeepContext(
       diopiFlashAttentionVarLen, out, &attention_mask, &dropout_mask,
       &softmax_max, &softmax_sum, &softmax_out, gen, q, k, v, cum_seq_q,
-      cum_seq_k, p_dropout, softmax_scale, is_causal);
+      cum_seq_k, max_seqlen_q, max_seqlen_kv, p_dropout, softmax_scale,
+      is_causal);
 
   return std::make_tuple(
       attention_mask
@@ -291,10 +294,12 @@ void extFlashAttentionVarLenBackward(
     const c10::optional<at::Tensor>& attention_mask,
     const c10::optional<at::Tensor>& dropout_mask,
     const at::Tensor& softmax_max, const at::Tensor& softmax_sum,
-    const at::Tensor& softmax_out, double p_dropout, double softmax_scale) {
+    const at::Tensor& softmax_out, int64_t max_seqlen_q, int64_t max_seqlen_kv,
+    double p_dropout, double softmax_scale) {
   callDiopi(diopiFlashAttentionVarLenBackward, grad_q, grad_k, grad_v, grad_out,
             q, k, v, cum_seq_q, cum_seq_k, out, attention_mask, dropout_mask,
-            softmax_max, softmax_sum, softmax_out, p_dropout, softmax_scale);
+            softmax_max, softmax_sum, softmax_out, max_seqlen_q, max_seqlen_kv,
+            p_dropout, softmax_scale);
 }
 
 void extScaledMaskedSoftmax(at::Tensor& out, const at::Tensor& input,

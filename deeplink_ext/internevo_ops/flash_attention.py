@@ -380,6 +380,8 @@ class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
             gen,
             cu_seqlens,
             cu_seqlens,
+            max_seqlen,
+            max_seqlen,
             dropout_p,
             softmax_scale,
             causal,
@@ -401,6 +403,7 @@ class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.cu_seqlens = cu_seqlens
+        ctx.max_seqlen = max_seqlen
         return out
 
     @staticmethod
@@ -437,6 +440,8 @@ class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
                 softmax_max,
                 softmax_sum,
                 softmax_out,
+                ctx.max_seqlen,
+                ctx.max_seqlen,
                 ctx.dropout_p,
                 ctx.softmax_scale,
             )
@@ -460,6 +465,8 @@ class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
                 softmax_max,
                 softmax_sum,
                 softmax_out,
+                ctx.max_seqlen,
+                ctx.max_seqlen,
                 ctx.dropout_p,
                 ctx.softmax_scale,
             )
@@ -484,6 +491,8 @@ class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
                 softmax_max,
                 softmax_sum,
                 softmax_out,
+                ctx.max_seqlen,
+                ctx.max_seqlen,
                 ctx.dropout_p,
                 ctx.softmax_scale,
             )
@@ -690,6 +699,8 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
             gen,
             cu_seqlens_q,
             cu_seqlens_k,
+            max_seqlen_q,
+            max_seqlen_k,
             dropout_p,
             softmax_scale,
             causal,
@@ -709,6 +720,8 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
         ctx.softmax_scale = softmax_scale
         ctx.cu_seqlens_q = cu_seqlens_q
         ctx.cu_seqlens_k = cu_seqlens_k
+        ctx.max_seqlen_q = max_seqlen_q
+        ctx.max_seqlen_k = max_seqlen_k
         return out
 
     @staticmethod
@@ -743,6 +756,8 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
             softmax_max,
             softmax_sum,
             softmax_out,
+            ctx.max_seqlen_q,
+            ctx.max_seqlen_k,
             ctx.dropout_p,
             ctx.softmax_scale,
         )
