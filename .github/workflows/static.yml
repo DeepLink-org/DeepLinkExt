@@ -92,7 +92,7 @@ jobs:
           mkdir -p ${DEEPLINK_PATH}/${{ github.run_number }} && cd ${DEEPLINK_PATH}/${{ github.run_number }}
           git clone https://github.com/DeepLink-org/DeepLinkExt.git && cd DeepLinkExt
           git checkout ${{ github.event.pull_request.head.sha }} && git merge --no-edit ${{ github.base_ref }}
-      - name: build dipu and deeplink_ext
+      - name: deeplink_ext
         run: |
           source /mnt/cache/share/platform/cienv/dipu_latest_ci
           cd ${DEEPLINK_PATH}/${{ github.run_number }}/DeepLinkExt
