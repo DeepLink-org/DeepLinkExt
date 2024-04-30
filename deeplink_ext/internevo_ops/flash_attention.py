@@ -742,12 +742,12 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
 
         ext.fa_varlen_bwd(
             dq,
-            dkv[:, :, 0],
-            dkv[:, :, 1],
+            dkv[:, 0],
+            dkv[:, 1],
             dout,
             q,
-            kv[:, :, 0],
-            kv[:, :, 1],
+            kv[:, 0],
+            kv[:, 1],
             ctx.cu_seqlens_q,
             ctx.cu_seqlens_k,
             out,
