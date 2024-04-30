@@ -125,8 +125,8 @@ def test_self_attention_varlen_q_k_v_gqa():
 
 
 def test_self_attention_varlen_q_kv_gqa():
-    total_seqlen, num_q_heads, headdim = [256, 32, 64]
-    num_kv_heads = 8
+    total_seqlen, num_q_heads, headdim = [16384, 6, 64]
+    num_kv_heads = 2
 
     q_ref = torch.randn(
         [total_seqlen, num_q_heads, headdim],
@@ -143,13 +143,17 @@ def test_self_attention_varlen_q_kv_gqa():
     q_ext = q_ref.clone().detach().requires_grad_(True)
     kv_ext = kv_ref.clone().detach().requires_grad_(True)
 
-    cu_seqlens_q_ref = torch.tensor(
-        [0, 32, 64, 128, 256], dtype=torch.int64, device="cuda"
-    )
-    cu_seqlens_k_ref = torch.tensor(
-        [0, 32, 64, 128, 256], dtype=torch.int64, device="cuda"
-    )
-    max_seqlen = 128
+    cu_seqlens_q_ref = torch.tensor([  0,   186,   382,  1259,  1464,  2547,  2705,  3495,  3854,  4696,
+         4762,  4885,  5118,  5355,  5503,  5760,  6168,  6353,  8272,  8461,
+         9273,  9531,  9763,  9871, 10234, 10370, 10574, 10712, 11022, 11236,
+        11599, 11837, 12179, 12320, 12560, 12731, 13038, 13180, 13477, 14025,
+        14742, 14872, 15131, 15773, 15967, 16110, 16384], dtype=torch.int64, device='cuda')
+    cu_seqlens_k_ref = torch.tensor([  0,   186,   382,  1259,  1464,  2547,  2705,  3495,  3854,  4696,
+         4762,  4885,  5118,  5355,  5503,  5760,  6168,  6353,  8272,  8461,
+         9273,  9531,  9763,  9871, 10234, 10370, 10574, 10712, 11022, 11236,
+        11599, 11837, 12179, 12320, 12560, 12731, 13038, 13180, 13477, 14025,
+        14742, 14872, 15131, 15773, 15967, 16110, 16384], dtype=torch.int64, device='cuda')
+    max_seqlen = 1919
 
     ouput_forward_ref, grads_ref = call_module(
         SelfAttention().cuda(),
@@ -202,6 +206,7 @@ def test_cross_attention_varlen_q_kv_mha():
     )
     q_ext = q_ref.clone().detach().requires_grad_(True)
     kv_ext = kv_ref.clone().detach().requires_grad_(True)
+
     cu_seqlens_ref = torch.tensor([  0,   186,   382,  1259,  1464,  2547,  2705,  3495,  3854,  4696,
          4762,  4885,  5118,  5355,  5503,  5760,  6168,  6353,  8272,  8461,
          9273,  9531,  9763,  9871, 10234, 10370, 10574, 10712, 11022, 11236,
