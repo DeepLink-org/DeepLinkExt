@@ -88,6 +88,7 @@ jobs:
       - name: prepare code
         run: |
           set -ex
+          rm ${DEEPLINK_PATH}/${{ github.run_number }}/* -rf
           mkdir -p ${DEEPLINK_PATH}/${{ github.run_number }} && cd ${DEEPLINK_PATH}/${{ github.run_number }}
           git clone https://github.com/DeepLink-org/DeepLinkExt.git && cd DeepLinkExt
           git checkout ${{ github.event.pull_request.head.sha }} && git merge --no-edit ${{ github.base_ref }}
