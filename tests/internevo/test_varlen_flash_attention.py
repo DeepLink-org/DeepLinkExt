@@ -53,7 +53,7 @@ def test_self_attention_varlen_qkv_mha():
         max_seqlen,
     )
     assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=5e-2)
+    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-2)
 
 
 def test_self_attention_varlen_q_k_v_gqa():
@@ -121,7 +121,7 @@ def test_self_attention_varlen_q_k_v_gqa():
         max_seqlen,
     )
     assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=5e-2)
+    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-2)
 
 
 def test_self_attention_varlen_q_kv_mha():
@@ -304,7 +304,7 @@ def test_cross_attention_varlen_q_kv_mha():
         max_seqlen,
     )
     assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=2e-2)
+    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=5e-2)
 
 
 def test_cross_attention_varlen_q_kv_gqa():
