@@ -215,7 +215,7 @@ auto extFlashAttentionV2(at::Tensor& out, const at::Tensor& q,
       *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
 }
 
-auto extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
+void extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
                                at::Tensor& grad_v, const at::Tensor& grad_out,
                                const at::Tensor& q, const at::Tensor& k,
                                const at::Tensor& v, const at::Tensor& out,
@@ -230,8 +230,6 @@ auto extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
             v, out, attention_mask, dropout_mask, softmax_max, softmax_sum,
             softmax_out, p_dropout, softmax_scale, head_num,
             input_layout.c_str());
-  return std::make_tuple(std::move(grad_q), std::move(grad_k),
-                         std::move(grad_v));
 }
 
 void extFlashAttentionV3(at::Tensor& out, at::Tensor& softmax_lse,
@@ -253,6 +251,55 @@ void extFlashAttentionV3Backward(at::Tensor& grad_q, at::Tensor& grad_k,
   callDiopi(diopiFlashAttentionV3Backward, grad_q, grad_k, grad_v, grad_out,
             gen, q, k, v, out, softmax_lse, p_dropout, softmax_scale,
             is_causal);
+}
+
+// for ascend
+auto extFlashAttentionVarLen(at::Tensor& out, const at::Tensor& q,
+                             const at::Tensor& k, const at::Tensor& v,
+                             at::Generator& gen,
+                             const at::IntArrayRef& cum_seq_q,
+                             const at::IntArrayRef& cum_seq_k,
+                             int64_t max_seqlen_q, int64_t max_seqlen_kv,
+                             double p_dropout, double softmax_scale,
+                             bool is_causal) {
+  diopiTensorHandle_t attention_mask = nullptr;
+  diopiTensorHandle_t dropout_mask = nullptr;
+  diopiTensorHandle_t softmax_max = nullptr;
+  diopiTensorHandle_t softmax_sum = nullptr;
+  diopiTensorHandle_t softmax_out = nullptr;
+
+  [[maybe_unused]] auto context = callDiopiKeepContext(
+      diopiFlashAttentionVarLen, out, &attention_mask, &dropout_mask,
+      &softmax_max, &softmax_sum, &softmax_out, gen, q, k, v, cum_seq_q,
+      cum_seq_k, max_seqlen_q, max_seqlen_kv, p_dropout, softmax_scale,
+      is_causal);
+
+  return std::make_tuple(
+      attention_mask
+          ? *dipu::diopi_helper::fromDiopiTensorHandle(attention_mask)
+          : at::Tensor(),
+      dropout_mask ? *dipu::diopi_helper::fromDiopiTensorHandle(dropout_mask)
+                   : at::Tensor(),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_max),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_sum),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
+}
+
+// for ascend
+void extFlashAttentionVarLenBackward(
+    at::Tensor& grad_q, at::Tensor& grad_k, at::Tensor& grad_v,
+    const at::Tensor& grad_out, const at::Tensor& q, const at::Tensor& k,
+    const at::Tensor& v, const at::IntArrayRef& cum_seq_q,
+    const at::IntArrayRef& cum_seq_k, const at::Tensor& out,
+    const c10::optional<at::Tensor>& attention_mask,
+    const c10::optional<at::Tensor>& dropout_mask,
+    const at::Tensor& softmax_max, const at::Tensor& softmax_sum,
+    const at::Tensor& softmax_out, int64_t max_seqlen_q, int64_t max_seqlen_kv,
+    double p_dropout, double softmax_scale) {
+  callDiopi(diopiFlashAttentionVarLenBackward, grad_q, grad_k, grad_v, grad_out,
+            q, k, v, cum_seq_q, cum_seq_k, out, attention_mask, dropout_mask,
+            softmax_max, softmax_sum, softmax_out, max_seqlen_q, max_seqlen_kv,
+            p_dropout, softmax_scale);
 }
 
 void extScaledMaskedSoftmax(at::Tensor& out, const at::Tensor& input,
@@ -336,6 +383,14 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
   if (&diopiFlashAttentionV3Backward != nullptr) {
     m.def("fa_bwd_v3", &extFlashAttentionV3Backward, "deeplink ext_fa_bwd_v3");
+  }
+  if (&diopiFlashAttentionVarLen != nullptr) {
+    m.def("fa_varlen_fwd", &extFlashAttentionVarLen,
+          "deeplink ext_fa_varlen_fwd");
+  }
+  if (&diopiFlashAttentionVarLenBackward != nullptr) {
+    m.def("fa_varlen_bwd", &extFlashAttentionVarLenBackward,
+          "deeplink ext_fa_varlen_bwd");
   }
   if (&diopiRMSNorm != nullptr) {
     m.def("rms_norm", &extRmsNorm, "deeplink ext_rms_norm");
