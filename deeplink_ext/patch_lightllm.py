@@ -48,7 +48,8 @@ def _patch_lightllm():
             @record_function('loop_context_attention')
             def flash_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len):
                 batch, head, dim = b_start_loc.shape[0], q.shape[1], q.shape[2]
-
+                numKeyValueHeads = k.shape[1]
+                assert k.shape[1] == v.shape[1]
                 scale = 1 / math.sqrt(dim)
                 for i in range(batch):
                     start = b_start_loc[i]
@@ -69,7 +70,7 @@ def _patch_lightllm():
                         print(f"{key_str}: cache mask in context attention")
                     mask = mask_cache[key_str]
                     with torch.profiler.record_function("PromptFA-B1"):
-                        ext.prompt_flash_attention(single_out, single_q, single_k, single_v, None, mask, [], head, scale, 2147473647, 0, "BSH", 0)
+                        ext.prompt_flash_attention(single_out, single_q, single_k, single_v, None, mask, [], head, scale, 2147473647, 0, "BSH", numKeyValueHeads)
                 return out
 
             @record_function('fused_context_attention')
