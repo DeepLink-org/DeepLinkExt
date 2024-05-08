@@ -21,7 +21,7 @@ class RMSNorm(torch.autograd.Function):
         )
         n = weight.dim()
         inv_rms = torch.empty(
-            list(hidden_states.shape[:-n]) + [1] * n,
+            list(hidden_states.shape[:-n]),
             dtype=acc_dtype,
             device=hidden_states.device,
         )
