@@ -70,8 +70,8 @@ jobs:
           git -c advice.detachedHead=false clone --depth 1 -b v0.1.3 https://github.com/lljbash/clangd-tidy.git ${CLANGD_TIDY_SOURCE}
 
   build-on-nv:
-    - name: build and static check on nv
     runs-on: [tps-diopi-ci]
+    name: build and static check on nv
     steps:
       - name: build
         run: |
