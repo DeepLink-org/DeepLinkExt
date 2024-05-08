@@ -20,7 +20,7 @@ concurrency:
 jobs:
   Rsync:
     name: Rsync code
-    runs-on: [tps-sco-ci, tps-ascend-ci-910b]
+    runs-on: self-hosted
     steps:
       - name: clone repo
         run: |
