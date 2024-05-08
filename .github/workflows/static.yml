@@ -18,11 +18,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  static-checks-on-sco-nvidia:
-    name: static checks on nv
-    runs-on: tps-sco-ci
+  Rsync:
+    name: Rsync code
+    runs-on: [tps-diopi-ci, tps-ascend-ci-910b]
     steps:
-      - name: setting up environment
+      - name: clone repo
         run: |
           set -euxo pipefail
           set_env() {
@@ -33,6 +33,7 @@ jobs:
           set_env CODE_SOURCE "${WORKSPACE}/source"
           set_env CLANGD_TIDY_SOURCE "${WORKSPACE}/clangd-tidy"
           set_env CLANGD_TIDY_LOG "${WORKSPACE}/clang-tidy.log"
+
       - name: clean obsolete workspaces & prepare workspace
         run: |
           set -euxo pipefail
@@ -41,32 +42,37 @@ jobs:
           rm -rf ${WORKSPACE}
           find ${DEEPLINK_PATH} -mindepth 1 -maxdepth 1 -mmin +480 -type d -exec bash -c 'echo clean "$0" && rm -rf "$0"' {} \;
           mkdir -p ${WORKSPACE}
-      - name: checkout code
-        run: |
-          set -euo pipefail
-          source ${PROXY_SOURCE}
-          set -x
-          rm -rf ${CODE_SOURCE}
-          if [ -n "${{ github.event.pull_request.head.repo.full_name }}" ] && [[ ! "${{ github.event.pull_request.head.repo.full_name }}" == "${{ github.repository }}" ]]; then
-            git clone ${{ github.event.pull_request.head.repo.clone_url }} ${CODE_SOURCE}
-            cd ${CODE_SOURCE} && git checkout ${{ github.event.pull_request.head.sha }}
-            git remote add mainrepo https://github.com/${{ github.repository }}.git
-            git fetch mainrepo && git merge --no-edit mainrepo/${{ github.base_ref }}
-          else
-            git clone ${{ github.event.repository.clone_url }} ${CODE_SOURCE} && cd ${CODE_SOURCE}
-            if [ "${{ github.event_name }}" == "pull_request" ]; then
-              git checkout ${{ github.event.pull_request.head.sha }} && git merge --no-edit ${{ github.base_ref }}
+          - name: checkout code
+          run: |
+            set -euo pipefail
+            source ${PROXY_SOURCE}
+            set -x
+            rm -rf ${CODE_SOURCE}
+            if [ -n "${{ github.event.pull_request.head.repo.full_name }}" ] && [[ ! "${{ github.event.pull_request.head.repo.full_name }}" == "${{ github.repository }}" ]]; then
+              git clone ${{ github.event.pull_request.head.repo.clone_url }} ${CODE_SOURCE}
+              cd ${CODE_SOURCE} && git checkout ${{ github.event.pull_request.head.sha }}
+              git remote add mainrepo https://github.com/${{ github.repository }}.git
+              git fetch mainrepo && git merge --no-edit mainrepo/${{ github.base_ref }}
             else
-              git checkout ${{ github.sha }}
+              git clone ${{ github.event.repository.clone_url }} ${CODE_SOURCE} && cd ${CODE_SOURCE}
+              if [ "${{ github.event_name }}" == "pull_request" ]; then
+                git checkout ${{ github.event.pull_request.head.sha }} && git merge --no-edit ${{ github.base_ref }}
+              else
+                git checkout ${{ github.sha }}
+              fi
             fi
-          fi
-          git submodule update --init --recursive
+            git submodule update --init --recursive
       - name: checkout clangd-tidy
         run: |
           set -euo pipefail
           source ${PROXY_SOURCE}
           set -x
           git -c advice.detachedHead=false clone --depth 1 -b v0.1.3 https://github.com/lljbash/clangd-tidy.git ${CLANGD_TIDY_SOURCE}
+
+  build-on-nv:
+    - name: build and static check on nv
+    runs-on: [tps-diopi-ci]
+    steps:
       - name: build
         run: |
           set -euxo pipefail
@@ -81,29 +87,17 @@ jobs:
           set -euxo pipefail
           rm -rf ${CODE_SOURCE}/build/.cache
 
-  build-on-ascend:
-    name: build on ascend
+  build-check-test-on-ascend:
+    name: build, static check, test on ascend
     runs-on: tps-ascend-ci-910b
+    needs: [Rsync]
     steps:
-      - name: prepare code
-        run: |
-          set -ex
-          rm ${DEEPLINK_PATH}/${{ github.run_number }}/* -rf
-          mkdir -p ${DEEPLINK_PATH}/${{ github.run_number }} && cd ${DEEPLINK_PATH}/${{ github.run_number }}
-          git clone https://github.com/DeepLink-org/DeepLinkExt.git && cd DeepLinkExt
-          git checkout ${{ github.event.pull_request.head.sha }} && git merge --no-edit ${{ github.base_ref }}
       - name: build deeplink_ext
         run: |
           source /mnt/cache/share/platform/cienv/dipu_latest_ci
           cd ${DEEPLINK_PATH}/${{ github.run_number }}/DeepLinkExt
           python setup.py build_ext --inplace
-
-  test-on-ascend:
-    name: test on ascend
-    runs-on: tps-ascend-ci-910b
-    needs: [build-on-ascend]
-    steps:
-      - name: run unit tests on ascend
+      - name: test
         run: |
           source /mnt/cache/share/platform/cienv/dipu_latest_ci
           cd ${DEEPLINK_PATH}/${{ github.run_number }}/DeepLinkExt
