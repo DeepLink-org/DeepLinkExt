@@ -243,7 +243,7 @@ def test_self_attention_varlen_q_kv_gqa():
     assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
     assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-2)
 
-class TODO_TestFlashCrossAttention:
+
 def test_cross_attention_varlen_q_kv_mha():
     total_seqlen, num_heads, headdim = [16384, 6, 64]
 
