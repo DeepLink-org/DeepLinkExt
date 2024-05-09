@@ -360,6 +360,10 @@ void extPagedAttention(at::Tensor& out, const at::Tensor& q, const at::Tensor& k
             );
 }
 
+void extRotaryEmbeddingV2(at::Tensor& query, at::Tensor& key, const at::Tensor& cos, const at::Tensor& sin) {
+  callDiopi(diopiRotaryEmbeddingV2, query, key, cos, sin);
+}
+
 // 判断是否有对应的 diopi 实现:
 //   如果有, 则直接 pybind 上去;
 //   否则不注册, 等到 python 层处理.
@@ -448,6 +452,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiPagedAttention != nullptr) {
     m.def("paged_attention", &extPagedAttention,
           "deeplink ext_paged_attention");
+  }
+  if (&diopiRotaryEmbeddingV2 != nullptr) {
+    m.def("rotary_embedding_v2", &extRotaryEmbeddingV2, "deeplink extRotaryEmbeddingV2");
   }
 }
 
