@@ -38,10 +38,10 @@ struct IsOptionalArithmetic<c10::optional<T>> : std::is_arithmetic<T> {};
 }  // namespace type_traits
 
 inline void checkTensorOnDevice(const at::Tensor& tensor) {
-  if (tensor.device().type() == at::DeviceType::CPU) {
-    DIPU_LOGE("This op only runs on Device");
-    throw std::runtime_error("This op only runs on Device");
-  }
+  //if (tensor.device().type() == at::DeviceType::CPU) {
+  //  DIPU_LOGE("This op only runs on Device");
+  //  throw std::runtime_error("This op only runs on Device");
+  //}
 }
 
 inline void checkTensorOnDevice(const c10::optional<at::Tensor>& tensor) {
