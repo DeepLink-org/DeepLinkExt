@@ -59,68 +59,14 @@ def _patch_lightllm():
                     single_v = v[start:end].view(1, single_seq_len, -1)
 
                     single_out = out[start:end, :].view(1, single_seq_len, -1)
-                    key_str = f"bs:1-seqlen:{single_seq_len}"
-                    if key_str not in mask_cache:
+                    if single_seq_len not in mask_cache:
                         mask = torch.tril(torch.ones(single_seq_len, single_seq_len, dtype=torch.bool), diagonal=0).cuda()
                         mask = mask.repeat(1, 1, 1)
                         mask = torch.logical_not(mask)
-                        mask_cache[key_str] = mask
-                    mask = mask_cache[key_str]
+                        mask_cache[single_seq_len] = mask
+                        print(f"cache mask in context attention, seqLen:{single_seq_len}")
+                    mask = mask_cache[single_seq_len]
                     ext.prompt_flash_attention(single_out, single_q, single_k, single_v, None, mask, [], head, scale, 2147473647, 0, "BSH", numKeyValueHeads)
-                return out
-
-            def fused_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len):
-                batch, head, dim = b_start_loc.shape[0], q.shape[1], q.shape[2]
-                scale = 1 / math.sqrt(dim)
-                total_q = torch.empty([batch, max_input_len, head * dim], dtype=torch.float16, device='cuda')
-                total_k = torch.empty_like(total_q)
-                total_v = torch.empty_like(total_q)
-                total_out = torch.empty_like(total_q)
-
-                for i in range(batch):
-                    start = b_start_loc[i]
-                    end = start + b_seq_len[i]
-
-                    assert max_input_len == int(b_seq_len[i])
-                    total_q[i] = q[start:end].view(max_input_len, -1)
-                    total_k[i] = k[start:end].view(max_input_len, -1)
-                    total_v[i] = v[start:end].view(max_input_len, -1)
-
-                key_str = f"bs:{batch}-seqlen:{max_input_len}"
-                if key_str not in mask_cache:
-                    mask = torch.tril(torch.ones(max_input_len, max_input_len, dtype=torch.bool), diagonal=0).cuda()
-                    mask = mask.repeat(batch, 1, 1)
-                    mask = torch.logical_not(mask)
-                    mask_cache[key_str] = mask
-                mask = mask_cache[key_str]
-                ext.prompt_flash_attention(total_out, total_q, total_k, total_v, None, mask, [], head, scale, 2147473647, 0, "BSH", 0)
-                for i in range(batch):
-                    start = b_start_loc[i]
-                    end = start + b_seq_len[i]
-                    out[start:end, :] = total_out[i].reshape(-1, head, dim)
-                torch.cuda.synchronize()
-                return out
-
-            def test_fa(q, k, v, out, b_start_loc, b_seq_len, max_input_len):
-                out2 = torch.empty_like(out)
-
-                flash_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len)
-                fused_context_attention(q, k, v, out2, b_start_loc, b_seq_len, max_input_len)
-                assert torch.allclose(out.cpu(), out2.cpu(), rtol=1e-2, atol=1e-2)
-
-                flash_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len)
-                fused_context_attention(q, k, v, out2, b_start_loc, b_seq_len, max_input_len)
-                assert torch.allclose(out.cpu(), out2.cpu(), rtol=1e-2, atol=1e-2)
-
-                torch.cuda.synchronize()
-                path = "./tmo_profile"
-                with torch_dipu.profiler.NativeProfile(path, False):
-                    flash_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len)
-                    fused_context_attention(q, k, v, out2, b_start_loc, b_seq_len, max_input_len)
-                    torch.cuda.synchronize()
-
-                print("context attention success.")
-                quit()
                 return out
 
             context_attention_pack.context_attention_fwd = (
@@ -130,18 +76,21 @@ def _patch_lightllm():
 
 
         def patch_paged_token_attention_inference():
-            def paged_token_attention(q, k_cache, v_cache, out, b_seq_len, block_table, block_size):
+            def paged_token_attention(q, k_cache, v_cache, out, b_seq_len, block_table:torch.Tensor, block_size):
+                numKeyValueHeads = k_cache.shape[1]
+                assert k_cache.shape[1] == v_cache.shape[1]
                 batch, head, dim = q.shape
                 kv_cache_len = k_cache.shape[0]
                 q = q.reshape(batch, head*dim).unsqueeze(1)
-                k_cache = k_cache.reshape(kv_cache_len, head*dim).unsqueeze(0)
-                v_cache = v_cache.reshape(kv_cache_len, head*dim).unsqueeze(0)
-                current_lens = b_seq_len.cpu().numpy().tolist()
+                k_cache = k_cache.reshape(kv_cache_len, numKeyValueHeads*dim).unsqueeze(0)
+                v_cache = v_cache.reshape(kv_cache_len, numKeyValueHeads*dim).unsqueeze(0)
+                # current_lens = b_seq_len.cpu().numpy().tolist()
                 out = out.view(q.shape)
+                
                 ext.paged_attention(out, q, k_cache, v_cache,
                                     None, None, 
-                                    current_lens, block_table, head, head,
-                                    1.0 / math.sqrt(dim), "BSH", block_size, 1, 
+                                    b_seq_len, block_table, head, numKeyValueHeads,
+                                    1.0 / math.sqrt(dim), "BSH", block_size, 0, 
                                     None, None, None, None, None, None, None, None
                                     )
                 return out.squeeze().reshape((batch, head, dim))
@@ -151,8 +100,7 @@ def _patch_lightllm():
 
         def patch_token_attention_inference():
             token_attention_pack.token_att_fwd = ext.token_attention_inference
-            token_attention_pack.token_decode_attention_fwd = ext.token_decode_attention_inference
-            # token_attention_pack.token_decode_attention_fwd = ext.token_decode_attention_inference_batch_one#ext.token_decode_attention_inference
+            token_attention_pack.token_decode_attention_fwd = ext.token_decode_attention_inference_batch_one#ext.token_decode_attention_inference
 
         def patch_token_softmax_reducev_inference():
             token_attention_softmax_reducev_pack.token_softmax_reducev_fwd = (
