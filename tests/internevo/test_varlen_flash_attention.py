@@ -18,12 +18,11 @@ g_cu_seqlens = [
     0, 186, 382, 1259, 1464, 2547, 2705, 3495, 3854, 4696, 4762, 4885, 5118, 5355, 5503, 5760, 6168, 6353,
     8272, 8461, 9273, 9531, 9763, 9871, 10234, 10370, 10574, 10712, 11022, 11236, 11599, 11837, 12179, 12320,
     12560, 12731, 13038, 13180, 13477, 14025, 14742, 14872, 15131, 15773, 15967, 16110, 16384,
-],
+]
 # fmt on
 
-# TODO(yangbo1): After upgrading the software stack, test varlen flash attention op again.
-class TODO_TestFlashSelfAttention:
-    def test_self_attention_varlen_qkv_mha():
+class TestFlashSelfAttention:
+    def test_self_attention_varlen_qkv_mha(self):
         total_seqlen, num_heads, headdim = [256, 32, 64]
 
         qkv_ref = torch.randn(
@@ -65,7 +64,7 @@ class TODO_TestFlashSelfAttention:
         assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-2)
 
 
-    def test_self_attention_varlen_q_k_v_gqa():
+    def test_self_attention_varlen_q_k_v_gqa(self):
         total_seqlen, num_q_heads, headdim = [256, 32, 64]
         num_kv_heads = 8
 
@@ -133,7 +132,7 @@ class TODO_TestFlashSelfAttention:
         assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-2)
 
 
-    def test_self_attention_varlen_q_kv_mha():
+    def test_self_attention_varlen_q_kv_mha(self):
         total_seqlen, num_heads, headdim = [16384, 6, 64]
 
         q_ref = torch.randn(
@@ -189,7 +188,7 @@ class TODO_TestFlashSelfAttention:
         assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-2)
 
 
-    def test_self_attention_varlen_q_kv_gqa():
+    def test_self_attention_varlen_q_kv_gqa(self):
         total_seqlen, num_q_heads, headdim = [16384, 6, 64]
         num_kv_heads = 2
 
@@ -245,8 +244,9 @@ class TODO_TestFlashSelfAttention:
         assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
         assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-2)
 
-class TODO_TestFlashCrossAttention:
-    def test_cross_attention_varlen_q_kv_mha():
+
+class TestFlashCrossAttention:
+    def test_cross_attention_varlen_q_kv_mha(self):
         total_seqlen, num_heads, headdim = [16384, 6, 64]
 
         q_ref = torch.randn(
@@ -292,7 +292,7 @@ class TODO_TestFlashCrossAttention:
         assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=5e-2)
 
 
-    def test_cross_attention_varlen_q_kv_gqa():
+    def test_cross_attention_varlen_q_kv_gqa(self):
         total_seqlen, num_q_heads, headdim = [256, 32, 64]
         num_kv_heads = 8
 

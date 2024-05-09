@@ -39,18 +39,16 @@ def test_ApplyRotaryEmb():
 
 
 def test_ApplyRotaryEmbQKV__qkv():
-    # Note: For ascend, when dtype of input is bfp16 or fp32, the difference in calculation results is significant.
-    input_dtype_list = [
-        torch.float16,
-    ]
+    # Note: For ascend, when dtype of input is fp32, the difference in calculation results is significant.
+    input_dtype_list = [torch.float16, torch.bfloat16]
     interleaved = False
     for input_dtype in input_dtype_list:
-        input_ref = torch.rand(
+        input_ref = torch.randn(
             1, 64, 3, 32, 64, dtype=input_dtype, device="cuda", requires_grad=True
         )
         input_ext = input_ref.clone().detach().requires_grad_()
-        cos = torch.rand(64, 32, dtype=input_dtype, device="cuda")
-        sin = torch.rand(64, 32, dtype=input_dtype, device="cuda")
+        cos = torch.randn(64, 32, dtype=input_dtype, device="cuda")
+        sin = torch.randn(64, 32, dtype=input_dtype, device="cuda")
 
         output_ref, grad_ref = call_func(
             ApplyRotaryEmbQKV_Torch,
@@ -76,7 +74,7 @@ def test_ApplyRotaryEmbQKV__qkv():
         )
 
         assert allclose(
-            output_ref, output_ext, rtol=5e-2, atol=5e-1
+            output_ref, output_ext, rtol=1e-2, atol=5e-2
         ), f"When input dtype is {input_dtype}, ApplyRotaryEmbQKV_ fails to pass the forward test!"
 
         assert allclose(

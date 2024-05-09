@@ -7,7 +7,7 @@ from deeplink_ext.internevo_ops.rms_norm import MixedFusedRMSNorm
 from deeplink_ext.internevo_ops.rms_norm_fallback import MixedRMSNormTorch
 
 
-def test_MixedFusedRMSNorm():  # TODO(yangbo1) remove TODO when cann8.0 is ready.
+def test_MixedFusedRMSNorm():
     input_dtype_list = [torch.float16, torch.bfloat16, torch.float32, torch.float32]
     weight_dtype_list = [torch.float16, torch.bfloat16, torch.float16, torch.bfloat16]
     for input_dtype, weight_dtype in zip(input_dtype_list, weight_dtype_list):
