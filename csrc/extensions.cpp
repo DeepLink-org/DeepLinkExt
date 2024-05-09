@@ -346,6 +346,53 @@ void extTokenSoftmaxReduceVInference(const at::Tensor& logics,
             b_start_loc, b_seq_len, max_input_len, other_kv_index);
 }
 
+void extTokenDecodeAttentionInference(const at::Tensor& q, const at::Tensor& k,
+                                      const at::Tensor& v, at::Tensor& out,
+                                      const at::Tensor& b_loc,
+                                      const at::Tensor& b_start_loc,
+                                      const at::Tensor& b_seq_len,
+                                      int max_input_len, int other_kv_index) {
+  callDiopi(diopiTokenDecodeAttentionInference, out, q, k, v, b_loc, b_start_loc,
+            b_seq_len, max_input_len, other_kv_index);
+}
+
+void extTokenDecodeAttentionInferenceBatchOne(const at::Tensor& q, const at::Tensor& k,
+                                      const at::Tensor& v, at::Tensor& out,
+                                      const at::Tensor& b_loc,
+                                      const at::Tensor& b_start_loc,
+                                      const at::Tensor& b_seq_len,
+                                      int max_input_len, int other_kv_index) {
+  callDiopi(diopiTokenDecodeAttentionInferenceBatchOne, out, q, k, v, b_loc, b_start_loc,
+            b_seq_len, max_input_len, other_kv_index);
+}
+
+void extIncreFlashAttention(const at::Tensor& q, const at::Tensor& k,
+                            const at::Tensor& v, at::Tensor& out,
+                            const int head, const char* layout,
+                            const c10::optional<at::Tensor>& padding_mask = {},
+                            const c10::optional<at::Tensor>& atten_mask = {},
+                            const OptionalIntArray& actual_seq_lengths = {},
+                            int64_t num_heads = 1, double scale_value = 1.0,
+                            const std::string& input_layout = "BSH", int64_t num_key_value_heads = 0) {
+  callDiopi(diopiIncreFlashAttention, out, q, k, v, padding_mask, atten_mask,
+            actual_seq_lengths, num_heads, scale_value, input_layout.c_str(), num_key_value_heads);
+}
+
+void extPromptFlashAttention(at::Tensor& out, const at::Tensor& q,
+                             const at::Tensor& k, const at::Tensor& v,
+                             const c10::optional<at::Tensor>& padding_mask = {},
+                             const c10::optional<at::Tensor>& atten_mask = {},
+                             const OptionalIntArray& actual_seq_lengths = {},
+                             int64_t num_heads = 1, double scale_value = 1.0,
+                             int64_t pre_tokens = 2147473647,
+                             int64_t next_tokens = 0,
+                             const std::string& input_layout = "BSH",
+                             int64_t num_key_value_heads = 0) {
+  callDiopi(diopiPromptFlashAttention, out, q, k, v, padding_mask, atten_mask,
+            actual_seq_lengths, num_heads, scale_value, pre_tokens,
+            next_tokens, input_layout.c_str(), num_key_value_heads);
+}
+
 void extContextAttentionInference(const at::Tensor& q, const at::Tensor& k,
                                   const at::Tensor& v, at::Tensor& out,
                                   const at::Tensor& b_start_loc,
@@ -363,6 +410,27 @@ void extApplyPenalty(at::Tensor& logits, const at::Tensor& presence_penalty,
                      int p_max_len_in_batch) {
   callDiopi(diopiApplyPenalty, logits, presence_penalty, frequency_penalty,
             p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
+}
+
+void extPagedAttention(at::Tensor& out, const at::Tensor& q, const at::Tensor& k, const at::Tensor& v, 
+                      const c10::optional<at::Tensor>& padding_mask = {},
+                      const c10::optional<at::Tensor>& atten_mask = {},
+                      const OptionalIntArray& actual_seq_lengths = {},
+                      const c10::optional<at::Tensor>& block_table = {},
+                      int64_t num_heads = 1, int64_t num_key_value_heads = 0,
+                      double scale_value = 1.0, const std::string& input_layout = "BSH", 
+                      int64_t block_size = 0, int64_t inner_precise = 1,
+                      const c10::optional<at::Tensor>& antiquant_scale = {}, const c10::optional<at::Tensor>& antiquant_offset = {},
+                      const c10::optional<at::Tensor>& dequant_scale1 = {}, const c10::optional<at::Tensor>& quant_scale1 = {},
+                      const c10::optional<at::Tensor>& dequant_scale2 = {}, const c10::optional<at::Tensor>& quant_scale2 = {},
+                      const c10::optional<at::Tensor>& quant_offset2 = {}, const c10::optional<at::Tensor>& kv_padding_size = {}
+                      ) {
+  callDiopi(diopiPagedAttention, out, q, k, v, padding_mask, atten_mask, actual_seq_lengths,
+            antiquant_scale, antiquant_offset, 
+            block_table,
+            dequant_scale1, quant_scale1, dequant_scale2, quant_scale2, quant_offset2, kv_padding_size,
+            num_heads, scale_value, input_layout.c_str(), num_key_value_heads, block_size, inner_precise
+            );
 }
 
 // 判断是否有对应的 diopi 实现:
@@ -440,6 +508,22 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("token_softmax_reducev_inference", &extTokenSoftmaxReduceVInference,
           "deeplink ext_token_softmax_reducev_inference");
   }
+  if (&diopiTokenDecodeAttentionInference != nullptr) {
+    m.def("token_decode_attention_inference", &extTokenDecodeAttentionInference,
+          "deeplink token_decode_attention_inference");
+  }
+  if (&diopiTokenDecodeAttentionInferenceBatchOne != nullptr) {
+    m.def("token_decode_attention_inference_batch_one", &extTokenDecodeAttentionInferenceBatchOne,
+          "deeplink token_decode_attention_inference");
+  }
+  if (&diopiIncreFlashAttention != nullptr) {
+    m.def("incre_flash_attention", &extIncreFlashAttention,
+          "deeplink incre_flash_attention");
+  }
+  if (&diopiPromptFlashAttention != nullptr) {
+    m.def("prompt_flash_attention", &extPromptFlashAttention,
+          "deeplink ext_prompt_flash_attention");
+  }
   if (&diopiContextAttentionInference != nullptr) {
     m.def("context_attention_inference", &extContextAttentionInference,
           "deeplink ext_context_attention_inference");
@@ -454,6 +538,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiScaledMaskedSoftmaxBackward != nullptr) {
     m.def("scaled_masked_softmax_bwd", &extScaledMaskedSoftmaxBackward,
           "deeplink ext_scaled_masked_softmax_bwd");
+  }
+  if (&diopiPagedAttention != nullptr) {
+    m.def("paged_attention", &extPagedAttention,
+          "deeplink ext_paged_attention");
   }
 }
 
