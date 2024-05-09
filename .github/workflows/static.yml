@@ -18,8 +18,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  static-checks-on-sco:
-    name: static checks on sco
+  static-checks-on-sco-nvidia:
+    name: static checks on nv
     runs-on: tps-sco-ci
     steps:
       - name: setting up environment
@@ -80,3 +80,31 @@ jobs:
         run: |
           set -euxo pipefail
           rm -rf ${CODE_SOURCE}/build/.cache
+
+  build-on-ascend:
+    name: build on ascend
+    runs-on: tps-ascend-ci-910b
+    steps:
+      - name: prepare code
+        run: |
+          set -ex
+          rm ${DEEPLINK_PATH}/${{ github.run_number }}/* -rf
+          mkdir -p ${DEEPLINK_PATH}/${{ github.run_number }} && cd ${DEEPLINK_PATH}/${{ github.run_number }}
+          git clone https://github.com/DeepLink-org/DeepLinkExt.git && cd DeepLinkExt
+          git checkout ${{ github.event.pull_request.head.sha }} && git merge --no-edit ${{ github.base_ref }}
+      - name: build deeplink_ext
+        run: |
+          source /mnt/cache/share/platform/cienv/dipu_latest_ci
+          cd ${DEEPLINK_PATH}/${{ github.run_number }}/DeepLinkExt
+          python setup.py build_ext --inplace
+
+  test-on-ascend:
+    name: test on ascend
+    runs-on: tps-ascend-ci-910b
+    needs: [build-on-ascend]
+    steps:
+      - name: run unit tests on ascend
+        run: |
+          source /mnt/cache/share/platform/cienv/dipu_latest_ci
+          cd ${DEEPLINK_PATH}/${{ github.run_number }}/DeepLinkExt
+          python -m pytest tests

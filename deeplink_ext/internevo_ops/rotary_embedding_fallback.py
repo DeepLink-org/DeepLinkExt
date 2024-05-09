@@ -5,7 +5,7 @@
 import torch
 from einops import rearrange
 
-__all__ = ["ApplyRotaryEmb", "ApplyRotaryEmbQKV_"]
+__all__ = ["ApplyRotaryEmbTorch", "ApplyRotaryEmbQKV_Torch"]
 
 
 def _torch_apply_rotary_func(
@@ -38,9 +38,9 @@ def _torch_apply_rotary_func(
     return out1, out2
 
 
-class ApplyRotaryEmb(torch.autograd.Function):
+class ApplyRotaryEmbTorch(torch.autograd.Function):
     """
-    ApplyRotaryEmb
+    ApplyRotaryEmbTorch
     """
 
     @staticmethod
@@ -123,9 +123,9 @@ class ApplyRotaryEmb(torch.autograd.Function):
         return dx, None, None, None, None
 
 
-class ApplyRotaryEmbQKV_(torch.autograd.Function):
+class ApplyRotaryEmbQKV_Torch(torch.autograd.Function):
     """
-    ApplyRotaryEmbQKV_
+    ApplyRotaryEmbQKV_Torch
     """
 
     @staticmethod

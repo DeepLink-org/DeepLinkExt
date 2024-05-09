@@ -37,7 +37,8 @@ try:
     from .rotary_embedding import ApplyRotaryEmb, ApplyRotaryEmbQKV_
 except:
     print(_not_impl.format(op_name="rotary embedding"))
-    from .rotary_embedding_fallback import ApplyRotaryEmb, ApplyRotaryEmbQKV_
+    from .rotary_embedding_fallback import ApplyRotaryEmbTorch as ApplyRotaryEmb
+    from .rotary_embedding_fallback import ApplyRotaryEmbQKV_Torch as ApplyRotaryEmbQKV_
 
 
 __all__ = [

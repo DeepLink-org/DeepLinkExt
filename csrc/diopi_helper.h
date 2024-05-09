@@ -23,8 +23,6 @@
 #include <csrc_dipu/runtime/core/DIPUStream.h>
 #include <csrc_dipu/runtime/device/basedef.h>
 
-#include "pybind_type_cast.h"
-
 namespace dipu::dipu_ext {
 
 namespace type_traits {
@@ -38,10 +36,10 @@ struct IsOptionalArithmetic<c10::optional<T>> : std::is_arithmetic<T> {};
 }  // namespace type_traits
 
 inline void checkTensorOnDevice(const at::Tensor& tensor) {
-  if (tensor.device().type() == at::DeviceType::CPU) {
-    DIPU_LOGE("This op only runs on Device");
-    throw std::runtime_error("This op only runs on Device");
-  }
+  //if (tensor.device().type() == at::DeviceType::CPU) {
+  //  DIPU_LOGE("This op only runs on Device");
+  //  throw std::runtime_error("This op only runs on Device");
+  //}
 }
 
 inline void checkTensorOnDevice(const c10::optional<at::Tensor>& tensor) {
@@ -87,18 +85,16 @@ template <class T, class U = std::decay_t<T>,
   return diopi_helper::toDiopiSize(std::forward<T>(shape));
 }
 
-::diopiSize_t toDiopiSize(const OptionalIntArray& dim) {
+::diopiSize_t toDiopiSize(const at::IntArrayRef& input) {
   ::diopiSize_t diopi_size{nullptr, 0};
-  if (dim.has_value()) {
-    diopi_size.data = dim.value().data();
-    diopi_size.len = static_cast<int64_t>(dim.value().size());
-  }
+  diopi_size.data = input.data();
+  diopi_size.len = static_cast<int64_t>(input.size());
   return diopi_size;
 }
 
-// OptionalIntArray  ->  diopiSize_t
+// at::IntArrayRef  ->  diopiSize_t
 template <class T, class U = std::decay_t<T>,
-          std::enable_if_t<std::is_same_v<U, OptionalIntArray>, int> = 0>
+          std::enable_if_t<std::is_same_v<U, at::IntArrayRef>, int> = 0>
 [[nodiscard]] decltype(auto) castToDiopiType(T&& shape) {
   return toDiopiSize(std::forward<T>(shape));
 }
