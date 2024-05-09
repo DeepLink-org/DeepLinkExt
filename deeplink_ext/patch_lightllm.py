@@ -43,9 +43,6 @@ def _patch_lightllm():
         #     apply_penalty_pack.apply_penalty = ext.apply_penalty
 
         def patch_context_attention_inference():
-            from torch.profiler import record_function
-
-            @record_function('loop_context_attention')
             def flash_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len):
                 batch, head, dim = b_start_loc.shape[0], q.shape[1], q.shape[2]
                 numKeyValueHeads = k.shape[1]
@@ -67,13 +64,10 @@ def _patch_lightllm():
                         mask = mask.repeat(1, 1, 1)
                         mask = torch.logical_not(mask)
                         mask_cache[key_str] = mask
-                        print(f"{key_str}: cache mask in context attention")
                     mask = mask_cache[key_str]
-                    with torch.profiler.record_function("PromptFA-B1"):
-                        ext.prompt_flash_attention(single_out, single_q, single_k, single_v, None, mask, [], head, scale, 2147473647, 0, "BSH", numKeyValueHeads)
+                    ext.prompt_flash_attention(single_out, single_q, single_k, single_v, None, mask, [], head, scale, 2147473647, 0, "BSH", numKeyValueHeads)
                 return out
 
-            @record_function('fused_context_attention')
             def fused_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len):
                 batch, head, dim = b_start_loc.shape[0], q.shape[1], q.shape[2]
                 scale = 1 / math.sqrt(dim)
@@ -97,10 +91,8 @@ def _patch_lightllm():
                     mask = mask.repeat(batch, 1, 1)
                     mask = torch.logical_not(mask)
                     mask_cache[key_str] = mask
-                    print(f"{key_str}: cache mask in context attention")
                 mask = mask_cache[key_str]
-                with torch.profiler.record_function(f"PromptFA-B{batch}"):
-                    ext.prompt_flash_attention(total_out, total_q, total_k, total_v, None, mask, [], head, scale, 2147473647, 0, "BSH", 0)
+                ext.prompt_flash_attention(total_out, total_q, total_k, total_v, None, mask, [], head, scale, 2147473647, 0, "BSH", 0)
                 for i in range(batch):
                     start = b_start_loc[i]
                     end = start + b_seq_len[i]
