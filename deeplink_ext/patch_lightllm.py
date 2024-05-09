@@ -46,6 +46,8 @@ def _patch_lightllm():
         def patch_context_attention_inference():
             def flash_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len):
                 batch, head, dim = b_start_loc.shape[0], q.shape[1], q.shape[2]
+                numKeyValueHeads = k.shape[1]
+                assert k.shape[1] == v.shape[1]
                 scale = 1 / math.sqrt(dim)
                 for i in range(batch):
                     start = b_start_loc[i]
@@ -64,7 +66,7 @@ def _patch_lightllm():
                         mask_cache[single_seq_len] = mask
                         print(f"cache mask in context attention, seqLen:{single_seq_len}")
                     mask = mask_cache[single_seq_len]
-                    ext.prompt_flash_attention(single_out, single_q, single_k, single_v, None, mask, [], head, scale, 2147473647, 0, "BSH", 0)
+                    ext.prompt_flash_attention(single_out, single_q, single_k, single_v, None, mask, [], head, scale, 2147473647, 0, "BSH", numKeyValueHeads)
                 return out
 
             context_attention_pack.context_attention_fwd = (
@@ -74,18 +76,21 @@ def _patch_lightllm():
 
 
         def patch_paged_token_attention_inference():
-            def paged_token_attention(q, k_cache, v_cache, out, b_seq_len, block_table, block_size):
+            def paged_token_attention(q, k_cache, v_cache, out, b_seq_len, block_table:torch.Tensor, block_size):
+                numKeyValueHeads = k_cache.shape[1]
+                assert k_cache.shape[1] == v_cache.shape[1]
                 batch, head, dim = q.shape
                 kv_cache_len = k_cache.shape[0]
                 q = q.reshape(batch, head*dim).unsqueeze(1)
-                k_cache = k_cache.reshape(kv_cache_len, head*dim).unsqueeze(0)
-                v_cache = v_cache.reshape(kv_cache_len, head*dim).unsqueeze(0)
-                current_lens = b_seq_len.cpu().numpy().tolist()
+                k_cache = k_cache.reshape(kv_cache_len, numKeyValueHeads*dim).unsqueeze(0)
+                v_cache = v_cache.reshape(kv_cache_len, numKeyValueHeads*dim).unsqueeze(0)
+                # current_lens = b_seq_len.cpu().numpy().tolist()
                 out = out.view(q.shape)
+                
                 ext.paged_attention(out, q, k_cache, v_cache,
                                     None, None, 
-                                    current_lens, block_table, head, head,
-                                    1.0 / math.sqrt(dim), "BSH", block_size, 1, 
+                                    b_seq_len, block_table, head, numKeyValueHeads,
+                                    1.0 / math.sqrt(dim), "BSH", block_size, 0, 
                                     None, None, None, None, None, None, None, None
                                     )
                 return out.squeeze().reshape((batch, head, dim))
