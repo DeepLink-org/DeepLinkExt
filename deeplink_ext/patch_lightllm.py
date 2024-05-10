@@ -25,6 +25,7 @@ def _patch_lightllm():
         "token_softmax_reducev_inference",
         "rms_norm_lightllm",
         "rotary_emb",
+        "matmul_all_reduce",
     ]
     mask_cache = {}
     PATCH_LIST_ENV_NAME = "DEEPLINKEXT_LIGHTLLM_PATCH_LIST"
@@ -114,7 +115,7 @@ def _patch_lightllm():
                 inv_rms = torch.empty(
                     inv_rms_shape, dtype=torch.float32, device=input.device
                 )
-                ext.rms_norm(output, inv_rms, input, None, weight, None, eps)
+                ext.rms_norm(output, inv_rms, input, weight.shape, weight, None, eps)
 
                 return output
 
@@ -129,6 +130,10 @@ def _patch_lightllm():
                 ext.apply_rotary(q, q, cos_view, sin_view, False, False)
 
             rotary_emb_pack.rotary_emb_fwd = rotary_emb
+            rotary_emb_pack.rotary_emb_v2_fwd = ext.rotary_embedding_v2
+
+        def patch_matmul_all_reduce():
+            token_attention_pack.matmul_all_reduce = ext.matmul_all_reduce
 
         try:
             locals()[f"patch_{op}"]()
