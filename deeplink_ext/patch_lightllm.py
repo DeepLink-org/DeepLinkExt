@@ -8,7 +8,7 @@ def _patch_lightllm():
     import os
     import deeplink_ext.cpp_extensions as ext
     import lightllm.common.basemodel.triton_kernel.destindex_copy_kv as destindex_copy_kv_pack  # type: ignore
-    # import lightllm.common.basemodel.triton_kernel.apply_penalty as apply_penalty_pack  # type: ignore
+    import lightllm.common.basemodel.triton_kernel.apply_penalty as apply_penalty_pack  # type: ignore
     import lightllm.models.llama.triton_kernel.context_flashattention_nopad as context_attention_pack  # type: ignore
     import lightllm.models.llama.triton_kernel.token_attention_nopad_att1 as token_attention_pack  # type: ignore
     import lightllm.models.llama.triton_kernel.token_attention_softmax_and_reducev as token_attention_softmax_reducev_pack  # type: ignore
@@ -18,7 +18,7 @@ def _patch_lightllm():
 
     DEFAULT_PATCH_LIST = [
         "dest_index_copy_kv",
-        # "apply_penalty",
+        "apply_penalty",
         "context_attention_inference",
         "token_attention_inference",
         "paged_token_attention_inference",
@@ -41,8 +41,9 @@ def _patch_lightllm():
         def patch_dest_index_copy_kv():
             destindex_copy_kv_pack.destindex_copy_kv = ext.dest_index_copy_kv
 
-        # def patch_apply_penalty():
-        #     apply_penalty_pack.apply_penalty = ext.apply_penalty
+        def patch_apply_penalty():
+            apply_penalty_pack.apply_penalty = ext.apply_penalty
+            apply_penalty_pack.apply_penalty_v2 = ext.apply_penalty_v2
 
         def patch_context_attention_inference():
             def flash_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len):
@@ -85,16 +86,14 @@ def _patch_lightllm():
                 q = q.reshape(batch, head*dim).unsqueeze(1)
                 k_cache = k_cache.reshape(kv_cache_len, numKeyValueHeads*dim).unsqueeze(0)
                 v_cache = v_cache.reshape(kv_cache_len, numKeyValueHeads*dim).unsqueeze(0)
-                # current_lens = b_seq_len.cpu().numpy().tolist()
                 out = out.view(q.shape)
-                
                 ext.paged_attention(out, q, k_cache, v_cache,
                                     None, None, 
                                     b_seq_len, block_table, head, numKeyValueHeads,
                                     1.0 / math.sqrt(dim), "BSH", block_size, 0, 
                                     None, None, None, None, None, None, None, None
                                     )
-                return out.squeeze().reshape((batch, head, dim))
+                return out
             
             token_attention_pack.paged_token_attention = (paged_token_attention)
 
