@@ -71,9 +71,32 @@ def _patch_lightllm():
                     ext.prompt_flash_attention(single_out, single_q, single_k, single_v, None, mask, [], head, scale, 2147473647, 0, "BSH", numKeyValueHeads)
                 return out
 
+            def fused_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len):
+                batch, head, dim = b_start_loc.shape[0], q.shape[1], q.shape[2]
+                numKeyValueHeads = k.shape[1]
+                assert k.shape[1] == v.shape[1]
+                scale = 1 / math.sqrt(dim)
+
+                mask_key_str = str(batch) + ":" + str(max_input_len)
+                if mask_key_str not in mask_cache:
+                    mask = torch.tril(torch.ones(max_input_len, max_input_len, dtype=torch.bool), diagonal=0).cuda()
+                    mask = mask.repeat(batch, 1, 1)
+                    mask = torch.logical_not(mask)
+                    mask_cache[mask_key_str] = mask
+                    print(f"cache mask in context attention, batch:seqLen={mask_key_str}")
+                
+                mask = mask_cache[mask_key_str]
+                ext.prompt_flash_attention(
+                    out.view(batch, max_input_len, head*dim), 
+                    q.view(batch, max_input_len, head*dim), 
+                    k.view(batch, max_input_len, head*dim), 
+                    v.view(batch, max_input_len, head*dim), 
+                    None, mask, [], head, scale, 2147473647, 0, "BSH", numKeyValueHeads)
+                return out
+
             context_attention_pack.context_attention_fwd = (
-                # ext.context_attention_inference
-                flash_context_attention
+                # flash_context_attention
+                fused_context_attention
             )
 
 
