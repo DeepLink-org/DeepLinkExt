@@ -123,3 +123,9 @@ RUN mkdir -p /opt/miniconda3/envs/dipu_dev_py39/etc/conda/activate.d \
         /opt/miniconda3/envs/dipu_dev_py39/etc/conda/activate.d/env_vars.sh \
         && echo "source /usr/local/Ascend/ascend-toolkit/set_env.sh" >> ~/.bashrc \
         && echo "source /root/workspace/git-completion.bash" >> ~/.bashrc
+
+RUN export http_proxy=http://proxy.sensetime.com:3128 \
+        && export https_proxy=http://proxy.sensetime.com:3128 \
+        && wget https://github.com/krallin/tini/releases/download/v0.19.0/tini \
+        && chmod +x tini \
+        && ./tini -s sleep inf &
