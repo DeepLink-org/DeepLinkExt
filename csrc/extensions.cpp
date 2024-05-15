@@ -215,6 +215,92 @@ auto extFlashAttentionV2(at::Tensor& out, const at::Tensor& q,
       *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
 }
 
+void extAttention(at::Tensor& out, std::vector<at::Tensor>& save_for_backward,
+                  const at::Tensor& q, const at::Tensor& k, const at::Tensor& v,
+                  const at::Tensor& attention_mask,
+                  const at::Tensor& attention_bias, at::Generator& gen,
+                  double p_dropout, double softmax_scale, bool is_causal) {
+  diopiTensorHandle_t save_for_backward_handle_array[16];
+  int64_t save_tensor_num = 0;
+  [[maybe_unused]] auto context = callDiopiKeepContext(
+      diopiAttention, out, save_for_backward_handle_array, &save_tensor_num, q,
+      k, v, attention_mask, attention_bias, p_dropout, gen, softmax_scale,
+      is_causal);
+  save_for_backward.clear();
+  for (int i = 0; i < save_tensor_num; ++i) {
+    diopiTensorHandle_t handle = save_for_backward_handle_array[i];
+    save_for_backward.push_back(
+        *dipu::diopi_helper::fromDiopiTensorHandle(handle));
+  }
+}
+
+void extAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
+                          at::Tensor& grad_v, at::Tensor& grad_attn_bias,
+                          const at::Tensor& grad_out, const at::Tensor& out,
+                          const std::vector<at::Tensor>& save_for_backward,
+                          const at::Tensor& q, const at::Tensor& k,
+                          const at::Tensor& v, const at::Tensor& attention_mask,
+                          const at::Tensor& attention_bias, at::Generator& gen,
+                          double p_dropout, double softmax_scale,
+                          bool is_causal) {
+  diopiConstTensorHandle_t save_for_backward_handle_array[16];
+  const int64_t save_tensor_num = save_for_backward.size();
+  for (int i = 0; i < save_tensor_num; ++i) {
+    save_for_backward_handle_array[i] =
+        dipu::diopi_helper::toDiopiTensorHandle(&save_for_backward[i]);
+  }
+  [[maybe_unused]] auto context = callDiopiKeepContext(
+      diopiAttentionBackward, grad_q, grad_k, grad_v, grad_attn_bias, grad_out,
+      q, k, v, out, save_for_backward_handle_array, save_tensor_num, p_dropout,
+      gen, softmax_scale);
+}
+
+void extAttentionVarLen(at::Tensor& out,
+                        std::vector<at::Tensor>& save_for_backward,
+                        const at::Tensor& q, const at::Tensor& k,
+                        const at::Tensor& v, const at::Tensor& cu_seqlens_q,
+                        const at::Tensor& cu_seqlens_kv, int64_t max_seqlen_q,
+                        int64_t max_seqlen_kv, const at::Tensor& attention_mask,
+                        const at::Tensor& attention_bias, at::Generator& gen,
+                        double p_dropout, double softmax_scale,
+                        bool is_causal) {
+  diopiTensorHandle_t save_for_backward_handle_array[16];
+  int64_t save_tensor_num = 0;
+  [[maybe_unused]] auto context = callDiopiKeepContext(
+      diopiAttentionVarLen, out, save_for_backward_handle_array,
+      &save_tensor_num, q, k, v, cu_seqlens_q, cu_seqlens_kv, max_seqlen_q,
+      max_seqlen_q, attention_mask, attention_bias, p_dropout, gen,
+      softmax_scale, is_causal);
+  save_for_backward.clear();
+  for (int i = 0; i < save_tensor_num; ++i) {
+    diopiTensorHandle_t handle = save_for_backward_handle_array[i];
+    save_for_backward.push_back(
+        *dipu::diopi_helper::fromDiopiTensorHandle(handle));
+  }
+}
+
+void extAttentionVarLenBackward(
+    at::Tensor& grad_q, at::Tensor& grad_k, at::Tensor& grad_v,
+    at::Tensor& grad_attn_bias, const at::Tensor& grad_out,
+    const at::Tensor& out, const std::vector<at::Tensor>& save_for_backward,
+    const at::Tensor& q, const at::Tensor& k, const at::Tensor& v,
+    const at::Tensor& cu_seqlens_q, const at::Tensor& cu_seqlens_kv,
+    const at::Tensor& attention_mask, const at::Tensor& attention_bias,
+    at::Generator& gen, double p_dropout, double softmax_scale,
+    bool is_causal) {
+  diopiConstTensorHandle_t save_for_backward_handle_array[16];
+  const int64_t save_tensor_num = save_for_backward.size();
+  for (int i = 0; i < save_tensor_num; ++i) {
+    save_for_backward_handle_array[i] =
+        dipu::diopi_helper::toDiopiTensorHandle(&save_for_backward[i]);
+  }
+  [[maybe_unused]] auto context =
+      callDiopiKeepContext(diopiAttentionVarLenBackward, grad_q, grad_k, grad_v,
+                           grad_attn_bias, grad_out, q, k, v, cu_seqlens_q,
+                           cu_seqlens_kv, out, save_for_backward_handle_array,
+                           save_tensor_num, p_dropout, gen, softmax_scale);
+}
+
 void extFlashAttentionBackward(at::Tensor& grad_q, at::Tensor& grad_k,
                                at::Tensor& grad_v, const at::Tensor& grad_out,
                                const at::Tensor& q, const at::Tensor& k,
