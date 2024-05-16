@@ -91,7 +91,7 @@ def _patch_lightllm():
                     q.view(batch, max_input_len, head*dim), 
                     k.view(batch, max_input_len, head*dim), 
                     v.view(batch, max_input_len, head*dim), 
-                    None, mask, [], head, scale, 2147473647, 0, "BSH", numKeyValueHeads)
+                    None, mask, b_seq_len, head, scale, 2147473647, 0, "BSH", numKeyValueHeads)
                 return out
 
             context_attention_pack.context_attention_fwd = (
