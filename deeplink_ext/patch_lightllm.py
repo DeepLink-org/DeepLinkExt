@@ -89,8 +89,8 @@ def _patch_lightllm():
                 ext.prompt_flash_attention(
                     out.view(batch, max_input_len, head*dim), 
                     q.view(batch, max_input_len, head*dim), 
-                    k.view(batch, max_input_len, head*dim), 
-                    v.view(batch, max_input_len, head*dim), 
+                    k.view(batch, max_input_len, numKeyValueHeads*dim), 
+                    v.view(batch, max_input_len, numKeyValueHeads*dim), 
                     None, mask, b_seq_len, head, scale, 2147473647, 0, "BSH", numKeyValueHeads)
                 return out
 
