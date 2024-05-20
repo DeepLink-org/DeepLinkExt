@@ -106,11 +106,10 @@ def _patch_lightllm():
                 assert k_cache.shape[1] == v_cache.shape[1]
                 batch, head, dim = q.shape
                 kv_cache_len = k_cache.shape[0]
-                q = q.reshape(batch, head*dim).unsqueeze(1)
-                k_cache = k_cache.reshape(kv_cache_len, numKeyValueHeads*dim).unsqueeze(0)
-                v_cache = v_cache.reshape(kv_cache_len, numKeyValueHeads*dim).unsqueeze(0)
-                out = out.view(q.shape)
-                ext.paged_attention(out, q, k_cache, v_cache,
+                ext.paged_attention(out.view(batch, 1, head*dim), 
+                                    q.view(batch, 1, head*dim), 
+                                    k_cache.view(kv_cache_len, 1, numKeyValueHeads*dim), 
+                                    v_cache.view(kv_cache_len, 1, numKeyValueHeads*dim),
                                     None, None, 
                                     b_seq_len, block_table, head, numKeyValueHeads,
                                     1.0 / math.sqrt(dim), "BSH", block_size, 0, 
