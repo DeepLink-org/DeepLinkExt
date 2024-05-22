@@ -101,17 +101,17 @@ def _patch_lightllm():
 
 
         def patch_paged_token_attention_inference():
-            def paged_token_attention(q, k_cache, v_cache, out, b_seq_len, block_table:torch.Tensor, block_size):
-                numKeyValueHeads = k_cache.shape[1]
-                assert k_cache.shape[1] == v_cache.shape[1]
+            def paged_token_attention(q, k_cache, v_cache, out, kv_head_num, b_seq_len, block_table:torch.Tensor, block_size):
+                # numKeyValueHeads = k_cache.shape[1]
+                # assert k_cache.shape[1] == v_cache.shape[1]
                 batch, head, dim = q.shape
                 kv_cache_len = k_cache.shape[0]
                 ext.paged_attention(out.view(batch, 1, head*dim), 
                                     q.view(batch, 1, head*dim), 
-                                    k_cache.view(kv_cache_len, 1, numKeyValueHeads*dim), 
-                                    v_cache.view(kv_cache_len, 1, numKeyValueHeads*dim),
+                                    k_cache.view(kv_cache_len, 1, kv_head_num*dim), 
+                                    v_cache.view(kv_cache_len, 1, kv_head_num*dim),
                                     None, None, 
-                                    b_seq_len, block_table, head, numKeyValueHeads,
+                                    b_seq_len, block_table, head, kv_head_num,
                                     1.0 / math.sqrt(dim), "BSH", block_size, 0, 
                                     None, None, None, None, None, None, None, None
                                     )
@@ -141,6 +141,7 @@ def _patch_lightllm():
                 return output
 
             rms_norm_pack.rmsnorm_forward = rms_norm
+            rms_norm_pack.rms_norm = ext.rms_norm
 
         def patch_rotary_emb():
             def rotary_emb(q, cos, sin):
