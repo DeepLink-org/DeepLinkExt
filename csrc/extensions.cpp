@@ -439,8 +439,8 @@ void extPagedAttention(at::Tensor& out, const at::Tensor& q, const at::Tensor& k
             );
 }
 
-void extRotaryEmbeddingV2(at::Tensor& query, at::Tensor& key, const at::Tensor& cos, const at::Tensor& sin) {
-  callDiopi(diopiRotaryEmbeddingV2, query, key, cos, sin);
+void extRotaryEmbeddingV2(at::Tensor& query, at::Tensor& key, const at::Tensor& cos, const at::Tensor& sin, int64_t dim) {
+  callDiopi(diopiRotaryEmbeddingV2, query, key, cos, sin, dim);
 }
 
 void extMatmulAllReduce(at::Tensor& out, const at::Tensor& x1,
