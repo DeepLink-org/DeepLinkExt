@@ -71,12 +71,9 @@ def _patch_lightllm():
                     ext.prompt_flash_attention(single_out, single_q, single_k, single_v, None, mask, [], head, scale, 2147473647, 0, "BSH", numKeyValueHeads)
                 return out
 
-            def fused_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len):
-                batch, head, dim = b_start_loc.shape[0], q.shape[1], q.shape[2]
-                numKeyValueHeads = k.shape[1]
-                assert k.shape[1] == v.shape[1]
+            def fused_context_attention(q, k, v, out, b_start_loc, b_seq_len, max_input_len, head, numKeyValueHeads, dim):
+                batch = b_start_loc.shape[0]
                 scale = 1 / math.sqrt(dim)
-
                 mask_key_str = str(batch) + ":" + str(max_input_len)
                 if mask_key_str not in mask_cache:
                     mask = torch.tril(torch.ones(max_input_len, max_input_len, dtype=torch.bool), diagonal=0).cuda()
@@ -86,11 +83,7 @@ def _patch_lightllm():
                     print(f"cache mask in context attention, batch:seqLen={mask_key_str}")
                 
                 mask = mask_cache[mask_key_str]
-                ext.prompt_flash_attention(
-                    out.view(batch, max_input_len, head*dim), 
-                    q.view(batch, max_input_len, head*dim), 
-                    k.view(batch, max_input_len, numKeyValueHeads*dim), 
-                    v.view(batch, max_input_len, numKeyValueHeads*dim), 
+                ext.prompt_flash_attention(out, q, k, v,
                     None, mask, b_seq_len, head, scale, 2147473647, 0, "BSH", numKeyValueHeads)
                 return out
 
@@ -101,18 +94,10 @@ def _patch_lightllm():
 
 
         def patch_paged_token_attention_inference():
-            def paged_token_attention(q, k_cache, v_cache, out, kv_head_num, b_seq_len, block_table:torch.Tensor, block_size):
-                # numKeyValueHeads = k_cache.shape[1]
-                # assert k_cache.shape[1] == v_cache.shape[1]
-                batch, head, dim = q.shape
-                kv_cache_len = k_cache.shape[0]
-                ext.paged_attention(out.view(batch, 1, head*dim), 
-                                    q.view(batch, 1, head*dim), 
-                                    k_cache.view(kv_cache_len, 1, kv_head_num*dim), 
-                                    v_cache.view(kv_cache_len, 1, kv_head_num*dim),
-                                    None, None, 
-                                    b_seq_len, block_table, head, kv_head_num,
-                                    1.0 / math.sqrt(dim), "BSH", block_size, 0, 
+            def paged_token_attention(q, k_cache, v_cache, out, q_head_num, kv_head_num, head_dim, b_seq_len, block_table:torch.Tensor, block_size):
+                ext.paged_attention(out, q, k_cache, v_cache, None, None, 
+                                    b_seq_len, block_table, q_head_num, kv_head_num,
+                                    1.0 / math.sqrt(head_dim), "BSH", block_size, 0, 
                                     None, None, None, None, None, None, None, None
                                     )
                 return out
