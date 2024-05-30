@@ -411,11 +411,9 @@ void extApplyPenaltyV2(at::Tensor& logits, const at::Tensor& presence_penalty,
                      const at::Tensor& frequency_penalty,
                      const at::Tensor& repetition_penalty,
                      const at::Tensor& p_token_ids,
-                     const at::Tensor& p_token_counts,
-                     const at::Tensor& p_cumsum_seq_len,
-                     int p_max_len_in_batch) {
+                     const at::Tensor& p_token_counts) {
   callDiopi(diopiApplyPenaltyV2, logits, presence_penalty, frequency_penalty, repetition_penalty,
-            p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
+            p_token_ids, p_token_counts);
 }
 
 void extPagedAttention(at::Tensor& out, const at::Tensor& q, const at::Tensor& k, const at::Tensor& v, 
