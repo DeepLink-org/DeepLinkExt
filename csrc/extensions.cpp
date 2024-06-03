@@ -449,6 +449,14 @@ void extMatmulAllReduce(at::Tensor& out, const at::Tensor& x1,
             bias, group, reduce_op, comm_turn, stream_mode);
 }
 
+void extQuantWeightBatchMatmul(at::Tensor& out, const at::Tensor& x,
+                        const at::Tensor& weight, const at::Tensor& antiquantScale,
+                        const at::Tensor& antiquantOffsetOptional, const at::Tensor& quantScaleOptional,
+                        const at::Tensor& quantOffsetOption, const at::Tensor& biasOptionalAt,
+                        const int64_t antiquantGroupSize) {
+  callDiopi(diopiQuantWeightbatchMatmul, out, x, weight, antiquantScale, antiquantOffsetOptional, quantScaleOptional, quantOffsetOption, biasOptional, antiquantGroupSize);
+}
+
 // 判断是否有对应的 diopi 实现:
 //   如果有, 则直接 pybind 上去;
 //   否则不注册, 等到 python 层处理.
@@ -566,6 +574,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           py::arg("group"), py::arg("reduce_op") = "sum",
           py::arg("comm_turn") = 0, py::arg("stream_mode") = 1);
   }
+  if (&diopiQuantWeightBatchMatmul != nullptr) {
+    m.def("quant_weight_bmm", &extQuantWeightBatchMatmul, "deeplink extQuantWeightBatchMatmul");
+  }
+
 }
 
 }  // namespace dipu::dipu_ext
