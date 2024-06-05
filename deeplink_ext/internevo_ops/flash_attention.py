@@ -827,8 +827,8 @@ class FlashSelfAttention(nn.Module):
                     k,
                     v,
                     kv,
-                    self.dropout_p if self.training else 0.0,
-                    self.softmax_scale,
+                    dropout_p,
+                    softmax_scale,
                     causal if causal is not None else self.causal,
                 )
             else:
@@ -838,8 +838,8 @@ class FlashSelfAttention(nn.Module):
                     k,
                     v,
                     kv,
-                    self.dropout_p if self.training else 0.0,
-                    self.softmax_scale,
+                    dropout_p,
+                    softmax_scale,
                     causal if causal is not None else self.causal,
                 )
         else:
@@ -860,8 +860,8 @@ class FlashSelfAttention(nn.Module):
                 kv,
                 cu_seqlens,
                 max_seqlen,
-                self.dropout_p if self.training else 0.0,
-                self.softmax_scale,
+                dropout_p,
+                softmax_scale,
                 causal if causal is not None else self.causal,
             )
 
