@@ -128,7 +128,7 @@ class SelfAttention(nn.Module):
                 key, value = k, v
 
             causal = self.causal if causal is None else causal
-            softmax_scale = softmax_scale or 1.0 / math.sqrt(query.shape[-1])
+            softmax_scale = softmax_scale if softmax_scale is not None else 1.0 / math.sqrt(query.shape[-1])
             output = multi_head_attention_func(
                 query,
                 key,
@@ -183,7 +183,7 @@ class SelfAttention(nn.Module):
             _, head_num, head_dim = query.size()
             device = query.device
             causal = self.causal if causal is None else causal
-            softmax_scale = softmax_scale or 1.0 / math.sqrt(query.shape[-1])
+            softmax_scale = softmax_scale if softmax_scale is not None else 1.0 / math.sqrt(query.shape[-1])
 
             padded_shape = (batch_size, max_seqlen, head_num, head_dim)
             query_padded = torch.zeros(padded_shape, dtype=query.dtype, device=device)
