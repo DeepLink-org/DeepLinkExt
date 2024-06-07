@@ -375,17 +375,12 @@ void extTokenSoftmaxReduceVInference(const at::Tensor& logics,
 
 void extPromptFlashAttention(at::Tensor& out, const at::Tensor& q,
                              const at::Tensor& k, const at::Tensor& v,
-                             const c10::optional<at::Tensor>& padding_mask = {},
-                             const c10::optional<at::Tensor>& atten_mask = {},
-                             const at::IntArrayRef& actual_seq_lengths = {},
-                             int64_t num_heads = 1, double scale_value = 1.0,
-                             int64_t pre_tokens = 2147473647,
-                             int64_t next_tokens = 0,
-                             const std::string& input_layout = "BSH",
-                             int64_t num_key_value_heads = 0) {
-  callDiopi(diopiPromptFlashAttention, out, q, k, v, padding_mask, atten_mask,
-            actual_seq_lengths, num_heads, scale_value, pre_tokens,
-            next_tokens, input_layout.c_str(), num_key_value_heads);
+                             const at::Tensor& atten_mask,
+                             const at::IntArrayRef& actual_seq_lengths,
+                             int64_t max_input_len, int64_t num_heads, 
+                             int64_t num_key_value_heads, int64_t dim) {
+  callDiopi(diopiPromptFlashAttention, out, q, k, v, atten_mask,
+            actual_seq_lengths, max_input_len, num_heads, num_key_value_heads, dim);
 }
 
 void extContextAttentionInference(const at::Tensor& q, const at::Tensor& k,
@@ -417,24 +412,13 @@ void extApplyPenaltyV2(at::Tensor& logits, const at::Tensor& presence_penalty,
 }
 
 void extPagedAttention(at::Tensor& out, const at::Tensor& q, const at::Tensor& k, const at::Tensor& v, 
-                      const c10::optional<at::Tensor>& padding_mask = {},
-                      const c10::optional<at::Tensor>& atten_mask = {},
-                      const at::IntArrayRef& actual_seq_lengths = {},
-                      const c10::optional<at::Tensor>& block_table = {},
-                      int64_t num_heads = 1, int64_t num_key_value_heads = 0,
-                      double scale_value = 1.0, const std::string& input_layout = "BSH", 
-                      int64_t block_size = 0, int64_t inner_precise = 1,
-                      const c10::optional<at::Tensor>& antiquant_scale = {}, const c10::optional<at::Tensor>& antiquant_offset = {},
-                      const c10::optional<at::Tensor>& dequant_scale1 = {}, const c10::optional<at::Tensor>& quant_scale1 = {},
-                      const c10::optional<at::Tensor>& dequant_scale2 = {}, const c10::optional<at::Tensor>& quant_scale2 = {},
-                      const c10::optional<at::Tensor>& quant_offset2 = {}, const c10::optional<at::Tensor>& kv_padding_size = {}
-                      ) {
-  callDiopi(diopiPagedAttention, out, q, k, v, padding_mask, atten_mask, actual_seq_lengths,
-            antiquant_scale, antiquant_offset, 
-            block_table,
-            dequant_scale1, quant_scale1, dequant_scale2, quant_scale2, quant_offset2, kv_padding_size,
-            num_heads, scale_value, input_layout.c_str(), num_key_value_heads, block_size, inner_precise
-            );
+                      const at::IntArrayRef& actual_seq_lengths,
+                      int64_t numHeads, int64_t numKeyValueHeads, int64_t dim,
+                      const at::Tensor& block_table,
+                      int64_t block_size) {
+  callDiopi(diopiPagedAttention, out, q, k, v, actual_seq_lengths,
+            numHeads, numKeyValueHeads, dim,
+            block_table, block_size);
 }
 
 void extRotaryEmbeddingV2(at::Tensor& query, at::Tensor& key, const at::Tensor& cos, const at::Tensor& sin, int64_t dim) {
