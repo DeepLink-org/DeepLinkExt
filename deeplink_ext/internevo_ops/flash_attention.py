@@ -10,9 +10,7 @@ if torch_dipu.dipu.vendor_type == "MLU":
     assert hasattr(ext, "fa_fwd_v3") and hasattr(ext, "fa_bwd_v3")
 else:
     assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
-    # TODO: After upgrading the software stack, test varlen flash attention op again.
-    # There is no corresponding kernel in the 7.0 software stack, so skip the check for now.
-    # assert hasattr(ext, "fa_varlen_fwd") and hasattr(ext, "fa_varlen_bwd")
+    assert hasattr(ext, "fa_varlen_fwd") and hasattr(ext, "fa_varlen_bwd")
 
 __all__ = ["FlashSelfAttention", "FlashCrossAttention"]
 
@@ -827,8 +825,8 @@ class FlashSelfAttention(nn.Module):
                     k,
                     v,
                     kv,
-                    self.dropout_p if self.training else 0.0,
-                    self.softmax_scale,
+                    dropout_p,
+                    softmax_scale,
                     causal if causal is not None else self.causal,
                 )
             else:
@@ -838,8 +836,8 @@ class FlashSelfAttention(nn.Module):
                     k,
                     v,
                     kv,
-                    self.dropout_p if self.training else 0.0,
-                    self.softmax_scale,
+                    dropout_p,
+                    softmax_scale,
                     causal if causal is not None else self.causal,
                 )
         else:
@@ -860,8 +858,8 @@ class FlashSelfAttention(nn.Module):
                 kv,
                 cu_seqlens,
                 max_seqlen,
-                self.dropout_p if self.training else 0.0,
-                self.softmax_scale,
+                dropout_p,
+                softmax_scale,
                 causal if causal is not None else self.causal,
             )
 

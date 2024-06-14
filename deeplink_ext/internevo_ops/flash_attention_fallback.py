@@ -57,7 +57,6 @@ class SelfAttention(nn.Module):
         super().__init__()
         self.causal = causal
         self.softmax_scale = softmax_scale
-        self.drop = nn.Dropout(attention_dropout)
 
     def forward(
         self,
@@ -73,6 +72,8 @@ class SelfAttention(nn.Module):
         cu_seqlens_k=None,
         max_seqlen_q=None,
         max_seqlen_k=None,
+        softmax_scale=None,
+        dropout_p=0.0,
     ):
         """Performs self-attention on the input sequences.
 
@@ -93,6 +94,7 @@ class SelfAttention(nn.Module):
             torch.Tensor: Output tensor after applying self-attention.
         """
         padded = all(x is None for x in (cu_seqlens, cu_seqlens_q, cu_seqlens_k))
+        drop = nn.Dropout(dropout_p)
         if padded:
             # padded
             if qkv is not None:
@@ -126,13 +128,17 @@ class SelfAttention(nn.Module):
                 key, value = k, v
 
             causal = self.causal if causal is None else causal
-            softmax_scale = self.softmax_scale or 1.0 / math.sqrt(query.shape[-1])
+            softmax_scale = (
+                softmax_scale
+                if softmax_scale is not None
+                else 1.0 / math.sqrt(query.shape[-1])
+            )
             output = multi_head_attention_func(
                 query,
                 key,
                 value,
                 softmax_scale,
-                self.drop,
+                drop,
                 causal,
             )
             return output
@@ -181,7 +187,11 @@ class SelfAttention(nn.Module):
             _, head_num, head_dim = query.size()
             device = query.device
             causal = self.causal if causal is None else causal
-            softmax_scale = self.softmax_scale or 1.0 / math.sqrt(query.shape[-1])
+            softmax_scale = (
+                softmax_scale
+                if softmax_scale is not None
+                else 1.0 / math.sqrt(query.shape[-1])
+            )
 
             padded_shape = (batch_size, max_seqlen, head_num, head_dim)
             query_padded = torch.zeros(padded_shape, dtype=query.dtype, device=device)
@@ -207,7 +217,7 @@ class SelfAttention(nn.Module):
                 key_padded,
                 value_padded,
                 softmax_scale,
-                self.drop,
+                drop,
                 causal,
                 key_padding_mask,
             )
