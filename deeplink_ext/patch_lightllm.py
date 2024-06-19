@@ -26,6 +26,7 @@ def _patch_lightllm():
         "rms_norm_lightllm",
         "rotary_emb",
         "matmul_all_reduce",
+        "matmul_all_reduce_add_rms_norm",
     ]
     mask_cache = {}
     PATCH_LIST_ENV_NAME = "DEEPLINKEXT_LIGHTLLM_PATCH_LIST"
@@ -141,6 +142,9 @@ def _patch_lightllm():
 
         def patch_matmul_all_reduce():
             token_attention_pack.matmul_all_reduce = ext.matmul_all_reduce
+
+        def patch_matmul_all_reduce_add_rms_norm():
+            token_attention_pack.matmul_all_reduce_add_rms_norm = ext.matmul_all_reduce_add_rms_norm
 
         try:
             locals()[f"patch_{op}"]()
