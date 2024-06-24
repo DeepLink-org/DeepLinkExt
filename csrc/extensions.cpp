@@ -346,46 +346,15 @@ void extTokenSoftmaxReduceVInference(const at::Tensor& logics,
             b_start_loc, b_seq_len, max_input_len, other_kv_index);
 }
 
-// void extTokenDecodeAttentionInference(const at::Tensor& q, const at::Tensor& k,
-//                                       const at::Tensor& v, at::Tensor& out,
-//                                       const at::Tensor& b_loc,
-//                                       const at::Tensor& b_start_loc,
-//                                       const at::Tensor& b_seq_len,
-//                                       int max_input_len, int other_kv_index) {
-//   callDiopi(diopiTokenDecodeAttentionInference, out, q, k, v, b_loc, b_start_loc,
-//             b_seq_len, max_input_len, other_kv_index);
-// }
-
-// void extTokenDecodeAttentionInferenceBatchOne(const at::Tensor& q, const at::Tensor& k,
-//                                       const at::Tensor& v, at::Tensor& out,
-//                                       const at::Tensor& b_loc,
-//                                       const at::Tensor& b_start_loc,
-//                                       const at::Tensor& b_seq_len,
-//                                       int max_input_len, int other_kv_index) {
-//   callDiopi(diopiTokenDecodeAttentionInferenceBatchOne, out, q, k, v, b_loc, b_start_loc,
-//             b_seq_len, max_input_len, other_kv_index);
-// }
-
-// void extIncreFlashAttention(const at::Tensor& q, const at::Tensor& k,
-//                             const at::Tensor& v, at::Tensor& out,
-//                             const int head, const char* layout,
-//                             const c10::optional<at::Tensor>& padding_mask = {},
-//                             const c10::optional<at::Tensor>& atten_mask = {},
-//                             const OptionalIntArray& actual_seq_lengths = {},
-//                             int64_t num_heads = 1, double scale_value = 1.0,
-//                             const std::string& input_layout = "BSH", int64_t num_key_value_heads = 0) {
-//   callDiopi(diopiIncreFlashAttention, out, q, k, v, padding_mask, atten_mask,
-//             actual_seq_lengths, num_heads, scale_value, input_layout.c_str(), num_key_value_heads);
-// }
-
 void extPromptFlashAttention(at::Tensor& out, const at::Tensor& q,
                              const at::Tensor& k, const at::Tensor& v,
                              const at::Tensor& atten_mask,
                              const at::IntArrayRef& actual_seq_lengths,
-                             int64_t max_input_len, int64_t num_heads, 
+                             int64_t max_input_len, int64_t num_heads,
                              int64_t num_key_value_heads, int64_t dim) {
   callDiopi(diopiPromptFlashAttention, out, q, k, v, atten_mask,
-            actual_seq_lengths, max_input_len, num_heads, num_key_value_heads, dim);
+            actual_seq_lengths, max_input_len, num_heads, num_key_value_heads,
+            dim);
 }
 
 void extContextAttentionInference(const at::Tensor& q, const at::Tensor& k,
@@ -408,34 +377,39 @@ void extApplyPenalty(at::Tensor& logits, const at::Tensor& presence_penalty,
 }
 
 void extApplyPenaltyV2(at::Tensor& logits, const at::Tensor& presence_penalty,
-                     const at::Tensor& frequency_penalty,
-                     const at::Tensor& repetition_penalty,
-                     const at::Tensor& p_token_ids,
-                     const at::Tensor& p_token_counts) {
-  callDiopi(diopiApplyPenaltyV2, logits, presence_penalty, frequency_penalty, repetition_penalty,
-            p_token_ids, p_token_counts);
+                       const at::Tensor& frequency_penalty,
+                       const at::Tensor& repetition_penalty,
+                       const at::Tensor& p_token_ids,
+                       const at::Tensor& p_token_counts) {
+  callDiopi(diopiApplyPenaltyV2, logits, presence_penalty, frequency_penalty,
+            repetition_penalty, p_token_ids, p_token_counts);
 }
 
-void extPagedAttention(at::Tensor& out, const at::Tensor& q, const at::Tensor& k, const at::Tensor& v, 
-                      const at::IntArrayRef& actual_seq_lengths,
-                      int64_t numHeads, int64_t numKeyValueHeads, int64_t dim,
-                      const at::Tensor& block_table,
-                      int64_t block_size) {
-  callDiopi(diopiPagedAttention, out, q, k, v, actual_seq_lengths,
-            numHeads, numKeyValueHeads, dim,
-            block_table, block_size);
+void extPagedAttention(at::Tensor& out, const at::Tensor& q,
+                       const at::Tensor& k, const at::Tensor& v,
+                       const c10::optional<at::Tensor>& atten_mask = {},
+                       const at::IntArrayRef& actual_seq_lengths = {},
+                       int64_t num_heads = 1, int64_t num_kv_heads = 1,
+                       int64_t dim = 1,
+                       const c10::optional<at::Tensor>& block_table = {},
+                       int64_t block_size = 1) {
+  callDiopi(diopiPagedAttention, out, q, k, v, atten_mask, actual_seq_lengths,
+            num_heads, num_kv_heads, dim, block_table, block_size);
 }
 
-void extRotaryEmbeddingV2(at::Tensor& query, at::Tensor& key, const at::Tensor& cos, const at::Tensor& sin, int64_t dim) {
+void extRotaryEmbeddingV2(at::Tensor& query, at::Tensor& key,
+                          const at::Tensor& cos, const at::Tensor& sin,
+                          int64_t dim) {
   callDiopi(diopiRotaryEmbeddingV2, query, key, cos, sin, dim);
 }
 
 void extMatmulAllReduce(at::Tensor& out, const at::Tensor& x1,
-                        const at::Tensor& x2, const c10::optional<at::Tensor>& bias,
+                        const at::Tensor& x2,
+                        const c10::optional<at::Tensor>& bias,
                         const char* group, const char* reduce_op,
                         int64_t comm_turn, int64_t stream_mode) {
-  callDiopi(diopiMatmulAllReduce, out, x1, x2,
-            bias, group, reduce_op, comm_turn, stream_mode);
+  callDiopi(diopiMatmulAllReduce, out, x1, x2, bias, group, reduce_op,
+            comm_turn, stream_mode);
 }
 
 // 判断是否有对应的 diopi 实现:
@@ -513,18 +487,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("token_softmax_reducev_inference", &extTokenSoftmaxReduceVInference,
           "deeplink ext_token_softmax_reducev_inference");
   }
-  // if (&diopiTokenDecodeAttentionInference != nullptr) {
-  //   m.def("token_decode_attention_inference", &extTokenDecodeAttentionInference,
-  //         "deeplink token_decode_attention_inference");
-  // }
-  // if (&diopiTokenDecodeAttentionInferenceBatchOne != nullptr) {
-  //   m.def("token_decode_attention_inference_batch_one", &extTokenDecodeAttentionInferenceBatchOne,
-  //         "deeplink token_decode_attention_inference");
-  // }
-  // if (&diopiIncreFlashAttention != nullptr) {
-  //   m.def("incre_flash_attention", &extIncreFlashAttention,
-  //         "deeplink incre_flash_attention");
-  // }
   if (&diopiPromptFlashAttention != nullptr) {
     m.def("prompt_flash_attention", &extPromptFlashAttention,
           "deeplink ext_prompt_flash_attention");
@@ -552,15 +514,15 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           "deeplink ext_paged_attention");
   }
   if (&diopiRotaryEmbeddingV2 != nullptr) {
-    m.def("rotary_embedding_v2", &extRotaryEmbeddingV2, "deeplink extRotaryEmbeddingV2");
+    m.def("rotary_embedding_v2", &extRotaryEmbeddingV2,
+          "deeplink extRotaryEmbeddingV2");
   }
   if (&diopiMatmulAllReduce != nullptr) {
     m.def("matmul_all_reduce", &extMatmulAllReduce,
-          "deeplink ext_matmul_all_reduce",
-          py::arg("out"), py::arg("x1"),
-          py::arg("x2"), py::arg("bias"),
-          py::arg("group"), py::arg("reduce_op") = "sum",
-          py::arg("comm_turn") = 0, py::arg("stream_mode") = 1);
+          "deeplink ext_matmul_all_reduce", py::arg("out"), py::arg("x1"),
+          py::arg("x2"), py::arg("bias"), py::arg("group"),
+          py::arg("reduce_op") = "sum", py::arg("comm_turn") = 0,
+          py::arg("stream_mode") = 1);
   }
 }
 
