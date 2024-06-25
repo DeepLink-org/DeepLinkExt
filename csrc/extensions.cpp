@@ -60,6 +60,13 @@ void extRmsNormBackward(at::Tensor& grad_input, at::Tensor& grad_weight,
             eps);
 }
 
+void extAddRmsNorm(at::Tensor& output, at::Tensor& inv_rms, at::Tensor& x_output,
+                   const at::Tensor& input, const at::Tensor& residual,
+                   const at::Tensor& weight, double eps) {
+  callDiopi(diopiAddRMSNorm, output, inv_rms, x_output,
+            input, residual, weight, eps);
+}
+
 void extApplyRotary(at::Tensor& output, const at::Tensor& input,
                     const at::Tensor& cos, const at::Tensor& sin,
                     const bool conj, const bool interleaved) {
@@ -341,6 +348,17 @@ void extTokenSoftmaxReduceVInference(const at::Tensor& logics,
             b_start_loc, b_seq_len, max_input_len, other_kv_index);
 }
 
+void extPromptFlashAttention(at::Tensor& out, const at::Tensor& q,
+                             const at::Tensor& k, const at::Tensor& v,
+                             const at::Tensor& atten_mask,
+                             const at::IntArrayRef& actual_seq_lengths,
+                             int64_t max_input_len, int64_t num_heads,
+                             int64_t num_key_value_heads, int64_t dim) {
+  callDiopi(diopiPromptFlashAttention, out, q, k, v, atten_mask,
+            actual_seq_lengths, max_input_len, num_heads, num_key_value_heads,
+            dim);
+}
+
 void extContextAttentionInference(const at::Tensor& q, const at::Tensor& k,
                                   const at::Tensor& v, at::Tensor& out,
                                   const at::Tensor& b_start_loc,
@@ -358,6 +376,24 @@ void extApplyPenalty(at::Tensor& logits, const at::Tensor& presence_penalty,
                      int p_max_len_in_batch) {
   callDiopi(diopiApplyPenalty, logits, presence_penalty, frequency_penalty,
             p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
+}
+
+void extPagedAttention(at::Tensor& out, const at::Tensor& q,
+                       const at::Tensor& k, const at::Tensor& v,
+                       const c10::optional<at::Tensor>& atten_mask = {},
+                       const at::IntArrayRef& actual_seq_lengths = {},
+                       int64_t num_heads = 1, int64_t num_kv_heads = 1,
+                       int64_t dim = 1,
+                       const c10::optional<at::Tensor>& block_table = {},
+                       int64_t block_size = 1) {
+  callDiopi(diopiPagedAttention, out, q, k, v, atten_mask, actual_seq_lengths,
+            num_heads, num_kv_heads, dim, block_table, block_size);
+}
+
+void extRotaryEmbeddingV2(at::Tensor& query, at::Tensor& key,
+                          const at::Tensor& cos, const at::Tensor& sin,
+                          int64_t dim) {
+  callDiopi(diopiRotaryEmbeddingV2, query, key, cos, sin, dim);
 }
 
 // 判断是否有对应的 diopi 实现:
@@ -399,6 +435,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("rms_norm_backward", &extRmsNormBackward,
           "deeplink ext_rms_norm_backward");
   }
+  if (&diopiAddRMSNorm != nullptr) {
+    m.def("add_rms_norm", &extAddRmsNorm, "deeplink ext_add_rms_norm");
+  }
   if (&diopiRotaryEmbedding != nullptr) {
     m.def("apply_rotary", &extApplyRotary, "deeplink ext_apply_rotary");
   }
@@ -428,6 +467,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("token_softmax_reducev_inference", &extTokenSoftmaxReduceVInference,
           "deeplink ext_token_softmax_reducev_inference");
   }
+  if (&diopiPromptFlashAttention != nullptr) {
+    m.def("prompt_flash_attention", &extPromptFlashAttention,
+          "deeplink ext_prompt_flash_attention");
+  }
   if (&diopiContextAttentionInference != nullptr) {
     m.def("context_attention_inference", &extContextAttentionInference,
           "deeplink ext_context_attention_inference");
@@ -442,6 +485,14 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiScaledMaskedSoftmaxBackward != nullptr) {
     m.def("scaled_masked_softmax_bwd", &extScaledMaskedSoftmaxBackward,
           "deeplink ext_scaled_masked_softmax_bwd");
+  }
+  if (&diopiPagedAttention != nullptr) {
+    m.def("paged_attention", &extPagedAttention,
+          "deeplink ext_paged_attention");
+  }
+  if (&diopiRotaryEmbeddingV2 != nullptr) {
+    m.def("rotary_embedding_v2", &extRotaryEmbeddingV2,
+          "deeplink extRotaryEmbeddingV2");
   }
 }
 
