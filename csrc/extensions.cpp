@@ -376,15 +376,6 @@ void extApplyPenalty(at::Tensor& logits, const at::Tensor& presence_penalty,
             p_token_ids, p_token_counts, p_cumsum_seq_len, p_max_len_in_batch);
 }
 
-void extApplyPenaltyV2(at::Tensor& logits, const at::Tensor& presence_penalty,
-                       const at::Tensor& frequency_penalty,
-                       const at::Tensor& repetition_penalty,
-                       const at::Tensor& p_token_ids,
-                       const at::Tensor& p_token_counts) {
-  callDiopi(diopiApplyPenaltyV2, logits, presence_penalty, frequency_penalty,
-            repetition_penalty, p_token_ids, p_token_counts);
-}
-
 void extPagedAttention(at::Tensor& out, const at::Tensor& q,
                        const at::Tensor& k, const at::Tensor& v,
                        const c10::optional<at::Tensor>& atten_mask = {},
@@ -401,15 +392,6 @@ void extRotaryEmbeddingV2(at::Tensor& query, at::Tensor& key,
                           const at::Tensor& cos, const at::Tensor& sin,
                           int64_t dim) {
   callDiopi(diopiRotaryEmbeddingV2, query, key, cos, sin, dim);
-}
-
-void extMatmulAllReduce(at::Tensor& out, const at::Tensor& x1,
-                        const at::Tensor& x2,
-                        const c10::optional<at::Tensor>& bias,
-                        const char* group, const char* reduce_op,
-                        int64_t comm_turn, int64_t stream_mode) {
-  callDiopi(diopiMatmulAllReduce, out, x1, x2, bias, group, reduce_op,
-            comm_turn, stream_mode);
 }
 
 // 判断是否有对应的 diopi 实现:
@@ -498,9 +480,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiApplyPenalty != nullptr) {
     m.def("apply_penalty", &extApplyPenalty, "deeplink ext_apply_penalty");
   }
-  if (&diopiApplyPenaltyV2 != nullptr) {
-    m.def("apply_penalty_v2", &extApplyPenaltyV2, "deeplink ext_apply_penalty");
-  }
   if (&diopiScaledMaskedSoftmax != nullptr) {
     m.def("scaled_masked_softmax_fwd", &extScaledMaskedSoftmax,
           "deeplink ext_scaled_masked_softmax_fwd");
@@ -516,13 +495,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiRotaryEmbeddingV2 != nullptr) {
     m.def("rotary_embedding_v2", &extRotaryEmbeddingV2,
           "deeplink extRotaryEmbeddingV2");
-  }
-  if (&diopiMatmulAllReduce != nullptr) {
-    m.def("matmul_all_reduce", &extMatmulAllReduce,
-          "deeplink ext_matmul_all_reduce", py::arg("out"), py::arg("x1"),
-          py::arg("x2"), py::arg("bias"), py::arg("group"),
-          py::arg("reduce_op") = "sum", py::arg("comm_turn") = 0,
-          py::arg("stream_mode") = 1);
   }
 }
 
