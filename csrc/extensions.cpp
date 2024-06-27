@@ -216,9 +216,10 @@ void extFlashAttentionVarLenBackward(
             is_causal, window_size_left, window_size_right);
 }
 
+// for ascend
 auto extCustomizedFlashAttention(
-    at::Tensor& out, const at::Tensor& q, const at::Tensor& k,
-    const at::Tensor& v, at::Generator& gen,
+    at::Tensor& out, at::Generator& gen, const at::Tensor& q,
+    const at::Tensor& k, const at::Tensor& v,
     const c10::optional<at::Tensor>& alibi_slopes_opt,
     const c10::optional<at::Tensor>& attention_mask_opt, float p_dropout,
     float softmax_scale, bool is_causal, int32_t window_size_left,
@@ -242,6 +243,7 @@ auto extCustomizedFlashAttention(
       *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
 }
 
+// for ascend
 void extCustomizedFlashAttentionBackward(
     at::Tensor& grad_q, at::Tensor& grad_k, at::Tensor& grad_v,
     const at::Tensor& grad_out, const at::Tensor& q, const at::Tensor& k,
@@ -255,6 +257,54 @@ void extCustomizedFlashAttentionBackward(
             grad_out, q, k, v, alibi_slopes_opt, out, attention_mask_opt,
             dropout_mask_opt, softmax_max, softmax_sum, softmax_out, p_dropout,
             softmax_scale, is_causal, window_size_left, window_size_right);
+}
+
+// for ascend
+auto extCustomizedFlashAttentionVarLen(
+    at::Tensor& out, at::Generator& gen, const at::Tensor& q,
+    const at::Tensor& k, const at::Tensor& v, const at::IntArrayRef& cum_seq_q,
+    const at::IntArrayRef& cum_seq_kv,
+    const c10::optional<at::Tensor>& alibi_slopes_opt,
+    const c10::optional<at::Tensor>& attention_mask_opt, int32_t max_seqlen_q,
+    int32_t max_seqlen_kv, float p_dropout, float softmax_scale, bool is_causal,
+    int32_t window_size_left, int32_t window_size_right) {
+  diopiTensorHandle_t dropout_mask = nullptr;
+  diopiTensorHandle_t softmax_max = nullptr;
+  diopiTensorHandle_t softmax_sum = nullptr;
+  diopiTensorHandle_t softmax_out = nullptr;
+
+  [[maybe_unused]] auto context = callDiopiKeepContext(
+      diopiCustomizedFlashAttentionVarLen, out, &dropout_mask, &softmax_max,
+      &softmax_sum, &softmax_out, gen, q, k, v, cum_seq_q, cum_seq_kv,
+      alibi_slopes_opt, attention_mask_opt, max_seqlen_q, max_seqlen_kv,
+      p_dropout, softmax_scale, is_causal, window_size_left, window_size_right);
+
+  return std::make_tuple(
+      dropout_mask ? *dipu::diopi_helper::fromDiopiTensorHandle(dropout_mask)
+                   : at::Tensor(),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_max),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_sum),
+      *dipu::diopi_helper::fromDiopiTensorHandle(softmax_out));
+}
+
+// for ascend
+void extCustomizedFlashAttentionVarLenBackward(
+    at::Tensor& grad_q, at::Tensor& grad_k, at::Tensor& grad_v,
+    const at::Tensor& grad_out, const at::Tensor& q, const at::Tensor& k,
+    const at::Tensor& v, const at::IntArrayRef& cum_seq_q,
+    const at::IntArrayRef& cum_seq_kv,
+    const c10::optional<at::Tensor>& alibi_slopes_opt, const at::Tensor& out,
+    const c10::optional<at::Tensor>& attention_mask_opt,
+    const c10::optional<at::Tensor>& dropout_mask,
+    const at::Tensor& softmax_max, const at::Tensor& softmax_sum,
+    const at::Tensor& softmax_out, int32_t max_seqlen_q, int32_t max_seqlen_kv,
+    float p_dropout, float softmax_scale, bool is_causal,
+    int32_t window_size_left, int32_t window_size_right) {
+  callDiopi(diopiCustomizedFlashAttentionVarLenBackward, grad_q, grad_k, grad_v,
+            grad_out, q, k, v, cum_seq_q, cum_seq_kv, alibi_slopes_opt, out,
+            attention_mask_opt, dropout_mask, softmax_max, softmax_sum,
+            softmax_out, max_seqlen_q, max_seqlen_kv, p_dropout, softmax_scale,
+            is_causal, window_size_left, window_size_right);
 }
 
 void extScaledMaskedSoftmax(at::Tensor& out, const at::Tensor& input,
@@ -337,6 +387,22 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiFlashAttentionVarLenBackward != nullptr) {
     m.def("fa_varlen_bwd", &extFlashAttentionVarLenBackward,
           "deeplink ext_fa_varlen_bwd");
+  }
+  if (&diopiCustomizedFlashAttention != nullptr) {
+    m.def("custom_fa_fwd", &extCustomizedFlashAttention,
+          "deeplink ext_custom_fa_fwd");
+  }
+  if (&diopiCustomizedFlashAttentionBackward != nullptr) {
+    m.def("custom_fa_bwd", &extCustomizedFlashAttentionBackward,
+          "deeplink ext_custom_fa_bwd");
+  }
+  if (&diopiCustomizedFlashAttentionVarLen != nullptr) {
+    m.def("custom_fa_varlen_fwd", &extCustomizedFlashAttentionVarLen,
+          "deeplink ext_custom_fa_varlen_fwd");
+  }
+  if (&diopiCustomizedFlashAttentionVarLenBackward != nullptr) {
+    m.def("custom_fa_varlen_bwd", &extCustomizedFlashAttentionVarLenBackward,
+          "deeplink ext_custom_fa_varlen_bwd");
   }
   if (&diopiRMSNorm != nullptr) {
     m.def("rms_norm", &extRmsNorm, "deeplink ext_rms_norm");
