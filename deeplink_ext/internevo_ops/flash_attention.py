@@ -199,7 +199,6 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
         softmax_scale=None,
         causal=False,
     ):
-        # The current default input layout for flash attention is BSND
         if qkv is not None:
             query, key, value = qkv.unbind(dim=2)
         elif kv is not None:
@@ -536,33 +535,34 @@ class CustomizedFlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
 class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
-        # The current default input layout for flash attention is BSND
-        input_layout = "BSND"
         assert q.device == kv.device, "the devices of q and kv should be same"
         gen = torch.Generator(device=q.device)
 
         if softmax_scale is None:
             softmax_scale = kv.shape[-1] ** (-0.5)
 
-        head_num = q.shape[2]
+        seqlen_q = min(q.shape[1], 2048)
+        seqlen_kv = min(kv.shape[1], 2048)
+        attention_mask = torch.triu(torch.ones([seqlen_q, seqlen_kv], dtype=torch.bool, device=q.device), diagonal=1) if causal else None
         out = torch.empty_like(q)
         (
-            attention_mask,
             dropout_mask,
             softmax_max,
             softmax_sum,
             softmax_out,
-        ) = ext.fa_fwd(
+        ) = ext.custom_fa_fwd(
             out,
+            gen,
             q,
             kv[:, :, 0],
             kv[:, :, 1],
-            gen,
+            None,
+            attention_mask,
             dropout_p,
             softmax_scale,
             causal,
-            head_num,
-            input_layout,
+            -1,
+            -1,
         )
 
         ctx.save_for_backward(
@@ -577,8 +577,7 @@ class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
         )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
-        ctx.head_num = head_num
-        ctx.input_layout = input_layout
+        ctx.causal = causal
         return out
 
     @staticmethod
@@ -597,7 +596,7 @@ class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
         dq = torch.empty_like(q)
         dkv = torch.empty_like(kv)
 
-        ext.fa_bwd(
+        ext.custom_fa_bwd(
             dq,
             dkv[:, :, 0],
             dkv[:, :, 1],
@@ -605,6 +604,7 @@ class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
             q,
             kv[:, :, 0],
             kv[:, :, 1],
+            None,
             out,
             attention_mask,
             dropout_mask,
@@ -613,8 +613,9 @@ class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
             softmax_out,
             ctx.dropout_p,
             ctx.softmax_scale,
-            ctx.head_num,
-            ctx.input_layout,
+            ctx.causal,
+            -1,
+            -1,
         )
         return dq, dkv, None, None, None, None
 
