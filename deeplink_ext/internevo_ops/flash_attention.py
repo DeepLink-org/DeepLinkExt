@@ -623,7 +623,6 @@ class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
 class FlashAttentionKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
-        # The current default input layout for flash attention is BSND
         assert q.device == kv.device, "the devices of q and kv should be same"
         gen = torch.Generator(device=q.device)
 
@@ -638,16 +637,19 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
             [batch_size, head_num, seqlen_q], dtype=torch.float32, device=q.device
         )
 
-        ext.fa_fwd_v3(
+        ext.fa_fwd(
             out,
             softmax_lse,
+            gen,
             q,
             kv[:, :, 0],
             kv[:, :, 1],
-            gen,
+            None,
             dropout_p,
             softmax_scale,
             causal,
+            -1,
+            -1,
         )
 
         ctx.save_for_backward(
@@ -679,15 +681,18 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
             dkv[:, :, 0],
             dkv[:, :, 1],
             dout,
+            ctx.gen,
             q,
             kv[:, :, 0],
             kv[:, :, 1],
+            None,
             out,
-            ctx.gen,
             softmax_lse,
-            ctx.causal,
             ctx.dropout_p,
             ctx.softmax_scale,
+            ctx.causal,
+            -1,
+            -1,
         )
         return dq, dkv, None, None, None, None
 
@@ -706,7 +711,6 @@ class CustomizedFlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
         softmax_scale,
         causal,
     ):
-        # The current default input layout for varlen flash attention is TND
         assert q.device == kv.device, "the devices of q and kv should be same"
         gen = torch.Generator(device=q.device)
 
