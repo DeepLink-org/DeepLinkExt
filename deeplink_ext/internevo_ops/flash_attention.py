@@ -6,8 +6,9 @@ import torch.nn as nn
 import deeplink_ext.cpp_extensions as ext
 
 
-if torch_dipu.dipu.vendor_type == "MLU":
-    assert hasattr(ext, "fa_fwd_v3") and hasattr(ext, "fa_bwd_v3")
+if torch_dipu.dipu.vendor_type == "NPU":
+    assert hasattr(ext, "custom_fa_fwd") and hasattr(ext, "custom_fa_bwd")
+    assert hasattr(ext, "custom_fa_varlen_fwd") and hasattr(ext, "custom_fa_varlen_bwd")
 else:
     assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
     assert hasattr(ext, "fa_varlen_fwd") and hasattr(ext, "fa_varlen_bwd")
@@ -15,7 +16,7 @@ else:
 __all__ = ["FlashSelfAttention", "FlashCrossAttention"]
 
 
-class FlashAttentionQKVPackedFunc(torch.autograd.Function):
+class CustomizedFlashAttentionQKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
@@ -28,8 +29,6 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
         softmax_scale,
         causal,
     ):
-        # The current default input layout for flash attention is BSND
-        input_layout = "BSND"
         if qkv is not None:
             query, key, value = qkv.unbind(dim=2)
         elif kv is not None:
@@ -52,25 +51,28 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
         if softmax_scale is None:
             softmax_scale = key.shape[-1] ** (-0.5)
 
-        head_num = query.shape[2]
+        seqlen_q = min(query.shape[1], 2048)
+        seqlen_kv = min(key.shape[1], 2048)
+        attention_mask = torch.triu(torch.ones([seqlen_q, seqlen_kv], dtype=torch.bool, device=device), diagonal=1) if causal else None
         out = torch.empty_like(query)
         (
-            attention_mask,
             dropout_mask,
             softmax_max,
             softmax_sum,
             softmax_out,
-        ) = ext.fa_fwd(
+        ) = ext.custom_fa_fwd(
             out,
+            gen,
             query,
             key,
             value,
-            gen,
+            None,
+            attention_mask,
             dropout_p,
             softmax_scale,
             causal,
-            head_num,
-            input_layout,
+            -1,
+            -1,
         )
 
         ctx.save_for_backward(
@@ -88,8 +90,7 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
         )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
-        ctx.head_num = head_num
-        ctx.input_layout = input_layout
+        ctx.causal = causal
         return out
 
     @staticmethod
@@ -110,7 +111,7 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
 
         if qkv is not None:
             dqkv = torch.empty_like(qkv)
-            ext.fa_bwd(
+            ext.custom_fa_bwd(
                 dqkv[:, :, 0],
                 dqkv[:, :, 1],
                 dqkv[:, :, 2],
@@ -118,6 +119,7 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
                 qkv[:, :, 0],
                 qkv[:, :, 1],
                 qkv[:, :, 2],
+                None,
                 out,
                 attention_mask,
                 dropout_mask,
@@ -126,14 +128,15 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
                 softmax_out,
                 ctx.dropout_p,
                 ctx.softmax_scale,
-                ctx.head_num,
-                ctx.input_layout,
+                ctx.causal,
+                -1,
+                -1,
             )
             return dqkv, None, None, None, None, None, None, None
         elif kv is not None:
             dq = torch.empty_like(q)
             dkv = torch.empty_like(kv)
-            ext.fa_bwd(
+            ext.custom_fa_bwd(
                 dq,
                 dkv[:, :, 0],
                 dkv[:, :, 1],
@@ -141,6 +144,7 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
                 q,
                 kv[:, :, 0],
                 kv[:, :, 1],
+                None,
                 out,
                 attention_mask,
                 dropout_mask,
@@ -149,15 +153,16 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
                 softmax_out,
                 ctx.dropout_p,
                 ctx.softmax_scale,
-                ctx.head_num,
-                ctx.input_layout,
+                ctx.causal,
+                -1,
+                -1,
             )
             return None, dq, None, None, dkv, None, None, None
         else:
             dq = torch.empty_like(q)
             dk = torch.empty_like(k)
             dv = torch.empty_like(v)
-            ext.fa_bwd(
+            ext.custom_fa_bwd(
                 dq,
                 dk,
                 dv,
@@ -165,6 +170,7 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
                 q,
                 k,
                 v,
+                None,
                 out,
                 attention_mask,
                 dropout_mask,
@@ -173,13 +179,14 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
                 softmax_out,
                 ctx.dropout_p,
                 ctx.softmax_scale,
-                ctx.head_num,
-                ctx.input_layout,
+                ctx.causal,
+                -1,
+                -1,
             )
             return None, dq, dk, dv, None, None, None, None
 
 
-class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
+class FlashAttentionQKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
@@ -223,16 +230,19 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
             [batch_size, head_num, seqlen_q], dtype=torch.float32, device=device
         )
 
-        ext.fa_fwd_v3(
+        ext.fa_fwd(
             out,
             softmax_lse,
+            gen,
             query,
             key,
             value,
-            gen,
+            None,
             dropout_p,
             softmax_scale,
             causal,
+            -1,
+            -1,
         )
         ctx.save_for_backward(
             qkv,
@@ -263,39 +273,45 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
 
         if qkv is not None:
             dqkv = torch.empty_like(qkv)
-            ext.fa_bwd_v3(
+            ext.fa_bwd(
                 dqkv[:, :, 0],
                 dqkv[:, :, 1],
                 dqkv[:, :, 2],
                 dout,
+                ctx.gen,
                 qkv[:, :, 0],
                 qkv[:, :, 1],
                 qkv[:, :, 2],
+                None,
                 out,
-                ctx.gen,
                 softmax_lse,
-                ctx.causal,
                 ctx.dropout_p,
                 ctx.softmax_scale,
+                ctx.causal,
+                -1,
+                -1,
             )
             return dqkv, None, None, None, None, None, None, None
         elif kv is not None:
             dq = torch.empty_like(q)
             dkv = torch.empty_like(kv)
-            ext.fa_bwd_v3(
+            ext.fa_bwd(
                 dq,
                 dkv[:, :, 0],
                 dkv[:, :, 1],
                 dout,
+                ctx.gen,
                 q,
                 kv[:, :, 0],
                 kv[:, :, 1],
+                None,
                 out,
-                ctx.gen,
                 softmax_lse,
-                ctx.causal,
                 ctx.dropout_p,
                 ctx.softmax_scale,
+                ctx.causal,
+                -1,
+                -1,
             )
             return None, dq, None, None, dkv, None, None, None
         else:
@@ -307,20 +323,23 @@ class FlashAttentionQKVPackedFuncV3(torch.autograd.Function):
                 dk,
                 dv,
                 dout,
+                ctx.gen,
                 q,
                 k,
                 v,
+                None,
                 out,
-                ctx.gen,
                 softmax_lse,
-                ctx.causal,
                 ctx.dropout_p,
                 ctx.softmax_scale,
+                ctx.causal,
+                -1,
+                -1,
             )
             return None, dq, dk, dv, None, None, None, None
 
 
-class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
+class CustomizedFlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
@@ -497,7 +516,7 @@ class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
             return None, dq, dk, dv, None, None, None, None, None, None
 
 
-class FlashAttentionKVPackedFunc(torch.autograd.Function):
+class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
         # The current default input layout for flash attention is BSND
@@ -583,7 +602,7 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
         return dq, dkv, None, None, None, None
 
 
-class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
+class FlashAttentionKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
         # The current default input layout for flash attention is BSND
@@ -655,7 +674,7 @@ class FlashAttentionKVPackedFuncV3(torch.autograd.Function):
         return dq, dkv, None, None, None, None
 
 
-class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
+class CustomizedFlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
@@ -818,8 +837,8 @@ class FlashSelfAttention(nn.Module):
         padded = all(x is None for x in (cu_seqlens, cu_seqlens_q, cu_seqlens_k))
         if padded:
             # padded
-            if torch_dipu.dipu.vendor_type == "MLU":
-                return FlashAttentionQKVPackedFuncV3.apply(
+            if torch_dipu.dipu.vendor_type == "NPU":
+                return CustomizedFlashAttentionQKVPackedFunc.apply(
                     qkv,
                     q,
                     k,
@@ -829,6 +848,7 @@ class FlashSelfAttention(nn.Module):
                     softmax_scale,
                     causal if causal is not None else self.causal,
                 )
+
             else:
                 return FlashAttentionQKVPackedFunc.apply(
                     qkv,
@@ -884,8 +904,8 @@ class FlashCrossAttention(nn.Module):
         padded = all(x is None for x in (cu_seqlens, cu_seqlens_k))
         if padded:
             # padded
-            if torch_dipu.dipu.vendor_type == "MLU":
-                return FlashAttentionKVPackedFuncV3.apply(
+            if torch_dipu.dipu.vendor_type == "NPU":
+                return CustomizedFlashAttentionKVPackedFunc.apply(
                     q,
                     kv,
                     self.dropout_p if self.training else 0.0,
@@ -902,7 +922,7 @@ class FlashCrossAttention(nn.Module):
                 )
         else:
             # unpadded
-            return FlashAttentionVarlenKVPackedFunc.apply(
+            return CustomizedFlashAttentionVarlenKVPackedFunc.apply(
                 q,
                 kv,
                 cu_seqlens,
