@@ -3,7 +3,7 @@
 import torch
 import deeplink_ext.cpp_extensions as ext
 
-assert hasattr(ext, "fa_fwd_v2") and hasattr(ext, "fa_bwd")
+assert hasattr(ext, "custom_fa_fwd") and hasattr(ext, "custom_fa_bwd")
 
 __all__ = ["FlashSelfAttention"]
 
@@ -23,17 +23,19 @@ class FlashSelfAttention(torch.autograd.Function):
             softmax_max,
             softmax_sum,
             softmax_out,
-        ) = ext.fa_fwd_v2(
+        ) = ext.custom_fa_fwd(
             out,
+            gen,
             q,
             k,
             v,
-            gen,
+            None,
             attention_mask,
             dropout_p,
             softmax_scale,
-            head_num,
-            input_layout,
+            attention_mask is not None,
+            -1,
+            -1,
         )
         ctx.save_for_backward(
             q,
@@ -48,8 +50,6 @@ class FlashSelfAttention(torch.autograd.Function):
         )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
-        ctx.head_num = head_num
-        ctx.input_layout = input_layout
         return out
 
     @staticmethod
@@ -68,7 +68,7 @@ class FlashSelfAttention(torch.autograd.Function):
         dq = torch.empty_like(q)
         dk = torch.empty_like(k)
         dv = torch.empty_like(v)
-        ext.fa_bwd(
+        ext.custom_fa_bwd(
             dq,
             dk,
             dv,
@@ -76,6 +76,7 @@ class FlashSelfAttention(torch.autograd.Function):
             q,
             k,
             v,
+            None,
             out,
             attention_mask,
             dropout_mask,
@@ -84,7 +85,8 @@ class FlashSelfAttention(torch.autograd.Function):
             softmax_out,
             ctx.dropout_p,
             ctx.softmax_scale,
-            ctx.head_num,
-            ctx.input_layout,
+            attention_mask is not None,
+            -1,
+            -1,
         )
         return dq, dk, dv, None, None, None, None, None
