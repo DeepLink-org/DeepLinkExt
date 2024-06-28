@@ -543,7 +543,7 @@ class CustomizedFlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
                 -1,
             )
             return None, dq, dk, dv, None, None, None, None, None, None
-        
+
 
 class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
     @staticmethod
@@ -585,7 +585,7 @@ class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
         assert (
             cu_seqlens is not None
         ), "cu_seqlens should not be None, when using varlen flash attention"
-        
+
         batch_size = len(cu_seqlens) - 1
         head_num = query.shape[1]
         out = torch.empty_like(query)
