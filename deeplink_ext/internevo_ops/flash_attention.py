@@ -1096,7 +1096,7 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
         dq = torch.empty_like(q)
         dkv = torch.empty_like(kv)
 
-        ext.custom_fa_varlen_bwd(
+        ext.fa_varlen_bwd(
             dq,
             dkv[:, 0],
             dkv[:, 1],
