@@ -156,7 +156,7 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
     ):
         if softmax_scale is None:
             softmax_scale = q.shape[-1] ** (-0.5)
-            
+
         device = q.device
         gen = torch.Generator(device)
 
@@ -208,7 +208,7 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
         ctx.window_size = window_size
         ctx.alibi_slopes = alibi_slopes
         return out
-        
+
     @staticmethod
     def backward(ctx, dout, *args):
         (
@@ -289,7 +289,7 @@ class FlashAttnFunc(torch.autograd.Function):
     ):
         if softmax_scale is None:
             softmax_scale = q.shape[-1] ** (-0.5)
-        
+
         device = q.device
         gen = torch.Generator(device)
 
@@ -359,7 +359,7 @@ class FlashAttnFunc(torch.autograd.Function):
 
         dq = torch.empty_like(q)
         dk = torch.empty_like(k)
-        dv = torch.empty_like(v)    
+        dv = torch.empty_like(v)
         ext.custom_fa_bwd(
             dq,
             dk,
@@ -427,10 +427,10 @@ class FlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
     ):
         if softmax_scale is None:
             softmax_scale = qkv.shape[-1] ** (-0.5)
-            
+
         device = qkv.device
         gen = torch.Generator(device)
-        
+
         cu_seqlens = cu_seqlens[1:].tolist()
         seqlen = min(max_seqlen, 2048)
         attention_mask = (
@@ -441,7 +441,7 @@ class FlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
             if causal
             else None
         )
-        
+
         out = torch.empty_like(qkv[:, :, 0])
         (
             dropout_mask,
@@ -496,35 +496,35 @@ class FlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
             softmax_sum,
             softmax_out,
         ) = ctx.saved_tensors
-        
+
         dqkv = torch.empty_like(qkv)
         ext.custom_fa_varlen_bwd(
-                dqkv[:, 0],
-                dqkv[:, 1],
-                dqkv[:, 2],
-                dout,
-                qkv[:, 0],
-                qkv[:, 1],
-                qkv[:, 2],
-                ctx.cu_seqlens,
-                ctx.cu_seqlens,
-                ctx.alibi_slopes,
-                out,
-                attention_mask,
-                dropout_mask,
-                softmax_max,
-                softmax_sum,
-                softmax_out,
-                ctx.max_seqlen,
-                ctx.max_seqlen,
-                ctx.dropout_p,
-                ctx.softmax_scale,
-                ctx.causal,
-                ctx.window_size[0],
-                ctx.window_size[1],
-            )
+            dqkv[:, 0],
+            dqkv[:, 1],
+            dqkv[:, 2],
+            dout,
+            qkv[:, 0],
+            qkv[:, 1],
+            qkv[:, 2],
+            ctx.cu_seqlens,
+            ctx.cu_seqlens,
+            ctx.alibi_slopes,
+            out,
+            attention_mask,
+            dropout_mask,
+            softmax_max,
+            softmax_sum,
+            softmax_out,
+            ctx.max_seqlen,
+            ctx.max_seqlen,
+            ctx.dropout_p,
+            ctx.softmax_scale,
+            ctx.causal,
+            ctx.window_size[0],
+            ctx.window_size[1],
+        )
         return dqkv, None, None, None, None, None, None, None, None, None
-    
+
 
 def flash_attn_varlen_qkvpacked_func(
     qkv,
@@ -572,10 +572,10 @@ class FlashAttnVarlenKVPackedFunc(torch.autograd.Function):
     ):
         if softmax_scale is None:
             softmax_scale = q.shape[-1] ** (-0.5)
-        
+
         device = q.device
         gen = torch.Generator(device)
-        
+
         cu_seqlens_q = cu_seqlens_q[1:].tolist()
         cu_seqlens_k = cu_seqlens_k[1:].tolist()
         seqlen_q = min(max_seqlen_q, 2048)
@@ -588,7 +588,7 @@ class FlashAttnVarlenKVPackedFunc(torch.autograd.Function):
             if causal
             else None
         )
-        
+
         out = torch.empty_like(q)
         (
             dropout_mask,
@@ -647,37 +647,37 @@ class FlashAttnVarlenKVPackedFunc(torch.autograd.Function):
             softmax_sum,
             softmax_out,
         ) = ctx.saved_tensors
-        
+
         dq = torch.empty_like(q)
         dkv = torch.empty_like(kv)
         ext.custom_fa_varlen_bwd(
-                dq,
-                dkv[:, 0],
-                dkv[:, 1],
-                dout,
-                q,
-                kv[:, 0],
-                kv[:, 1],
-                ctx.cu_seqlens_q,
-                ctx.cu_seqlens_k,
-                ctx.alibi_slopes,
-                out,
-                attention_mask,
-                dropout_mask,
-                softmax_max,
-                softmax_sum,
-                softmax_out,
-                ctx.max_seqlen_q,
-                ctx.max_seqlen_k,
-                ctx.dropout_p,
-                ctx.softmax_scale,
-                ctx.causal,
-                ctx.window_size[0],
-                ctx.window_size[1],
-            )
+            dq,
+            dkv[:, 0],
+            dkv[:, 1],
+            dout,
+            q,
+            kv[:, 0],
+            kv[:, 1],
+            ctx.cu_seqlens_q,
+            ctx.cu_seqlens_k,
+            ctx.alibi_slopes,
+            out,
+            attention_mask,
+            dropout_mask,
+            softmax_max,
+            softmax_sum,
+            softmax_out,
+            ctx.max_seqlen_q,
+            ctx.max_seqlen_k,
+            ctx.dropout_p,
+            ctx.softmax_scale,
+            ctx.causal,
+            ctx.window_size[0],
+            ctx.window_size[1],
+        )
         return dq, dkv, None, None, None, None, None, None, None, None, None, None, None
-    
-    
+
+
 def flash_attn_varlen_kvpacked_func(
     q,
     kv,
@@ -732,10 +732,10 @@ class FlashAttnVarlenFunc(torch.autograd.Function):
     ):
         if softmax_scale is None:
             softmax_scale = q.shape[-1] ** (-0.5)
-        
+
         device = q.device
         gen = torch.Generator(device)
-        
+
         cu_seqlens_q = cu_seqlens_q[1:].tolist()
         cu_seqlens_k = cu_seqlens_k[1:].tolist()
         seqlen_q = min(max_seqlen_q, 2048)
@@ -748,7 +748,7 @@ class FlashAttnVarlenFunc(torch.autograd.Function):
             if causal
             else None
         )
-        
+
         out = torch.empty_like(q)
         (
             dropout_mask,
@@ -809,38 +809,54 @@ class FlashAttnVarlenFunc(torch.autograd.Function):
             softmax_sum,
             softmax_out,
         ) = ctx.saved_tensors
-        
+
         dq = torch.empty_like(q)
         dk = torch.empty_like(k)
         dv = torch.empty_like(v)
         ext.custom_fa_varlen_bwd(
-                dq,
-                dk,
-                dv,
-                dout,
-                q,
-                k,
-                v,
-                ctx.cu_seqlens_q,
-                ctx.cu_seqlens_k,
-                ctx.alibi_slopes,
-                out,
-                attention_mask,
-                dropout_mask,
-                softmax_max,
-                softmax_sum,
-                softmax_out,
-                ctx.max_seqlen_q,
-                ctx.max_seqlen_k,
-                ctx.dropout_p,
-                ctx.softmax_scale,
-                ctx.causal,
-                ctx.window_size[0],
-                ctx.window_size[1],
-            )
-        return dq, dk, dv, None, None, None, None, None, None, None, None, None, None, None, None
-    
-    
+            dq,
+            dk,
+            dv,
+            dout,
+            q,
+            k,
+            v,
+            ctx.cu_seqlens_q,
+            ctx.cu_seqlens_k,
+            ctx.alibi_slopes,
+            out,
+            attention_mask,
+            dropout_mask,
+            softmax_max,
+            softmax_sum,
+            softmax_out,
+            ctx.max_seqlen_q,
+            ctx.max_seqlen_k,
+            ctx.dropout_p,
+            ctx.softmax_scale,
+            ctx.causal,
+            ctx.window_size[0],
+            ctx.window_size[1],
+        )
+        return (
+            dq,
+            dk,
+            dv,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+
+
 def flash_attn_varlen_func(
     q,
     k,
