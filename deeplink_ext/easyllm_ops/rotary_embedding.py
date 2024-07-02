@@ -74,4 +74,13 @@ def apply_rotary(
             conjugate,
             interleaved,
         )
+    else:
+        ext.apply_rotary(
+            output,
+            x,
+            cos,
+            sin,
+            conjugate,
+            interleaved,
+        )
     return output
