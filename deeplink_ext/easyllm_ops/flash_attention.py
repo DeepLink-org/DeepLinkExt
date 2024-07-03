@@ -442,7 +442,7 @@ class FlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
             else None
         )
 
-        out = torch.empty_like(qkv[:, :, 0])
+        out = torch.empty_like(qkv[:, 0])
         (
             dropout_mask,
             softmax_max,
