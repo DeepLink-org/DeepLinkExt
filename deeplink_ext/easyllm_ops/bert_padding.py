@@ -1,3 +1,4 @@
+# Copyright (c) 2024, DeepLink.
 # Adapted from https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/padding.py
 
 import torch
