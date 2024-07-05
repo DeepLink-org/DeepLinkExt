@@ -16,7 +16,9 @@ class IndexFirstAxis(torch.autograd.Function):
         # TD [2022-03-04] For some reason torch.gather is a bit faster than indexing.
         # return input[indices]
         return torch.gather(
-            rearrange(input, "b ... -> b (...)"), 0, repeat(indices, "z -> z d", d=second_dim)
+            rearrange(input, "b ... -> b (...)"),
+            0,
+            repeat(indices, "z -> z d", d=second_dim),
         ).reshape(-1, *other_shape)
 
     @staticmethod
@@ -32,7 +34,9 @@ class IndexFirstAxis(torch.autograd.Function):
         )
         # TD [2022-03-04] For some reason torch.scatter is a bit faster than indexing.
         # grad_input[indices] = grad_output
-        grad_input.scatter_(0, repeat(indices, "z -> z d", d=grad_output.shape[1]), grad_output)
+        grad_input.scatter_(
+            0, repeat(indices, "z -> z d", d=grad_output.shape[1]), grad_output
+        )
         return grad_input.reshape(ctx.first_axis_dim, *other_shape), None
 
 
@@ -110,7 +114,9 @@ def unpad_input(hidden_states, attention_mask):
     seqlens_in_batch = attention_mask.sum(dim=-1, dtype=torch.int32)
     indices = torch.nonzero(attention_mask.flatten(), as_tuple=False).flatten()
     max_seqlen_in_batch = seqlens_in_batch.max().item()
-    cu_seqlens = F.pad(torch.cumsum(seqlens_in_batch, dim=0, dtype=torch.torch.int32), (1, 0))
+    cu_seqlens = F.pad(
+        torch.cumsum(seqlens_in_batch, dim=0, dtype=torch.torch.int32), (1, 0)
+    )
     # TD [2022-03-04] We don't want to index with a bool mask, because Pytorch will expand the
     # bool mask, then call nonzero to get the indices, then index with those. The indices is @dim
     # times larger than it needs to be, wasting memory. It's faster and more memory-efficient to
@@ -128,7 +134,7 @@ def unpad_input_for_concatenated_sequences(hidden_states, attention_mask_in_leng
     """
     Supports concatenating short samples in one sequence. The attention_mask_in_length is utilized to mask other short samples. It helps efficient training of variant lengths-based samples (e.g., the supervised fine-tuning task in large language model).
     The motivation for this function is explained [here](https://github.com/Dao-AILab/flash-attention/issues/432#issuecomment-1668822286).
-    
+
     For example, if batch = 3 and seqlen = 6, the attention_mask_in_length is:
         ```
         [
@@ -178,12 +184,18 @@ def unpad_input_for_concatenated_sequences(hidden_states, attention_mask_in_leng
     """
     length = attention_mask_in_length.sum(dim=-1)
     seqlen = attention_mask_in_length.size(-1)
-    attention_mask_2d = torch.arange(seqlen, device=length.device, dtype=length.dtype).expand(len(length), seqlen) < length.unsqueeze(1)
-    real_indices_idx = torch.nonzero(attention_mask_in_length.flatten(), as_tuple=False).flatten()
+    attention_mask_2d = torch.arange(
+        seqlen, device=length.device, dtype=length.dtype
+    ).expand(len(length), seqlen) < length.unsqueeze(1)
+    real_indices_idx = torch.nonzero(
+        attention_mask_in_length.flatten(), as_tuple=False
+    ).flatten()
     seqlens_in_batch = attention_mask_in_length.flatten()[real_indices_idx]
     indices = torch.nonzero(attention_mask_2d.flatten(), as_tuple=False).flatten()
     max_seqlen_in_batch = seqlens_in_batch.max().item()
-    cu_seqlens = F.pad(torch.cumsum(seqlens_in_batch, dim=0, dtype=torch.torch.int32), (1, 0))
+    cu_seqlens = F.pad(
+        torch.cumsum(seqlens_in_batch, dim=0, dtype=torch.torch.int32), (1, 0)
+    )
     # TD [2022-03-04] We don't want to index with a bool mask, because Pytorch will expand the
     # bool mask, then call nonzero to get the indices, then index with those. The indices is @dim
     # times larger than it needs to be, wasting memory. It's faster and more memory-efficient to
