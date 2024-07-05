@@ -33,7 +33,7 @@ class RMSNorm(torch.autograd.Function):
         return output
 
     @staticmethod
-    def backward(ctx, grad_output):
+    def backward(ctx, dout):
         hidden_states, inv_rms, weight = ctx.saved_tensors
         grad_input = torch.empty_like(hidden_states)
         grad_weight = torch.empty_like(weight)
@@ -41,7 +41,7 @@ class RMSNorm(torch.autograd.Function):
             grad_input,
             grad_weight,
             None,
-            grad_output,
+            dout,
             hidden_states,
             weight,
             None,
@@ -49,7 +49,7 @@ class RMSNorm(torch.autograd.Function):
             weight.shape,
             ctx.eps,
         )
-        return grad_input, grad_weight, None, None
+        return grad_input, grad_weight, None
 
 
 def rms_norm(x, weight, epsilon):
