@@ -222,7 +222,8 @@ auto extCustomizedFlashAttention(
     const c10::optional<at::Tensor>& alibi_slopes_opt,
     const c10::optional<at::Tensor>& attention_mask_opt, float p_dropout,
     float softmax_scale, bool is_causal, int32_t window_size_left,
-    int32_t window_size_right, int32_t head_num, const std::string& input_layout) {
+    int32_t window_size_right, int32_t head_num,
+    const std::string& input_layout) {
   diopiTensorHandle_t dropout_mask = nullptr;
   diopiTensorHandle_t softmax_max = nullptr;
   diopiTensorHandle_t softmax_sum = nullptr;
