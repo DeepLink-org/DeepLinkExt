@@ -61,6 +61,8 @@ class CustomizedFlashAttentionQKVPackedFunc(torch.autograd.Function):
             if causal
             else None
         )
+        head_num = query.shape[2]
+        input_layout = "BSND"
         out = torch.empty_like(query)
         (
             dropout_mask,
@@ -80,6 +82,8 @@ class CustomizedFlashAttentionQKVPackedFunc(torch.autograd.Function):
             causal,
             -1,
             -1,
+            head_num,
+            input_layout,
         )
 
         ctx.save_for_backward(
@@ -98,6 +102,8 @@ class CustomizedFlashAttentionQKVPackedFunc(torch.autograd.Function):
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.causal = causal
+        ctx.head_num = head_num
+        ctx.input_layout = input_layout
         return out
 
     @staticmethod
@@ -138,6 +144,8 @@ class CustomizedFlashAttentionQKVPackedFunc(torch.autograd.Function):
                 ctx.causal,
                 -1,
                 -1,
+                ctx.head_num,
+                ctx.input_layout,
             )
             return dqkv, None, None, None, None, None, None, None
         elif kv is not None:
@@ -163,6 +171,8 @@ class CustomizedFlashAttentionQKVPackedFunc(torch.autograd.Function):
                 ctx.causal,
                 -1,
                 -1,
+                ctx.head_num,
+                ctx.input_layout,
             )
             return None, dq, None, None, dkv, None, None, None
         else:
@@ -189,6 +199,8 @@ class CustomizedFlashAttentionQKVPackedFunc(torch.autograd.Function):
                 ctx.causal,
                 -1,
                 -1,
+                ctx.head_num,
+                ctx.input_layout,
             )
             return None, dq, dk, dv, None, None, None, None
 
@@ -741,6 +753,8 @@ class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
             if causal
             else None
         )
+        head_num = q.shape[2]
+        input_layout = "BSND"
         out = torch.empty_like(q)
         (
             dropout_mask,
@@ -760,6 +774,8 @@ class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
             causal,
             -1,
             -1,
+            head_num,
+            input_layout,
         )
 
         ctx.save_for_backward(
@@ -775,6 +791,8 @@ class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.causal = causal
+        ctx.head_num = head_num
+        ctx.input_layout = input_layout
         return out
 
     @staticmethod
@@ -813,6 +831,8 @@ class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
             ctx.causal,
             -1,
             -1,
+            ctx.head_num,
+            ctx.input_layout,
         )
         return dq, dkv, None, None, None, None
 
