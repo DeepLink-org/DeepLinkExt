@@ -222,7 +222,7 @@ auto extCustomizedFlashAttention(
     const c10::optional<at::Tensor>& alibi_slopes_opt,
     const c10::optional<at::Tensor>& attention_mask_opt, float p_dropout,
     float softmax_scale, bool is_causal, int32_t window_size_left,
-    int32_t window_size_right) {
+    int32_t window_size_right, int32_t head_num, const std::string& input_layout) {
   diopiTensorHandle_t dropout_mask = nullptr;
   diopiTensorHandle_t softmax_max = nullptr;
   diopiTensorHandle_t softmax_sum = nullptr;
@@ -232,7 +232,7 @@ auto extCustomizedFlashAttention(
       diopiCustomizedFlashAttention, out, &dropout_mask, &softmax_max,
       &softmax_sum, &softmax_out, gen, q, k, v, alibi_slopes_opt,
       attention_mask_opt, p_dropout, softmax_scale, is_causal, window_size_left,
-      window_size_right);
+      window_size_right, head_num, input_layout.c_str());
 
   return std::make_tuple(
       dropout_mask ? *dipu::diopi_helper::fromDiopiTensorHandle(dropout_mask)
@@ -251,11 +251,13 @@ void extCustomizedFlashAttentionBackward(
     const c10::optional<at::Tensor>& dropout_mask_opt,
     const at::Tensor& softmax_max, const at::Tensor& softmax_sum,
     const at::Tensor& softmax_out, float p_dropout, float softmax_scale,
-    bool is_causal, int32_t window_size_left, int32_t window_size_right) {
+    bool is_causal, int32_t window_size_left, int32_t window_size_right,
+    int32_t head_num, const std::string& input_layout) {
   callDiopi(diopiCustomizedFlashAttentionBackward, grad_q, grad_k, grad_v,
             grad_out, q, k, v, alibi_slopes_opt, out, attention_mask_opt,
             dropout_mask_opt, softmax_max, softmax_sum, softmax_out, p_dropout,
-            softmax_scale, is_causal, window_size_left, window_size_right);
+            softmax_scale, is_causal, window_size_left, window_size_right,
+            head_num, input_layout.c_str());
 }
 
 // for ascend
