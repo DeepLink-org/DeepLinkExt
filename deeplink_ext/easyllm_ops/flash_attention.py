@@ -44,6 +44,8 @@ class FlashAttnQKVPackedFunc(torch.autograd.Function):
             else None
         )
 
+        head_num = qkv.shape[-2]
+        input_layout = "BSND"
         out = torch.empty_like(qkv[:, :, 0])
         (
             dropout_mask,
@@ -63,6 +65,8 @@ class FlashAttnQKVPackedFunc(torch.autograd.Function):
             causal,
             window_size[0],
             window_size[1],
+            head_num,
+            input_layout,
         )
 
         ctx.save_for_backward(
@@ -79,6 +83,8 @@ class FlashAttnQKVPackedFunc(torch.autograd.Function):
         ctx.causal = causal
         ctx.window_size = window_size
         ctx.alibi_slopes = alibi_slopes
+        ctx.head_num = head_num
+        ctx.input_layout = input_layout
         return out
 
     @staticmethod
@@ -114,6 +120,8 @@ class FlashAttnQKVPackedFunc(torch.autograd.Function):
             ctx.causal,
             ctx.window_size[0],
             ctx.window_size[1],
+            ctx.head_num,
+            ctx.input_layout,
         )
         return dqkv, None, None, None, None, None, None, None
 
@@ -171,6 +179,8 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
             else None
         )
 
+        head_num = q.shape[-2]
+        input_layout = "BSND"
         out = torch.empty_like(q)
         (
             dropout_mask,
@@ -190,6 +200,8 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
             causal,
             window_size[0],
             window_size[1],
+            head_num,
+            input_layout,
         )
 
         ctx.save_for_backward(
@@ -207,6 +219,8 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
         ctx.causal = causal
         ctx.window_size = window_size
         ctx.alibi_slopes = alibi_slopes
+        ctx.head_num = head_num
+        ctx.input_layout = input_layout
         return out
 
     @staticmethod
@@ -244,6 +258,8 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
             ctx.causal,
             ctx.window_size[0],
             ctx.window_size[1],
+            ctx.head_num,
+            ctx.input_layout,
         )
         return dq, dkv, None, None, None, None, None, None, None
 
@@ -304,6 +320,8 @@ class FlashAttnFunc(torch.autograd.Function):
             else None
         )
 
+        head_num = q.shape[-2]
+        input_layout = "BSND"
         out = torch.empty_like(q)
         (
             dropout_mask,
@@ -323,6 +341,8 @@ class FlashAttnFunc(torch.autograd.Function):
             causal,
             window_size[0],
             window_size[1],
+            head_num,
+            input_layout,
         )
 
         ctx.save_for_backward(
@@ -341,6 +361,8 @@ class FlashAttnFunc(torch.autograd.Function):
         ctx.causal = causal
         ctx.window_size = window_size
         ctx.alibi_slopes = alibi_slopes
+        ctx.head_num = head_num
+        ctx.input_layout = input_layout
         return out
 
     @staticmethod
@@ -380,6 +402,8 @@ class FlashAttnFunc(torch.autograd.Function):
             ctx.causal,
             ctx.window_size[0],
             ctx.window_size[1],
+            ctx.head_num,
+            ctx.input_layout,
         )
         return dq, dk, dv, None, None, None, None, None, None, None
 
