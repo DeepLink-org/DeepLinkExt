@@ -6,7 +6,7 @@ try:
     from .adamw import AdamW
 except Exception as e:
     print(_not_impl.format(op_name="adamw"))
-    from torch.optim import AdamW as AdamW
+    from torch.optim import AdamW
 
 try:
     from .flash_attention import FlashSelfAttention, FlashCrossAttention
