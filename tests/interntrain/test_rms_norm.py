@@ -3,8 +3,8 @@
 import torch
 from typing import Union, List
 from tests.core import call_module, allclose
-from deeplink_ext.internevo_ops.rms_norm import MixedFusedRMSNorm
-from deeplink_ext.internevo_ops.rms_norm_fallback import MixedRMSNormTorch
+from deeplink_ext.interntrain_ops.rms_norm import MixedFusedRMSNorm
+from deeplink_ext.interntrain_ops.rms_norm_fallback import MixedRMSNormTorch
 
 
 def test_MixedFusedRMSNorm():
