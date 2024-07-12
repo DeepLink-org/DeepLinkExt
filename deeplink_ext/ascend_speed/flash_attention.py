@@ -36,6 +36,8 @@ class FlashSelfAttention(torch.autograd.Function):
             attention_mask is not None,
             -1,
             -1,
+            head_num,
+            input_layout,
         )
         ctx.save_for_backward(
             q,
@@ -50,6 +52,8 @@ class FlashSelfAttention(torch.autograd.Function):
         )
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
+        ctx.head_num = head_num
+        ctx.input_layout = input_layout
         return out
 
     @staticmethod
@@ -88,5 +92,7 @@ class FlashSelfAttention(torch.autograd.Function):
             attention_mask is not None,
             -1,
             -1,
+            ctx.head_num,
+            ctx.input_layout,
         )
         return dq, dk, dv, None, None, None, None, None
