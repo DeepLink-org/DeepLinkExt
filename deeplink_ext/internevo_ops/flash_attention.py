@@ -68,6 +68,7 @@ class FlashAttnQKVPackedFunc(torch.autograd.Function):
             out,
             softmax_lse,
         )
+        ctx.gen = gen
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.causal = causal
@@ -299,6 +300,7 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
             out,
             softmax_lse,
         )
+        ctx.gen = gen
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.causal = causal
@@ -512,40 +514,27 @@ class FlashAttnFunc(torch.autograd.Function):
         device = q.device
         gen = torch.Generator(device)
 
-        seqlen_q = min(q.shape[1], 2048)
-        seqlen_k = min(k.shape[1], 2048)
-        attention_mask = (
-            torch.triu(
-                torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=device),
-                diagonal=1,
-            )
-            if causal
-            else None
+        batch_size = q.shape[0]
+        seqlen_q = q.shape[1]
+        head_num = q.shape[2]
+        softmax_lse = torch.empty(
+            [batch_size, head_num, seqlen_q], dtype=torch.float32, device=device
         )
-
-        head_num = q.shape[-2]
-        input_layout = "BSND"
         out = torch.empty_like(q)
-        (
-            dropout_mask,
-            softmax_max,
-            softmax_sum,
-            softmax_out,
-        ) = ext.custom_fa_fwd(
+
+        ext.fa_fwd(
             out,
+            softmax_lse,
             gen,
             q,
             k,
             v,
             alibi_slopes,
-            attention_mask,
             dropout_p,
             softmax_scale,
             causal,
             window_size[0],
             window_size[1],
-            head_num,
-            input_layout,
         )
 
         ctx.save_for_backward(
@@ -553,19 +542,14 @@ class FlashAttnFunc(torch.autograd.Function):
             k,
             v,
             out,
-            attention_mask,
-            dropout_mask,
-            softmax_max,
-            softmax_sum,
-            softmax_out,
+            softmax_lse,
         )
+        ctx.gen = gen
         ctx.dropout_p = dropout_p
         ctx.softmax_scale = softmax_scale
         ctx.causal = causal
         ctx.window_size = window_size
         ctx.alibi_slopes = alibi_slopes
-        ctx.head_num = head_num
-        ctx.input_layout = input_layout
         return out
 
     @staticmethod
@@ -575,38 +559,29 @@ class FlashAttnFunc(torch.autograd.Function):
             k,
             v,
             out,
-            attention_mask,
-            dropout_mask,
-            softmax_max,
-            softmax_sum,
-            softmax_out,
+            softmax_lse,
         ) = ctx.saved_tensors
 
         dq = torch.empty_like(q)
         dk = torch.empty_like(k)
         dv = torch.empty_like(v)
-        ext.custom_fa_bwd(
+        ext.fa_bwd(
             dq,
             dk,
             dv,
             dout,
+            ctx.gen,
             q,
             k,
             v,
             ctx.alibi_slopes,
             out,
-            attention_mask,
-            dropout_mask,
-            softmax_max,
-            softmax_sum,
-            softmax_out,
+            softmax_lse,
             ctx.dropout_p,
             ctx.softmax_scale,
             ctx.causal,
             ctx.window_size[0],
             ctx.window_size[1],
-            ctx.head_num,
-            ctx.input_layout,
         )
         return dq, dk, dv, None, None, None, None, None, None, None
 
