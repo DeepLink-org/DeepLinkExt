@@ -142,16 +142,19 @@ def flash_attn_qkvpacked_func(
     deterministic=False,
     return_attn_probs=False,
 ):
-    return FlashAttnQKVPackedFunc.apply(
-        qkv,
-        dropout_p,
-        softmax_scale,
-        causal,
-        window_size,
-        alibi_slopes,
-        deterministic,
-        return_attn_probs,
-    )
+    if torch_dipu.dipu.vendor_type == "NPU":
+        pass
+    else:
+        return FlashAttnQKVPackedFunc.apply(
+            qkv,
+            dropout_p,
+            softmax_scale,
+            causal,
+            window_size,
+            alibi_slopes,
+            deterministic,
+            return_attn_probs,
+        )
 
 
 class FlashAttnKVPackedFunc(torch.autograd.Function):
@@ -281,17 +284,20 @@ def flash_attn_kvpacked_func(
     deterministic=False,
     return_attn_probs=False,
 ):
-    return FlashAttnKVPackedFunc.apply(
-        q,
-        kv,
-        dropout_p,
-        softmax_scale,
-        causal,
-        window_size,
-        alibi_slopes,
-        deterministic,
-        return_attn_probs,
-    )
+    if torch_dipu.dipu.vendor_type == "NPU":
+        pass
+    else:
+        return FlashAttnKVPackedFunc.apply(
+            q,
+            kv,
+            dropout_p,
+            softmax_scale,
+            causal,
+            window_size,
+            alibi_slopes,
+            deterministic,
+            return_attn_probs,
+        )
 
 
 class FlashAttnFunc(torch.autograd.Function):
@@ -426,18 +432,21 @@ def flash_attn_func(
     deterministic=False,
     return_attn_probs=False,
 ):
-    return FlashAttnFunc.apply(
-        q,
-        k,
-        v,
-        dropout_p,
-        softmax_scale,
-        causal,
-        window_size,
-        alibi_slopes,
-        deterministic,
-        return_attn_probs,
-    )
+    if torch_dipu.dipu.vendor_type == "NPU":
+        pass
+    else:
+        return FlashAttnFunc.apply(
+            q,
+            k,
+            v,
+            dropout_p,
+            softmax_scale,
+            causal,
+            window_size,
+            alibi_slopes,
+            deterministic,
+            return_attn_probs,
+        )
 
 
 class FlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
@@ -568,18 +577,21 @@ def flash_attn_varlen_qkvpacked_func(
     deterministic=False,
     return_attn_probs=False,
 ):
-    return FlashAttnVarlenQKVPackedFunc.apply(
-        qkv,
-        cu_seqlens,
-        max_seqlen,
-        dropout_p,
-        softmax_scale,
-        causal,
-        window_size,
-        alibi_slopes,
-        deterministic,
-        return_attn_probs,
-    )
+    if torch_dipu.dipu.vendor_type == "NPU":
+        pass
+    else:
+        return FlashAttnVarlenQKVPackedFunc.apply(
+            qkv,
+            cu_seqlens,
+            max_seqlen,
+            dropout_p,
+            softmax_scale,
+            causal,
+            window_size,
+            alibi_slopes,
+            deterministic,
+            return_attn_probs,
+        )
 
 
 class FlashAttnVarlenKVPackedFunc(torch.autograd.Function):
@@ -723,21 +735,24 @@ def flash_attn_varlen_kvpacked_func(
     deterministic=False,
     return_attn_probs=False,
 ):
-    return FlashAttnVarlenKVPackedFunc.apply(
-        q,
-        kv,
-        cu_seqlens_q,
-        cu_seqlens_k,
-        max_seqlen_q,
-        max_seqlen_k,
-        dropout_p,
-        softmax_scale,
-        causal,
-        window_size,
-        alibi_slopes,
-        deterministic,
-        return_attn_probs,
-    )
+    if torch_dipu.dipu.vendor_type == "NPU":
+        pass
+    else:
+        return FlashAttnVarlenKVPackedFunc.apply(
+            q,
+            kv,
+            cu_seqlens_q,
+            cu_seqlens_k,
+            max_seqlen_q,
+            max_seqlen_k,
+            dropout_p,
+            softmax_scale,
+            causal,
+            window_size,
+            alibi_slopes,
+            deterministic,
+            return_attn_probs,
+        )
 
 
 class FlashAttnVarlenFunc(torch.autograd.Function):
@@ -904,20 +919,23 @@ def flash_attn_varlen_func(
     return_attn_probs=False,
     block_table=None,
 ):
-    return FlashAttnVarlenFunc.apply(
-        q,
-        k,
-        v,
-        cu_seqlens_q,
-        cu_seqlens_k,
-        max_seqlen_q,
-        max_seqlen_k,
-        dropout_p,
-        softmax_scale,
-        causal,
-        window_size,
-        alibi_slopes,
-        deterministic,
-        return_attn_probs,
-        block_table,
-    )
+    if torch_dipu.dipu.vendor_type == "NPU":
+        pass
+    else:
+        return FlashAttnVarlenFunc.apply(
+            q,
+            k,
+            v,
+            cu_seqlens_q,
+            cu_seqlens_k,
+            max_seqlen_q,
+            max_seqlen_k,
+            dropout_p,
+            softmax_scale,
+            causal,
+            window_size,
+            alibi_slopes,
+            deterministic,
+            return_attn_probs,
+            block_table,
+        )
