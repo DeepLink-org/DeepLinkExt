@@ -21,7 +21,7 @@ except Exception as e:
     print(_not_impl.format(op_name="flash attention"))
 
 try:
-    from .rms_norm import MixedFusedRMSNorm
+    from .rms_norm import MixedFusedRMSNormFunction
 except:
     print(
         _not_impl.format(op_name="RMSNorm"),
@@ -40,6 +40,6 @@ __all__ = [
     "flash_attn_varlen_qkvpacked_func",
     "flash_attn_varlen_kvpacked_func",
     "flash_attn_varlen_func",
-    "MixedFusedRMSNorm",
+    "MixedFusedRMSNormFunction",
     "ApplyRotaryEmb",
 ]
