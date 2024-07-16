@@ -20,6 +20,17 @@ try:
 except Exception as e:
     print(_not_impl.format(op_name="flash attention"))
 
+try:
+    from .rms_norm import MixedFusedRMSNorm
+except:
+    print(
+        _not_impl.format(op_name="RMSNorm"),
+    )
+
+try:
+    from .rotary_embedding import ApplyRotaryEmb
+except:
+    print(_not_impl.format(op_name="rotary embedding"))
 
 __all__ = [
     "AdamW",
@@ -29,5 +40,6 @@ __all__ = [
     "flash_attn_varlen_qkvpacked_func",
     "flash_attn_varlen_kvpacked_func",
     "flash_attn_varlen_func",
-    "rms_norm",
+    "MixedFusedRMSNorm",
+    "ApplyRotaryEmb",
 ]
