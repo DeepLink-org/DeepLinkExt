@@ -26,11 +26,13 @@ except:
     print(
         _not_impl.format(op_name="RMSNorm"),
     )
+    from .rms_norm_fallback import MixedRMSNormTorch as MixedFusedRMSNorm
 
 try:
     from .rotary_embedding import ApplyRotaryEmb
 except:
     print(_not_impl.format(op_name="rotary embedding"))
+    from .rotary_embedding_fallback import ApplyRotaryEmbTorch as ApplyRotaryEmb
 
 __all__ = [
     "AdamW",
