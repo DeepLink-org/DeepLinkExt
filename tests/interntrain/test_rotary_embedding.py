@@ -1,7 +1,7 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-from tests.core import call_module, call_func, allclose
+from tests.core import call_func, allclose
 
 from deeplink_ext.interntrain_ops.rotary_embedding import (
     ApplyRotaryEmb,

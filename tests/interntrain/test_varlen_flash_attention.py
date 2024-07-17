@@ -1,7 +1,7 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-from tests.core import copy_to_cpu, allclose, call_module
+from tests.core import allclose, call_module
 
 from deeplink_ext.interntrain_ops.flash_attention import (
     FlashSelfAttention,
