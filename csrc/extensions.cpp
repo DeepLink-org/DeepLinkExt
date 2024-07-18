@@ -397,6 +397,11 @@ void extRotaryEmbeddingV2(at::Tensor& query, at::Tensor& key,
   callDiopi(diopiRotaryEmbeddingV2, query, key, cos, sin, dim);
 }
 
+void extGroupedGemm(at::Tensor& out, const at::Tensor& a, const at::Tensor& b,
+                    const at::Tensor& batchSizes, bool transA, bool transB) {
+  callDiopi(diopiGroupedGemm, out, a, b, batchSizes, transA, transB);
+}
+
 // 判断是否有对应的 diopi 实现:
 //   如果有, 则直接 pybind 上去;
 //   否则不注册, 等到 python 层处理.
@@ -498,6 +503,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   if (&diopiRotaryEmbeddingV2 != nullptr) {
     m.def("rotary_embedding_v2", &extRotaryEmbeddingV2,
           "deeplink extRotaryEmbeddingV2");
+  }
+  if (&diopiGroupedGemm != nullptr) {
+    m.def("gmm", &extGroupedGemm, "deeplink extGroupedGemm");
   }
 }
 
