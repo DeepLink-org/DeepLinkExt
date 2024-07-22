@@ -40,7 +40,7 @@ try:
 except:
     print(_not_impl.format(op_name="grouped gemm"))
     from .gmm_fallback import gmm_fallback as gmm_forward
-    from .gmm_fallback import gmm_fallback as GroupedGemm    
+    from .gmm_fallback import gmm_fallback as GroupedGemm
 
 
 __all__ = [
