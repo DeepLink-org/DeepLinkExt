@@ -172,25 +172,26 @@ def test_flash_attn_varlen_kvpacked_func_gqa_long_max_seqlen():
     total_seqlen, num_q_heads, headdim = [20206, 6, 64]
     num_kv_heads = 2
 
-    q_ref = torch.randn(
+    q_gpu = torch.randn(
         [total_seqlen, num_q_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    kv_ref = torch.randn(
+    kv_gpu = torch.randn(
         [total_seqlen, 2, num_kv_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    q_ext = q_ref.clone().detach().requires_grad_(True)
-    kv_ext = kv_ref.clone().detach().requires_grad_(True)
+    q_cpu, kv_cpu = copy_to_cpu([q_gpu, kv_gpu])
 
-    cu_seqlens_q_ref = torch.tensor(
+    cu_seqlens_q_cpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32)
+    cu_seqlens_k_cpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32)
+    cu_seqlens_q_gpu = torch.tensor(
         cu_seqlens_max_length_4096, dtype=torch.int32, device="cuda"
     )
-    cu_seqlens_k_ref = torch.tensor(
+    cu_seqlens_k_gpu = torch.tensor(
         cu_seqlens_max_length_4096, dtype=torch.int32, device="cuda"
     )
     # the maximum sequence length is 4096
@@ -199,10 +200,10 @@ def test_flash_attn_varlen_kvpacked_func_gqa_long_max_seqlen():
 
     ouput_forward_cpu, grads_cpu = call_normal_func(
         torch_attn_varlen_kvpacked_func,
-        q_ref,
-        kv_ref,
-        cu_seqlens_q_ref,
-        cu_seqlens_k_ref,
+        q_cpu,
+        kv_cpu,
+        cu_seqlens_q_cpu,
+        cu_seqlens_k_cpu,
         max_seqlen_q,
         max_seqlen_k,
         dropout_p=0.0,
@@ -210,10 +211,10 @@ def test_flash_attn_varlen_kvpacked_func_gqa_long_max_seqlen():
     )
     ouput_forward_gpu, grads_gpu = call_normal_func(
         flash_attn_varlen_kvpacked_func,
-        q_ext,
-        kv_ext,
-        cu_seqlens_q_ref,
-        cu_seqlens_k_ref,
+        q_gpu,
+        kv_gpu,
+        cu_seqlens_q_gpu,
+        cu_seqlens_k_gpu,
         max_seqlen_q,
         max_seqlen_k,
         dropout_p=0.0,
@@ -228,32 +229,32 @@ def test_flash_attn_varlen_func_gqa():
     total_seqlen, num_q_heads, headdim = [256, 32, 64]
     num_kv_heads = 8
 
-    q_ref = torch.randn(
+    q_gpu = torch.randn(
         [total_seqlen, num_q_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    k_ref = torch.randn(
+    k_gpu = torch.randn(
         [total_seqlen, num_kv_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    v_ref = torch.randn(
+    v_gpu = torch.randn(
         [total_seqlen, num_kv_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    q_ext = q_ref.clone().detach().requires_grad_(True)
-    k_ext = k_ref.clone().detach().requires_grad_(True)
-    v_ext = v_ref.clone().detach().requires_grad_(True)
+    q_cpu, k_cpu, v_cpu = copy_to_cpu([q_gpu, k_gpu, v_gpu])
 
-    cu_seqlens_q_ref = torch.tensor(
+    cu_seqlens_q_cpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32)
+    cu_seqlens_k_cpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32)
+    cu_seqlens_q_gpu = torch.tensor(
         [0, 32, 64, 128, 256], dtype=torch.int32, device="cuda"
     )
-    cu_seqlens_k_ref = torch.tensor(
+    cu_seqlens_k_gpu = torch.tensor(
         [0, 32, 64, 128, 256], dtype=torch.int32, device="cuda"
     )
     max_seqlen_q = 128
@@ -261,11 +262,11 @@ def test_flash_attn_varlen_func_gqa():
 
     ouput_forward_cpu, grads_cpu = call_normal_func(
         torch_attn_varlen_func,
-        q_ref,
-        k_ref,
-        v_ref,
-        cu_seqlens_q_ref,
-        cu_seqlens_k_ref,
+        q_cpu,
+        k_cpu,
+        v_cpu,
+        cu_seqlens_q_cpu,
+        cu_seqlens_k_cpu,
         max_seqlen_q,
         max_seqlen_k,
         dropout_p=0.0,
@@ -273,11 +274,11 @@ def test_flash_attn_varlen_func_gqa():
     )
     ouput_forward_gpu, grads_gpu = call_normal_func(
         flash_attn_varlen_func,
-        q_ext,
-        k_ext,
-        v_ext,
-        cu_seqlens_q_ref,
-        cu_seqlens_k_ref,
+        q_gpu,
+        k_gpu,
+        v_gpu,
+        cu_seqlens_q_gpu,
+        cu_seqlens_k_gpu,
         max_seqlen_q,
         max_seqlen_k,
         dropout_p=0.0,
@@ -293,32 +294,32 @@ def test_flash_attn_varlen_func_gqa_long_max_seqlen():
     total_seqlen, num_q_heads, headdim = [20206, 6, 64]
     num_kv_heads = 2
 
-    q_ref = torch.randn(
+    q_gpu = torch.randn(
         [total_seqlen, num_q_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    k_ref = torch.randn(
+    k_gpu = torch.randn(
         [total_seqlen, num_kv_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    v_ref = torch.randn(
+    v_gpu = torch.randn(
         [total_seqlen, num_kv_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    q_ext = q_ref.clone().detach().requires_grad_(True)
-    k_ext = k_ref.clone().detach().requires_grad_(True)
-    v_ext = v_ref.clone().detach().requires_grad_(True)
+    q_cpu, k_cpu, v_cpu = copy_to_cpu([q_gpu, k_gpu, v_gpu])
 
-    cu_seqlens_q_ref = torch.tensor(
+    cu_seqlens_q_cpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32)
+    cu_seqlens_k_cpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32)
+    cu_seqlens_q_gpu = torch.tensor(
         cu_seqlens_max_length_4096, dtype=torch.int32, device="cuda"
     )
-    cu_seqlens_k_ref = torch.tensor(
+    cu_seqlens_k_gpu = torch.tensor(
         cu_seqlens_max_length_4096, dtype=torch.int32, device="cuda"
     )
     # the maximum sequence length is 4096
@@ -327,11 +328,11 @@ def test_flash_attn_varlen_func_gqa_long_max_seqlen():
 
     ouput_forward_cpu, grads_cpu = call_normal_func(
         torch_attn_varlen_func,
-        q_ref,
-        k_ref,
-        v_ref,
-        cu_seqlens_q_ref,
-        cu_seqlens_k_ref,
+        q_cpu,
+        k_cpu,
+        v_cpu,
+        cu_seqlens_q_cpu,
+        cu_seqlens_k_cpu,
         max_seqlen_q,
         max_seqlen_k,
         dropout_p=0.0,
@@ -339,11 +340,11 @@ def test_flash_attn_varlen_func_gqa_long_max_seqlen():
     )
     ouput_forward_gpu, grads_gpu = call_normal_func(
         flash_attn_varlen_func,
-        q_ext,
-        k_ext,
-        v_ext,
-        cu_seqlens_q_ref,
-        cu_seqlens_k_ref,
+        q_gpu,
+        k_gpu,
+        v_gpu,
+        cu_seqlens_q_gpu,
+        cu_seqlens_k_gpu,
         max_seqlen_q,
         max_seqlen_k,
         dropout_p=0.0,
