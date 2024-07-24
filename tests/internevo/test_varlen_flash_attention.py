@@ -1,7 +1,7 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-from tests.core import allclose, call_normal_func
+from tests.core import allclose, call_normal_func, copy_to_cpu
 
 from deeplink_ext.internevo_ops.flash_attention_fallback import (
     torch_attn_varlen_qkvpacked_func,
@@ -28,132 +28,143 @@ cu_seqlens_max_length_4096 = [
 def test_flash_attn_varlen_qkvpacked_func_mha():
     total_seqlen, num_heads, headdim = [256, 32, 64]
 
-    qkv_ref = torch.randn(
+    qkv_gpu = torch.randn(
         [total_seqlen, 3, num_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    qkv_ext = qkv_ref.clone().detach().requires_grad_(True)
+    qkv_cpu = copy_to_cpu(
+        [
+            qkv_gpu,
+        ]
+    )
 
-    cu_seqlens_ref = torch.tensor(
+    cu_seqlens_cpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32)
+    cu_seqlens_gpu = torch.tensor(
         [0, 32, 64, 128, 256], dtype=torch.int32, device="cuda"
     )
     max_seqlen = 128
 
-    ouput_forward_ref, grads_ref = call_normal_func(
+    ouput_forward_cpu, grads_cpu = call_normal_func(
         torch_attn_varlen_qkvpacked_func,
-        qkv_ref,
-        cu_seqlens_ref,
+        qkv_cpu[0],
+        cu_seqlens_cpu,
         max_seqlen,
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_ext, grads_ext = call_normal_func(
+    ouput_forward_gpu, grads_gpu = call_normal_func(
         flash_attn_varlen_qkvpacked_func,
-        qkv_ext,
-        cu_seqlens_ref,
+        qkv_gpu,
+        cu_seqlens_gpu,
         max_seqlen,
         dropout_p=0.0,
         causal=True,
     )
 
-    assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-2)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-2)
 
 
 def test_flash_attn_varlen_qkvpacked_func_mha_long_max_seqlen():
     # Test function to verify if the module behaves correctly when the maximum sequence length exceeds 2048.
     total_seqlen, num_heads, headdim = [20206, 2, 64]
 
-    qkv_ref = torch.randn(
+    qkv_gpu = torch.randn(
         [total_seqlen, 3, num_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    qkv_ext = qkv_ref.clone().detach().requires_grad_(True)
+    qkv_cpu = copy_to_cpu(
+        [
+            qkv_gpu,
+        ]
+    )
 
-    cu_seqlens_ref = torch.tensor(
+    cu_seqlens_cpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32)
+    cu_seqlens_gpu = torch.tensor(
         cu_seqlens_max_length_4096, dtype=torch.int32, device="cuda"
     )
     # the maximum sequence length is 4096
     max_seqlen = 4096
 
-    ouput_forward_ref, grads_ref = call_normal_func(
+    ouput_forward_cpu, grads_cpu = call_normal_func(
         torch_attn_varlen_qkvpacked_func,
-        qkv_ref,
-        cu_seqlens_ref,
+        qkv_cpu[0],
+        cu_seqlens_cpu,
         max_seqlen,
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_ext, grads_ext = call_normal_func(
+    ouput_forward_gpu, grads_gpu = call_normal_func(
         flash_attn_varlen_qkvpacked_func,
-        qkv_ext,
-        cu_seqlens_ref,
+        qkv_gpu,
+        cu_seqlens_gpu,
         max_seqlen,
         dropout_p=0.0,
         causal=True,
     )
 
-    assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-2)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-2)
 
 
 def test_flash_attn_varlen_kvpacked_func_gqa():
     total_seqlen, num_q_heads, headdim = [256, 32, 64]
     num_kv_heads = 8
 
-    q_ref = torch.randn(
+    q_gpu = torch.randn(
         [total_seqlen, num_q_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    kv_ref = torch.randn(
+    kv_gpu = torch.randn(
         [total_seqlen, 2, num_kv_heads, headdim],
         dtype=torch.float16,
         requires_grad=True,
         device="cuda",
     )
-    q_ext = q_ref.clone().detach().requires_grad_(True)
-    kv_ext = kv_ref.clone().detach().requires_grad_(True)
+    q_cpu, kv_cpu = copy_to_cpu([q_gpu, kv_gpu])
 
-    cu_seqlens_q_ref = torch.tensor(
+    cu_seqlens_q_cpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32)
+    cu_seqlens_k_cpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32)
+    cu_seqlens_q_gpu = torch.tensor(
         [0, 32, 64, 128, 256], dtype=torch.int32, device="cuda"
     )
-    cu_seqlens_k_ref = torch.tensor(
+    cu_seqlens_k_gpu = torch.tensor(
         [0, 32, 64, 128, 256], dtype=torch.int32, device="cuda"
     )
     max_seqlen_q = 128
     max_seqlen_k = 128
 
-    ouput_forward_ref, grads_ref = call_normal_func(
+    ouput_forward_cpu, grads_cpu = call_normal_func(
         torch_attn_varlen_kvpacked_func,
-        q_ref,
-        kv_ref,
-        cu_seqlens_q_ref,
-        cu_seqlens_k_ref,
+        q_cpu,
+        kv_cpu,
+        cu_seqlens_q_cpu,
+        cu_seqlens_k_cpu,
         max_seqlen_q,
         max_seqlen_k,
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_ext, grads_ext = call_normal_func(
+    ouput_forward_gpu, grads_gpu = call_normal_func(
         flash_attn_varlen_kvpacked_func,
-        q_ext,
-        kv_ext,
-        cu_seqlens_q_ref,
-        cu_seqlens_k_ref,
+        q_gpu,
+        kv_gpu,
+        cu_seqlens_q_gpu,
+        cu_seqlens_k_gpu,
         max_seqlen_q,
         max_seqlen_k,
         dropout_p=0.0,
         causal=True,
     )
 
-    assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_ext, rtol=1e-3, atol=1e-2)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-2)
 
 
 def test_flash_attn_varlen_kvpacked_func_gqa_long_max_seqlen():
@@ -186,7 +197,7 @@ def test_flash_attn_varlen_kvpacked_func_gqa_long_max_seqlen():
     max_seqlen_q = 4096
     max_seqlen_k = 4096
 
-    ouput_forward_ref, grads_ref = call_normal_func(
+    ouput_forward_cpu, grads_cpu = call_normal_func(
         torch_attn_varlen_kvpacked_func,
         q_ref,
         kv_ref,
@@ -197,7 +208,7 @@ def test_flash_attn_varlen_kvpacked_func_gqa_long_max_seqlen():
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_ext, grads_ext = call_normal_func(
+    ouput_forward_gpu, grads_gpu = call_normal_func(
         flash_attn_varlen_kvpacked_func,
         q_ext,
         kv_ext,
@@ -209,8 +220,8 @@ def test_flash_attn_varlen_kvpacked_func_gqa_long_max_seqlen():
         causal=True,
     )
 
-    assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_ext, rtol=1e-3, atol=1e-2)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-2)
 
 
 def test_flash_attn_varlen_func_gqa():
@@ -248,7 +259,7 @@ def test_flash_attn_varlen_func_gqa():
     max_seqlen_q = 128
     max_seqlen_k = 128
 
-    ouput_forward_ref, grads_ref = call_normal_func(
+    ouput_forward_cpu, grads_cpu = call_normal_func(
         torch_attn_varlen_func,
         q_ref,
         k_ref,
@@ -260,7 +271,7 @@ def test_flash_attn_varlen_func_gqa():
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_ext, grads_ext = call_normal_func(
+    ouput_forward_gpu, grads_gpu = call_normal_func(
         flash_attn_varlen_func,
         q_ext,
         k_ext,
@@ -273,8 +284,8 @@ def test_flash_attn_varlen_func_gqa():
         causal=True,
     )
 
-    assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-2)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-2)
 
 
 def test_flash_attn_varlen_func_gqa_long_max_seqlen():
@@ -314,7 +325,7 @@ def test_flash_attn_varlen_func_gqa_long_max_seqlen():
     max_seqlen_q = 4096
     max_seqlen_k = 4096
 
-    ouput_forward_ref, grads_ref = call_normal_func(
+    ouput_forward_cpu, grads_cpu = call_normal_func(
         torch_attn_varlen_func,
         q_ref,
         k_ref,
@@ -326,7 +337,7 @@ def test_flash_attn_varlen_func_gqa_long_max_seqlen():
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_ext, grads_ext = call_normal_func(
+    ouput_forward_gpu, grads_gpu = call_normal_func(
         flash_attn_varlen_func,
         q_ext,
         k_ext,
@@ -339,5 +350,5 @@ def test_flash_attn_varlen_func_gqa_long_max_seqlen():
         causal=True,
     )
 
-    assert allclose(ouput_forward_ref, ouput_forward_ext, rtol=1e-5, atol=1e-5)
-    assert allclose(grads_ref, grads_ext, rtol=1e-5, atol=1e-2)
+    assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
+    assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-2)
