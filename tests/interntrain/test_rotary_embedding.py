@@ -1,7 +1,7 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-from tests.core import call_func, allclose
+from tests.core import call_autograd_func, allclose
 
 from deeplink_ext.interntrain_ops.rotary_embedding import (
     ApplyRotaryEmb,
@@ -24,10 +24,10 @@ def test_ApplyRotaryEmb():
         cos = torch.randn(64, 32, dtype=input_dtype, device="cuda")
         sin = torch.randn(64, 32, dtype=input_dtype, device="cuda")
 
-        output_ref, grad_ref = call_func(
+        output_ref, grad_ref = call_autograd_func(
             ApplyRotaryEmbTorch, "cuda", input_dtype, input_ref, cos, sin, interleaved
         )
-        output_ext, grad_ext = call_func(
+        output_ext, grad_ext = call_autograd_func(
             ApplyRotaryEmb, "cuda", input_dtype, input_ext, cos, sin, interleaved
         )
         assert allclose(
@@ -50,7 +50,7 @@ def test_ApplyRotaryEmbQKV__qkv():
         cos = torch.randn(64, 32, dtype=input_dtype, device="cuda")
         sin = torch.randn(64, 32, dtype=input_dtype, device="cuda")
 
-        output_ref, grad_ref = call_func(
+        output_ref, grad_ref = call_autograd_func(
             ApplyRotaryEmbQKV_Torch,
             "cuda",
             input_dtype,
@@ -61,7 +61,7 @@ def test_ApplyRotaryEmbQKV__qkv():
             None,
             interleaved,
         )
-        output_ext, grad_ext = call_func(
+        output_ext, grad_ext = call_autograd_func(
             ApplyRotaryEmbQKV_,
             "cuda",
             input_dtype,
