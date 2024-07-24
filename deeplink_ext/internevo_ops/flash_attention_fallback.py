@@ -19,18 +19,15 @@ def _unpack_qkv_before_attn(
     cur_input: torch.Tensor, cu_seqlens: torch.Tensor, padding_v: int = 0
 ):
     """
-    qkv: the shape is (1, packed_length, three, head_num, head_dim)
-    kv: the shape is (1, packed_length, two, head_num, head_dim)
-    q/k/v: the shape is (1, packed_length, head_num, head_dim)
+    qkv: the shape is (packed_length, three, head_num, head_dim)
+    kv: the shape is (packed_length, two, head_num, head_dim)
+    q/k/v: the shape is (packed_length, head_num, head_dim)
 
     Return:
     output: the shape is (micro_bsz, seq_len, three, head_num, head_dim) for qkv
                         (micro_bsz, seq_len, two, head_num, head_dim) for kv
                         (micro_bsz, seq_len, head_num, head_dim) for q/k/v
     """
-    assert cur_input.shape[0] == 1
-    cur_input = cur_input.squeeze(0)
-
     sequences = []
     for i in range(len(cu_seqlens) - 1):
         sequences.append(cur_input[cu_seqlens[i] : cu_seqlens[i + 1]])
@@ -49,14 +46,12 @@ def _pack_output_after_attn(
     padding_v: int = 0,
 ):
     """
-    cur_input: the shape is (micro_bsz, seq_len, head_num, head_dim)
+    cur_input: the shape is (micro_bsz, max_seq_len, head_num, head_dim)
 
     Return:
-    output: the shape is (1, packed_length, head_num, head_dim)
+    output: the shape is (packed_length, head_num, head_dim)
     """
-    output_shape = list(cur_input.shape)
-    output_shape[0] = 1
-    output_shape[1] = packed_length
+    output_shape = [packed_length, *cur_input.shape[-2:]]
 
     output = torch.full(
         output_shape,
@@ -66,7 +61,7 @@ def _pack_output_after_attn(
     )
     for i in range(len(cu_seqlens) - 1):
         length = cu_seqlens[i + 1] - cu_seqlens[i]
-        output[0, cu_seqlens[i] : cu_seqlens[i + 1]] = cur_input[i, 0:length]
+        output[cu_seqlens[i] : cu_seqlens[i + 1]] = cur_input[i, 0:length]
 
     return output
 
@@ -174,7 +169,7 @@ def torch_attn_varlen_qkvpacked_func(
     deterministic=False,
     return_attn_probs=False,
 ):
-    packed_length = qkv.size(dim=1)
+    packed_length = qkv.size(dim=0)
     qkv = _unpack_qkv_before_attn(qkv, cu_seqlens=cu_seqlens)
     output = torch_attn_qkvpacked_func(
         qkv,
@@ -204,7 +199,7 @@ def torch_attn_varlen_kvpacked_func(
     deterministic=False,
     return_attn_probs=False,
 ):
-    packed_length = q.size(dim=1)
+    packed_length = q.size(dim=0)
     q = _unpack_qkv_before_attn(q, cu_seqlens=cu_seqlens_q)
     kv = _unpack_qkv_before_attn(kv, cu_seqlens=cu_seqlens_k)
     output = torch_attn_kvpacked_func(
@@ -238,8 +233,8 @@ def torch_attn_varlen_func(
     return_attn_probs=False,
     block_table=None,
 ):
-    packed_length = q.size(dim=1)
-    kv = torch.stack([k, v], dim=2)
+    packed_length = q.size(dim=0)
+    kv = torch.stack([k, v], dim=1)
     q = _unpack_qkv_before_attn(q, cu_seqlens=cu_seqlens_q)
     kv = _unpack_qkv_before_attn(kv, cu_seqlens=cu_seqlens_k)
     output = torch_attn_kvpacked_func(
