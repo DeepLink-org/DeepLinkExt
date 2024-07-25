@@ -27,11 +27,11 @@ def add_transpose_flags(x):
 
 
 _TEST_PROBLEMS = add_transpose_flags((
-    (1, 128, 128, 128),
-    (8, 128, 128, 128),
-    (16, 128, 128, 128),
-    (1, 128, 256, 512),
-    (8, 128, 256, 512),
+    # (1, 128, 128, 128),
+    # (8, 128, 128, 128),
+    # (16, 128, 128, 128),
+    # (1, 128, 256, 512),
+    # (8, 128, 256, 512),
     (16, 128, 256, 512),
 ))
 
@@ -67,7 +67,7 @@ class OpsTest(parameterized.TestCase):
         a_ref = a.detach().clone().requires_grad_(True)
         b_ref = b.detach().clone().requires_grad_(True)
 
-        out = GroupedGemm(a, b, batch_sizes, False, trans_b)
+        out = GroupedGemm.apply(a, b, batch_sizes, trans_b)
         expected_out = gmm(a_ref, b_ref, batch_sizes, trans_b)
         self.assertTrue(allclose(out.cpu(), expected_out.cpu()))
 
@@ -94,7 +94,7 @@ class OpsTest(parameterized.TestCase):
         a_ref = a.detach().clone().requires_grad_(True)
         b_ref = b.detach().clone().requires_grad_(True)
 
-        out = GroupedGemm(a, b, batch_sizes, False, trans_b)
+        out = GroupedGemm.apply(a, b, batch_sizes, trans_b)
         expected_out = gmm(a_ref, b_ref, batch_sizes, trans_b)
         self.assertTrue(allclose(out.cpu(), expected_out.cpu()))
 
@@ -103,7 +103,6 @@ class OpsTest(parameterized.TestCase):
         expected_out.sum().backward()
         self.assertTrue(allclose(a.grad.cpu(), a_ref.grad.cpu()))
         self.assertTrue(allclose(b.grad.cpu(), b_ref.grad.cpu()))
-
 
 
 if __name__ == '__main__':

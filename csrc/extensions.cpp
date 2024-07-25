@@ -402,6 +402,15 @@ void extGroupedGemm(at::Tensor& out, const at::Tensor& a, const at::Tensor& b,
   callDiopi(diopiGroupedGemm, out, a, b, batchSizes, transA, transB);
 }
 
+void extGroupedGemmBackward(at::Tensor& gradA, at::Tensor& gradB,
+                            const at::Tensor& a, const at::Tensor& b,
+                            const at::Tensor& batchSizes,
+                            const at::Tensor& grad, bool transA,
+                            bool transB) {
+  callDiopi(diopiGroupedGemmBackward, gradA, gradB, a, b, batchSizes, grad,
+            transA, transB);
+}
+
 // 判断是否有对应的 diopi 实现:
 //   如果有, 则直接 pybind 上去;
 //   否则不注册, 等到 python 层处理.
@@ -506,6 +515,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   }
   if (&diopiGroupedGemm != nullptr) {
     m.def("gmm", &extGroupedGemm, "deeplink extGroupedGemm");
+  }
+  if (&diopiGroupedGemmBackward != nullptr) {
+    m.def("gmm_backward", &extGroupedGemmBackward, "deeplink extGroupedGemm");
   }
 }
 

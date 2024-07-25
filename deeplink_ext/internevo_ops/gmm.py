@@ -26,7 +26,7 @@ def gmm_forward(a, b, batch_sizes, trans_a, trans_b):
     if batch_sizes.is_cuda:
         ext.gmm(out, a, b, batch_sizes, trans_a, trans_b)
     else:
-        ext.gmm(out, a, b, batch_sizes.cuda, trans_a, trans_b)
+        ext.gmm(out, a, b, batch_sizes.cuda(), trans_a, trans_b)
 
     return out
 
@@ -43,9 +43,13 @@ class GroupedGemm(torch.autograd.Function):
         a, b, batch_sizes = ctx.saved_tensors
         trans_b = ctx.trans_b
 
-        gradA = gmm_forward(grad, b, batch_sizes, False, trans_b)
+        # gradA = gmm_forward(grad, b, batch_sizes, False, not trans_b)
+        # lhs, rhs = (grad, a) if trans_b else (a, grad)
+        # gradB = gmm_forward(lhs, rhs, batch_sizes, True, False)
 
-        lhs, rhs = (grad, a) if trans_b else (a, grad)
-        gradB = gmm_forward(lhs, rhs, batch_sizes, True, False)
+        gradA = torch.empty_like(a)
+        gradB = torch.empty_like(b)
+        ext.gmm_backward(gradA, gradB, a, b, batch_sizes.cuda(), grad, False, trans_b)
+
 
         return gradA, gradB, None, None
