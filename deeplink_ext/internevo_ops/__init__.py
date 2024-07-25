@@ -8,6 +8,7 @@ except Exception as e:
     print(_not_impl.format(op_name="adamw"))
     from torch.optim import AdamW as AdamW
 
+
 try:
     from .flash_attention import FlashSelfAttention, FlashCrossAttention
 except Exception as e:
@@ -33,6 +34,13 @@ except:
     from .rotary_embedding_fallback import ApplyRotaryEmbQKV_Torch as ApplyRotaryEmbQKV_
 
 
+try:
+    from .gmm import gmm_forward
+    from .gmm import GroupedGemm
+except:
+    print(_not_impl.format(op_name="grouped gemm"))
+
+
 __all__ = [
     "AdamW",
     "FlashSelfAttention",
@@ -40,4 +48,6 @@ __all__ = [
     "MixedFusedRMSNorm",
     "ApplyRotaryEmb",
     "ApplyRotaryEmbQKV_",
+    "gmm_forward",
+    "GroupedGemm",
 ]
