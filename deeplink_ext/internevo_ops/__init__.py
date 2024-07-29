@@ -6,15 +6,27 @@ try:
     from .adamw import AdamW
 except Exception as e:
     print(_not_impl.format(op_name="adamw"))
-    from torch.optim import AdamW as AdamW
+    from torch.optim import AdamW
 
 try:
-    from .flash_attention import FlashSelfAttention, FlashCrossAttention
+    from .flash_attention import (
+        flash_attn_qkvpacked_func,
+        flash_attn_kvpacked_func,
+        flash_attn_func,
+        flash_attn_varlen_qkvpacked_func,
+        flash_attn_varlen_kvpacked_func,
+        flash_attn_varlen_func,
+    )
 except Exception as e:
     print(_not_impl.format(op_name="flash attention"))
-    from .flash_attention_fallback import SelfAttention as FlashSelfAttention
-    from .flash_attention_fallback import CrossAttention as FlashCrossAttention
-
+    from .flash_attention_fallback import (
+        torch_attn_qkvpacked_func as flash_attn_qkvpacked_func,
+        torch_attn_kvpacked_func as flash_attn_kvpacked_func,
+        torch_attn_func as flash_attn_func,
+        torch_attn_varlen_qkvpacked_func as flash_attn_varlen_qkvpacked_func,
+        torch_attn_varlen_kvpacked_func as flash_attn_varlen_kvpacked_func,
+        torch_attn_varlen_func as flash_attn_varlen_func,
+    )
 
 try:
     from .rms_norm import MixedFusedRMSNorm
@@ -24,20 +36,20 @@ except:
     )
     from .rms_norm_fallback import MixedRMSNormTorch as MixedFusedRMSNorm
 
-
 try:
-    from .rotary_embedding import ApplyRotaryEmb, ApplyRotaryEmbQKV_
+    from .rotary_embedding import ApplyRotaryEmb
 except:
     print(_not_impl.format(op_name="rotary embedding"))
     from .rotary_embedding_fallback import ApplyRotaryEmbTorch as ApplyRotaryEmb
-    from .rotary_embedding_fallback import ApplyRotaryEmbQKV_Torch as ApplyRotaryEmbQKV_
-
 
 __all__ = [
     "AdamW",
-    "FlashSelfAttention",
-    "FlashCrossAttention",
+    "flash_attn_qkvpacked_func",
+    "flash_attn_kvpacked_func",
+    "flash_attn_func",
+    "flash_attn_varlen_qkvpacked_func",
+    "flash_attn_varlen_kvpacked_func",
+    "flash_attn_varlen_func",
     "MixedFusedRMSNorm",
     "ApplyRotaryEmb",
-    "ApplyRotaryEmbQKV_",
 ]
