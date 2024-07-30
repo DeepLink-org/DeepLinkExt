@@ -6,12 +6,12 @@ import math
 
 
 __all__ = [
-    "torch_attn_qkvpacked_func",
-    "torch_attn_kvpacked_func",
-    "torch_attn_func",
-    "torch_attn_varlen_qkvpacked_func",
-    "torch_attn_varlen_kvpacked_func",
-    "torch_attn_varlen_func",
+    "flash_attn_qkvpacked_func_torch",
+    "flash_attn_kvpacked_func_torch",
+    "flash_attn_func_torch",
+    "flash_attn_varlen_qkvpacked_func_torch",
+    "flash_attn_varlen_kvpacked_func_torch",
+    "flash_attn_varlen_func_torch",
 ]
 
 
@@ -66,7 +66,7 @@ def _pack_output_after_attn(
     return output
 
 
-def torch_attn_qkvpacked_func(
+def flash_attn_qkvpacked_func_torch(
     qkv,
     dropout_p=0.0,
     softmax_scale=None,
@@ -95,7 +95,7 @@ def torch_attn_qkvpacked_func(
     return output
 
 
-def torch_attn_kvpacked_func(
+def flash_attn_kvpacked_func_torch(
     q,
     kv,
     dropout_p=0.0,
@@ -131,7 +131,7 @@ def torch_attn_kvpacked_func(
     return output
 
 
-def torch_attn_func(
+def flash_attn_func_torch(
     q,
     k,
     v,
@@ -144,7 +144,7 @@ def torch_attn_func(
     return_attn_probs=False,
 ):
     kv = torch.stack([k, v], dim=2)
-    return torch_attn_kvpacked_func(
+    return flash_attn_kvpacked_func_torch(
         q,
         kv,
         dropout_p,
@@ -157,7 +157,7 @@ def torch_attn_func(
     )
 
 
-def torch_attn_varlen_qkvpacked_func(
+def flash_attn_varlen_qkvpacked_func_torch(
     qkv,
     cu_seqlens,
     max_seqlen,
@@ -171,7 +171,7 @@ def torch_attn_varlen_qkvpacked_func(
 ):
     packed_length = qkv.size(dim=0)
     qkv = _unpack_qkv_before_attn(qkv, cu_seqlens=cu_seqlens)
-    output = torch_attn_qkvpacked_func(
+    output = flash_attn_qkvpacked_func_torch(
         qkv,
         dropout_p,
         softmax_scale,
@@ -184,7 +184,7 @@ def torch_attn_varlen_qkvpacked_func(
     return _pack_output_after_attn(output, cu_seqlens, packed_length)
 
 
-def torch_attn_varlen_kvpacked_func(
+def flash_attn_varlen_kvpacked_func_torch(
     q,
     kv,
     cu_seqlens_q,
@@ -202,7 +202,7 @@ def torch_attn_varlen_kvpacked_func(
     packed_length = q.size(dim=0)
     q = _unpack_qkv_before_attn(q, cu_seqlens=cu_seqlens_q)
     kv = _unpack_qkv_before_attn(kv, cu_seqlens=cu_seqlens_k)
-    output = torch_attn_kvpacked_func(
+    output = flash_attn_kvpacked_func_torch(
         q,
         kv,
         dropout_p,
@@ -216,7 +216,7 @@ def torch_attn_varlen_kvpacked_func(
     return _pack_output_after_attn(output, cu_seqlens_q, packed_length)
 
 
-def torch_attn_varlen_func(
+def flash_attn_varlen_func_torch(
     q,
     k,
     v,
@@ -237,7 +237,7 @@ def torch_attn_varlen_func(
     kv = torch.stack([k, v], dim=1)
     q = _unpack_qkv_before_attn(q, cu_seqlens=cu_seqlens_q)
     kv = _unpack_qkv_before_attn(kv, cu_seqlens=cu_seqlens_k)
-    output = torch_attn_kvpacked_func(
+    output = flash_attn_kvpacked_func_torch(
         q,
         kv,
         dropout_p,

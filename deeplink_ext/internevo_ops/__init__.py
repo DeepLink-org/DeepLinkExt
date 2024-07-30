@@ -20,12 +20,12 @@ try:
 except Exception as e:
     print(_not_impl.format(op_name="flash attention"))
     from .flash_attention_fallback import (
-        torch_attn_qkvpacked_func as flash_attn_qkvpacked_func,
-        torch_attn_kvpacked_func as flash_attn_kvpacked_func,
-        torch_attn_func as flash_attn_func,
-        torch_attn_varlen_qkvpacked_func as flash_attn_varlen_qkvpacked_func,
-        torch_attn_varlen_kvpacked_func as flash_attn_varlen_kvpacked_func,
-        torch_attn_varlen_func as flash_attn_varlen_func,
+        flash_attn_qkvpacked_func_torch as flash_attn_qkvpacked_func,
+        flash_attn_kvpacked_func_torch as flash_attn_kvpacked_func,
+        flash_attn_func_torch as flash_attn_func,
+        flash_attn_varlen_qkvpacked_func_torch as flash_attn_varlen_qkvpacked_func,
+        flash_attn_varlen_kvpacked_func_torch as flash_attn_varlen_kvpacked_func,
+        flash_attn_varlen_func_torch as flash_attn_varlen_func,
     )
 
 try:
