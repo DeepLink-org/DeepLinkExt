@@ -1,9 +1,15 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-import typing
+from typing import Callable, Any
 
-__all__ = ["call_module", "call_func", "copy_to_cpu", "allclose"]
+__all__ = [
+    "call_module",
+    "call_autograd_func",
+    "call_normal_func",
+    "copy_to_cpu",
+    "allclose",
+]
 
 
 def call_module(module: torch.nn.Module, *forward_args):
@@ -24,7 +30,7 @@ def call_module(module: torch.nn.Module, *forward_args):
     return output_forward, grads
 
 
-def call_func(f: torch.autograd.Function, device, dtype, *args: list):
+def call_autograd_func(f: torch.autograd.Function, device, dtype, *args: tuple):
     class Module(torch.nn.Module):
         def __init__(self, func):
             super(Module, self).__init__()
@@ -34,6 +40,24 @@ def call_func(f: torch.autograd.Function, device, dtype, *args: list):
             return self.func.apply(*args)
 
     return call_module(Module(f).to(device).to(dtype), *args)
+
+
+def call_normal_func(func: Callable[..., Any], *args: tuple, **kwargs: dict):
+    output_forward = func(*args, **kwargs)
+    grads = []
+    if torch.is_tensor(output_forward):
+        output_forward.backward(torch.ones_like(output_forward))
+    elif isinstance(output_forward, (list, tuple)):
+        assert torch.is_tensor(output_forward[0]), "output_forward[0] is not a tensor"
+        output_forward[0].backward(torch.ones_like(output_forward[0]))
+    else:
+        raise RuntimeError(
+            "the result of forward is not a tensor or list or tuple of tensor"
+        )
+    for arg in args:
+        if torch.is_tensor(arg) and arg.requires_grad:
+            grads.append(arg.grad)
+    return output_forward, grads
 
 
 def copy_to_cpu(tensors: list[torch.Tensor], dtype=None):
@@ -56,8 +80,8 @@ def allclose(expected_vals: list, real_vals: list, rtol=1e-05, atol=1e-08):
         if isinstance(expected_vals[i], torch.Tensor):
             assert isinstance(real_vals[i], torch.Tensor)
             return torch.allclose(
-                expected_vals[i].cpu().to(torch.float32),
-                real_vals[i].cpu().to(torch.float32),
+                expected_vals[i].to(real_vals[i].dtype).cpu(),
+                real_vals[i].cpu(),
                 rtol,
                 atol,
             )
