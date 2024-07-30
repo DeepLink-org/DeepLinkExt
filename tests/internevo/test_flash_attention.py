@@ -1,7 +1,7 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-from tests.core import copy_to_cpu, allclose, call_normal_func
+from tests.core import copy_to_cpu, allclose, calculate_fwd_and_bwd
 
 from deeplink_ext.internevo_ops.flash_attention_fallback import (
     flash_attn_qkvpacked_func_torch,
@@ -31,13 +31,13 @@ def test_flash_attn_qkvpacked_func_mha():
         ]
     )
 
-    ouput_forward_cpu, grads_cpu = call_normal_func(
+    ouput_forward_cpu, grads_cpu = calculate_fwd_and_bwd(
         flash_attn_qkvpacked_func_torch,
         qkv_cpu[0],
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_gpu, grads_gpu = call_normal_func(
+    ouput_forward_gpu, grads_gpu = calculate_fwd_and_bwd(
         flash_attn_qkvpacked_func,
         qkv_gpu,
         dropout_p=0.0,
@@ -66,14 +66,14 @@ def test_flash_attn_kvpacked_func_gqa():
     )
 
     q_cpu, kv_cpu = copy_to_cpu([q_gpu, kv_gpu])
-    ouput_forward_cpu, grads_cpu = call_normal_func(
+    ouput_forward_cpu, grads_cpu = calculate_fwd_and_bwd(
         flash_attn_kvpacked_func_torch,
         q_cpu,
         kv_cpu,
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_gpu, grads_gpu = call_normal_func(
+    ouput_forward_gpu, grads_gpu = calculate_fwd_and_bwd(
         flash_attn_kvpacked_func,
         q_gpu,
         kv_gpu,
@@ -109,7 +109,7 @@ def test_flash_attn_func_gqa():
     )
 
     q_cpu, k_cpu, v_cpu = copy_to_cpu([q_gpu, k_gpu, v_gpu])
-    ouput_forward_cpu, grads_cpu = call_normal_func(
+    ouput_forward_cpu, grads_cpu = calculate_fwd_and_bwd(
         flash_attn_func_torch,
         q_cpu,
         k_cpu,
@@ -117,7 +117,7 @@ def test_flash_attn_func_gqa():
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_gpu, grads_gpu = call_normal_func(
+    ouput_forward_gpu, grads_gpu = calculate_fwd_and_bwd(
         flash_attn_func,
         q_gpu,
         k_gpu,
