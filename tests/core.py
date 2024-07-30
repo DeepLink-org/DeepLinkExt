@@ -68,8 +68,8 @@ def allclose(expected_vals: list, real_vals: list, rtol=1e-05, atol=1e-08):
         if isinstance(expected_vals[i], torch.Tensor):
             assert isinstance(real_vals[i], torch.Tensor)
             return torch.allclose(
-                expected_vals[i].to(real_vals[i].dtype).cpu(),
-                real_vals[i].cpu(),
+                expected_vals[i].cpu().to(torch.float32),
+                real_vals[i].cpu().to(torch.float32),
                 rtol,
                 atol,
             )
