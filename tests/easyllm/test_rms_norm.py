@@ -1,7 +1,7 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-from tests.core import call_normal_func, allclose
+from tests.core import calculate_fwd_and_bwd, allclose
 from deeplink_ext.easyllm_ops.rms_norm import rms_norm
 from deeplink_ext.easyllm_ops.rms_norm_fallback import rms_norm_torch
 
@@ -25,14 +25,14 @@ def test_rms_norm():
 
         epsilon = 1e-5
 
-        output_ref, grad_ref = call_normal_func(
+        output_ref, grad_ref = calculate_fwd_and_bwd(
             rms_norm_torch,
             hidden_states_ref,
             weight_ref,
             epsilon,
         )
 
-        output_ext, grad_ext = call_normal_func(
+        output_ext, grad_ext = calculate_fwd_and_bwd(
             rms_norm,
             hidden_states_ext,
             weight_ext,
