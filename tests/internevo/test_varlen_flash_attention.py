@@ -1,12 +1,12 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-from tests.core import allclose, call_normal_func, copy_to_cpu
+from tests.core import allclose, calculate_fwd_and_bwd, copy_to_cpu
 
 from deeplink_ext.internevo_ops.flash_attention_fallback import (
-    torch_attn_varlen_qkvpacked_func,
-    torch_attn_varlen_kvpacked_func,
-    torch_attn_varlen_func,
+    flash_attn_varlen_qkvpacked_func_torch,
+    flash_attn_varlen_kvpacked_func_torch,
+    flash_attn_varlen_func_torch,
 )
 from deeplink_ext.internevo_ops.flash_attention import (
     flash_attn_varlen_qkvpacked_func,
@@ -46,15 +46,15 @@ def test_flash_attn_varlen_qkvpacked_func_mha():
     )
     max_seqlen = 128
 
-    ouput_forward_cpu, grads_cpu = call_normal_func(
-        torch_attn_varlen_qkvpacked_func,
+    ouput_forward_cpu, grads_cpu = calculate_fwd_and_bwd(
+        flash_attn_varlen_qkvpacked_func_torch,
         qkv_cpu[0],
         cu_seqlens_cpu,
         max_seqlen,
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_gpu, grads_gpu = call_normal_func(
+    ouput_forward_gpu, grads_gpu = calculate_fwd_and_bwd(
         flash_attn_varlen_qkvpacked_func,
         qkv_gpu,
         cu_seqlens_gpu,
@@ -90,15 +90,15 @@ def test_flash_attn_varlen_qkvpacked_func_mha_long_max_seqlen():
     # the maximum sequence length is 4096
     max_seqlen = 4096
 
-    ouput_forward_cpu, grads_cpu = call_normal_func(
-        torch_attn_varlen_qkvpacked_func,
+    ouput_forward_cpu, grads_cpu = calculate_fwd_and_bwd(
+        flash_attn_varlen_qkvpacked_func_torch,
         qkv_cpu[0],
         cu_seqlens_cpu,
         max_seqlen,
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_gpu, grads_gpu = call_normal_func(
+    ouput_forward_gpu, grads_gpu = calculate_fwd_and_bwd(
         flash_attn_varlen_qkvpacked_func,
         qkv_gpu,
         cu_seqlens_gpu,
@@ -140,8 +140,8 @@ def test_flash_attn_varlen_kvpacked_func_gqa():
     max_seqlen_q = 128
     max_seqlen_k = 128
 
-    ouput_forward_cpu, grads_cpu = call_normal_func(
-        torch_attn_varlen_kvpacked_func,
+    ouput_forward_cpu, grads_cpu = calculate_fwd_and_bwd(
+        flash_attn_varlen_kvpacked_func_torch,
         q_cpu,
         kv_cpu,
         cu_seqlens_q_cpu,
@@ -151,7 +151,7 @@ def test_flash_attn_varlen_kvpacked_func_gqa():
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_gpu, grads_gpu = call_normal_func(
+    ouput_forward_gpu, grads_gpu = calculate_fwd_and_bwd(
         flash_attn_varlen_kvpacked_func,
         q_gpu,
         kv_gpu,
@@ -198,8 +198,8 @@ def test_flash_attn_varlen_kvpacked_func_gqa_long_max_seqlen():
     max_seqlen_q = 4096
     max_seqlen_k = 4096
 
-    ouput_forward_cpu, grads_cpu = call_normal_func(
-        torch_attn_varlen_kvpacked_func,
+    ouput_forward_cpu, grads_cpu = calculate_fwd_and_bwd(
+        flash_attn_varlen_kvpacked_func_torch,
         q_cpu,
         kv_cpu,
         cu_seqlens_q_cpu,
@@ -209,7 +209,7 @@ def test_flash_attn_varlen_kvpacked_func_gqa_long_max_seqlen():
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_gpu, grads_gpu = call_normal_func(
+    ouput_forward_gpu, grads_gpu = calculate_fwd_and_bwd(
         flash_attn_varlen_kvpacked_func,
         q_gpu,
         kv_gpu,
@@ -260,8 +260,8 @@ def test_flash_attn_varlen_func_gqa():
     max_seqlen_q = 128
     max_seqlen_k = 128
 
-    ouput_forward_cpu, grads_cpu = call_normal_func(
-        torch_attn_varlen_func,
+    ouput_forward_cpu, grads_cpu = calculate_fwd_and_bwd(
+        flash_attn_varlen_func_torch,
         q_cpu,
         k_cpu,
         v_cpu,
@@ -272,7 +272,7 @@ def test_flash_attn_varlen_func_gqa():
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_gpu, grads_gpu = call_normal_func(
+    ouput_forward_gpu, grads_gpu = calculate_fwd_and_bwd(
         flash_attn_varlen_func,
         q_gpu,
         k_gpu,
@@ -326,8 +326,8 @@ def test_flash_attn_varlen_func_gqa_long_max_seqlen():
     max_seqlen_q = 4096
     max_seqlen_k = 4096
 
-    ouput_forward_cpu, grads_cpu = call_normal_func(
-        torch_attn_varlen_func,
+    ouput_forward_cpu, grads_cpu = calculate_fwd_and_bwd(
+        flash_attn_varlen_func_torch,
         q_cpu,
         k_cpu,
         v_cpu,
@@ -338,7 +338,7 @@ def test_flash_attn_varlen_func_gqa_long_max_seqlen():
         dropout_p=0.0,
         causal=True,
     )
-    ouput_forward_gpu, grads_gpu = call_normal_func(
+    ouput_forward_gpu, grads_gpu = calculate_fwd_and_bwd(
         flash_attn_varlen_func,
         q_gpu,
         k_gpu,
