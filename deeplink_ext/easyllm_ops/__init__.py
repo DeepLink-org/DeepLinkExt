@@ -36,6 +36,8 @@ except:
     )
     from .rms_norm_fallback import rms_norm_torch as rms_norm
 
+from .bert_padding import pad_input, unpad_input, index_first_axis
+
 __all__ = [
     "AdamW",
     "flash_attn_qkvpacked_func",
@@ -45,4 +47,7 @@ __all__ = [
     "flash_attn_varlen_kvpacked_func",
     "flash_attn_varlen_func",
     "rms_norm",
+    "pad_input",
+    "unpad_input",
+    "index_first_axis",
 ]

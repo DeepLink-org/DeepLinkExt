@@ -1,6 +1,12 @@
 # Copyright (c) 2024, DeepLink.
 # Adapted from https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/padding.py
 
+__all__ = [
+    "pad_input",
+    "unpad_input",
+    "index_first_axis",
+]
+
 import torch
 import torch.nn.functional as F
 from einops import rearrange, repeat
