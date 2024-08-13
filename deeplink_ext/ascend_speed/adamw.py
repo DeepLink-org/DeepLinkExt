@@ -2,10 +2,19 @@
 
 from typing import List
 import torch
-import deeplink_ext.cpp_extensions as ext
+from deeplink_ext.utils import PlatformType, deeplink_ext_get_platform_type
 
-
-assert hasattr(ext, "adamw")
+platform_type = deeplink_ext_get_platform_type()
+if platform_type == PlatformType.TORCH_NPU:
+    import torch_npu
+    # from torch_npu import npu_apply_adam_w as deeplink_ext_adamw
+    deeplink_ext_adamw = torch.ops.npu.npu_apply_adam_w
+elif platform_type == PlatformType.TORCH_DIPU:
+    # import torch_dipu
+    # assert torch_dipu.vendor_type == 'NPU', "ascend_speed framework only support NPU accelerators."
+    from deeplink_ext.cpp_extensions import adamw as deeplink_ext_adamw
+else:
+    raise ImportError
 
 __all__ = ["adamw"]
 
@@ -47,7 +56,7 @@ def adamw(
             max_exp_avg_sq = None
         else:
             max_exp_avg_sq = max_exp_avg_sqs[i]
-        ext.adamw(
+        deeplink_ext_adamw(
             param,
             exp_avg,
             exp_avg_sq,
