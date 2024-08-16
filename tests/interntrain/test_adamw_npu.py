@@ -8,7 +8,9 @@ from deeplink_ext.interntrain_ops.adamw import AdamW
 
 
 def test_AdamW():
+
     class MlpModel(nn.Module):
+
         def __init__(self):
             super().__init__()
             self.linear1 = nn.Linear(128, 256)
@@ -59,5 +61,3 @@ def test_AdamW():
     params_zip = zip(list(cpu_model.parameters()), list(device_model.parameters()))
     for cpu_param, device_param in params_zip:
         assert torch.allclose(cpu_param, device_param.cpu(), rtol=1e-4, atol=1e-4)
-
-test_AdamW()
