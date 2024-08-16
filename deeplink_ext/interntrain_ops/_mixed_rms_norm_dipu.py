@@ -7,12 +7,14 @@ import deeplink_ext.cpp_extensions as ext
 
 assert hasattr(ext, "rms_norm") and hasattr(ext, "rms_norm_backward")
 
-__all__ = ['MixedFusedRMSNorm']
+__all__ = ["MixedFusedRMSNorm"]
+
 
 # MixedFusedLayerNorm differs from FusedLayerNorm in that this layer norm uses parameter's dtype
 # as output tensor's dtype while FusedLayerNorm uses input tensor's dtype for output tensor's dtype.
 # See: `layer_norm_affine` and `layer_norm_affine_mixed_dtypes` in "csrc/layer_norm_cuda.cpp"
 class _MixedFusedRMSNormFunction(torch.autograd.Function):
+
     @staticmethod
     def forward(ctx, hidden_states, weight, eps, normalized_shape):
         # ascend currently does not support dtype of hidden_states with higher precision than weight.
@@ -20,11 +22,7 @@ class _MixedFusedRMSNormFunction(torch.autograd.Function):
         input_dtype = hidden_states.dtype
         weight_dtype = weight.dtype
 
-        acc_dtype = (
-            torch.float32
-            if input_dtype in [torch.bfloat16, torch.float16]
-            else input_dtype
-        )
+        acc_dtype = (torch.float32 if input_dtype in [torch.bfloat16, torch.float16] else input_dtype)
         n = len(normalized_shape)
         inv_rms = torch.empty(
             list(hidden_states.shape[:-n]),
@@ -33,9 +31,7 @@ class _MixedFusedRMSNormFunction(torch.autograd.Function):
         )
 
         higher_precision = torch.promote_types(input_dtype, weight_dtype)
-        output_higher_precision = torch.empty_like(
-            hidden_states, dtype=higher_precision
-        )
+        output_higher_precision = torch.empty_like(hidden_states, dtype=higher_precision)
         hidden_states_higher_precision = hidden_states.to(dtype=higher_precision)
         weight_higher_precision = weight.to(dtype=higher_precision)
 
@@ -49,9 +45,7 @@ class _MixedFusedRMSNormFunction(torch.autograd.Function):
             eps,
         )
 
-        ctx.save_for_backward(
-            hidden_states_higher_precision, inv_rms, weight_higher_precision
-        )
+        ctx.save_for_backward(hidden_states_higher_precision, inv_rms, weight_higher_precision)
         ctx.eps = eps
         ctx.normalized_shape = normalized_shape
         ctx.input_dtype = input_dtype
@@ -90,14 +84,16 @@ class _MixedFusedRMSNormFunction(torch.autograd.Function):
             None,
         )
 
+
 class MixedFusedRMSNorm(torch.nn.Module):
+
     def __init__(self, normalized_shape, eps=1e-5):
         # TODO: Further optimization when there are device and dtype available.
         # factory_kwargs = {"device": device, "dtype": dtype}
         factory_kwargs = {}
         super().__init__()
         if isinstance(normalized_shape, numbers.Integral):
-            normalized_shape = (normalized_shape,)
+            normalized_shape = (normalized_shape, )
         self.normalized_shape = torch.Size(normalized_shape)
         self.weight = torch.nn.Parameter(torch.ones(normalized_shape, **factory_kwargs))
         self.eps = eps

@@ -2,7 +2,7 @@
 from typing import List
 import torch
 
-__all__ = ['AdamW']
+__all__ = ["AdamW"]
 
 from deeplink_ext.utils import PlatformType, deeplink_ext_get_platform_type
 
