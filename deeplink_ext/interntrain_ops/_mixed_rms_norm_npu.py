@@ -2,52 +2,53 @@
 import numbers
 import torch
 import torch_npu
+from torch import Tensor
 from torch.nn import init
-
-from torch_npu import npu_rms_norm, npu_rms_norm_backward
+from torch.nn.parameter import Parameter
+from torch_npu import npu_rms_norm
 
 __all__ = ["MixedFusedRMSNorm"]
+
 
 # MixedFusedLayerNorm differs from FusedLayerNorm in that this layer norm uses parameter's dtype
 # as output tensor's dtype while FusedLayerNorm uses input tensor's dtype for output tensor's dtype.
 # See: `layer_norm_affine` and `layer_norm_affine_mixed_dtypes` in "csrc/layer_norm_cuda.cpp"
+def manual_rms_norm(my_input: Tensor, normalized_shape, weight: Tensor, eps, add_unit_offset=False):
+    assert add_unit_offset == False
+    assert len(normalized_shape) == 1
 
+    input_dtype = my_input.dtype
+    weight_dtype = weight.dtype
 
-class _MixedFusedRMSNorm(torch.autograd.Function):
-
-    @staticmethod
-    def forward(ctx, hs, weight, eps):
-        out, rstd = npu_rms_norm(hs, weight, eps)
-        ctx.save_for_backward(hs, weight, rstd)
-        return out
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        (hs, weight, rstd) = ctx.saved_tensors
-        grad_input, grad_weight = npu_rms_norm_backward(grad_output, hs, weight, rstd)
-        return grad_input, grad_weight, None
+    acc_dtype = torch.promote_types(input_dtype, weight_dtype)
+    out = npu_rms_norm(my_input.to(dtype=acc_dtype), weight.to(dtype=acc_dtype), eps)[0]
+    if (out.dtype != weight_dtype):
+        out = out.to(dtype=weight_dtype)
+    return out
 
 
 class MixedFusedRMSNorm(torch.nn.Module):
+    """A custom PyTorch module for RMS normalization."""
 
-    def __init__(self, normalized_shape, eps=1e-5):
-        # TODO: Further optimization when there are device and dtype available.
-        # factory_kwargs = {"device": device, "dtype": dtype}
-        factory_kwargs = {}
+    def __init__(self, normalized_shape, eps=1e-5, add_unit_offset=False):
         super().__init__()
+
         if isinstance(normalized_shape, numbers.Integral):
             normalized_shape = (normalized_shape, )
         self.normalized_shape = torch.Size(normalized_shape)
-        self.weight = torch.nn.Parameter(torch.ones(normalized_shape, **factory_kwargs)).npu()
         self.eps = eps
+        self.weight = Parameter(torch.empty(*normalized_shape))
+        self.add_unit_offset = add_unit_offset
+        self.reset_parameters()
 
-    def forward(self, hidden_states):
-        # out, _ = npu_rms_norm(hidden_states, self.weight, self.eps)
-        # return out
-        return _MixedFusedRMSNorm.apply(hidden_states, self.weight.to(hidden_states.dtype), self.eps)
+    def forward(self, _input: torch.Tensor):
+        return manual_rms_norm(_input, self.normalized_shape, self.weight, self.eps, self.add_unit_offset)
 
     def reset_parameters(self):
-        init.ones_(self.weight)
+        if self.add_unit_offset:
+            init.zeros_(self.weight)
+        else:
+            init.ones_(self.weight)
 
     def extra_repr(self):
         return "{normalized_shape}, eps={eps}, ".format(**self.__dict__)
