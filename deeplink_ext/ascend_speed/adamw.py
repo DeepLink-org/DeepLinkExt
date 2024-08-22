@@ -7,7 +7,6 @@ from deeplink_ext.utils import PlatformType, deeplink_ext_get_platform_type
 platform_type = deeplink_ext_get_platform_type()
 if platform_type == PlatformType.TORCH_NPU:
     import torch_npu
-    # from torch_npu import npu_apply_adam_w as deeplink_ext_adamw
     deeplink_ext_adamw = torch.ops.npu.npu_apply_adam_w
 elif platform_type == PlatformType.TORCH_DIPU:
     # import torch_dipu
@@ -19,30 +18,15 @@ else:
 __all__ = ["adamw"]
 
 
-def adamw(
-    params: List[torch.Tensor],
-    grads: List[torch.Tensor],
-    exp_avgs: List[torch.Tensor],
-    exp_avg_sqs: List[torch.Tensor],
-    max_exp_avg_sqs: List[torch.Tensor],
-    state_steps: List[int],
-    *,
-    amsgrad: bool,
-    beta1: float,
-    beta2: float,
-    lr: float,
-    weight_decay: float,
-    eps: float,
-    maximize: bool,
-    norm_coeff_scale: float
-):
+def adamw(params: List[torch.Tensor], grads: List[torch.Tensor], exp_avgs: List[torch.Tensor],
+          exp_avg_sqs: List[torch.Tensor], max_exp_avg_sqs: List[torch.Tensor], state_steps: List[int], *,
+          amsgrad: bool, beta1: float, beta2: float, lr: float, weight_decay: float, eps: float, maximize: bool,
+          norm_coeff_scale: float):
     r"""Functional API that performs AdamW algorithm computation.
     See :class:`~torch.optim.AdamW` for details.
     """
 
-    assert (
-        maximize == False
-    ), "The maximize parameter is not supported by diopiAdamW yet"
+    assert (maximize == False), "The maximize parameter is not supported by diopiAdamW yet"
 
     for i, param in enumerate(params):
         if norm_coeff_scale is not None:

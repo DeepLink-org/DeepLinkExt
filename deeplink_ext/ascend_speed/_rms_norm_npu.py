@@ -18,5 +18,7 @@ class RMSNorm(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         hidden_states, inv_rms, weight = ctx.saved_tensors
-        grad_input, grad_weight = npu_rms_norm_backward(grad_output, hidden_states, weight, inv_rms)
+        grad_input, grad_weight = npu_rms_norm_backward(
+            grad_output, hidden_states, weight, inv_rms
+        )
         return grad_input, grad_weight, None, None
