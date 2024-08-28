@@ -3,7 +3,9 @@
 import torch
 import deeplink_ext.cpp_extensions as ext
 
-assert hasattr(ext, "scaled_masked_softmax_fwd") and hasattr(ext, "scaled_masked_softmax_bwd")
+assert hasattr(ext, "scaled_masked_softmax_fwd") and hasattr(
+    ext, "scaled_masked_softmax_bwd"
+)
 
 __all__ = ["ScaledMaskedSoftmax"]
 
@@ -23,5 +25,7 @@ class ScaledMaskedSoftmax(torch.autograd.Function):
     def backward(ctx, grad_output):
         out, mask = ctx.saved_tensors
         grad_input = torch.empty_like(grad_output)
-        ext.scaled_masked_softmax_bwd(grad_input, grad_output, out, mask, ctx.scale, ctx.fixed_triu_mask)
+        ext.scaled_masked_softmax_bwd(
+            grad_input, grad_output, out, mask, ctx.scale, ctx.fixed_triu_mask
+        )
         return grad_input, None, None, None

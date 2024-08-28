@@ -37,22 +37,30 @@ class CustomizedFlashAttentionQKVPackedFunc(torch.autograd.Function):
             query = q
             key, value = kv.unbind(dim=2)
         else:
-            assert (q is not None and k is not None and q is not None), "q, k, v should not be None"
-            assert (q.device == k.device and k.device == v.device), "the devices of q, k and v should be same"
+            assert (
+                q is not None and k is not None and q is not None
+            ), "q, k, v should not be None"
+            assert (
+                q.device == k.device and k.device == v.device
+            ), "the devices of q, k and v should be same"
             query, key, value = q, k, v
 
         device = query.device
         gen = torch.Generator(device)
 
         if softmax_scale is None:
-            softmax_scale = key.shape[-1]**(-0.5)
+            softmax_scale = key.shape[-1] ** (-0.5)
 
         seqlen_q = min(query.shape[1], 2048)
         seqlen_kv = min(key.shape[1], 2048)
-        attention_mask = (torch.triu(
-            torch.ones([seqlen_q, seqlen_kv], dtype=torch.bool, device=device),
-            diagonal=1,
-        ) if causal else None)
+        attention_mask = (
+            torch.triu(
+                torch.ones([seqlen_q, seqlen_kv], dtype=torch.bool, device=device),
+                diagonal=1,
+            )
+            if causal
+            else None
+        )
         head_num = query.shape[2]
         input_layout = "BSND"
         out = torch.empty_like(query)
@@ -219,21 +227,27 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
             query = q
             key, value = kv.unbind(dim=2)
         else:
-            assert (q is not None and k is not None and q is not None), "q, k, v should not be None"
-            assert (q.device == k.device and k.device == v.device), "the devices of q, k and v should be same"
+            assert (
+                q is not None and k is not None and q is not None
+            ), "q, k, v should not be None"
+            assert (
+                q.device == k.device and k.device == v.device
+            ), "the devices of q, k and v should be same"
             query, key, value = q, k, v
 
         device = query.device
         gen = torch.Generator(device)
 
         if softmax_scale is None:
-            softmax_scale = key.shape[-1]**(-0.5)
+            softmax_scale = key.shape[-1] ** (-0.5)
 
         batch_size = query.shape[0]
         seqlen_q = query.shape[1]
         head_num = query.shape[2]
         out = torch.empty_like(query)
-        softmax_lse = torch.empty([batch_size, head_num, seqlen_q], dtype=torch.float32, device=device)
+        softmax_lse = torch.empty(
+            [batch_size, head_num, seqlen_q], dtype=torch.float32, device=device
+        )
 
         ext.fa_fwd(
             out,
@@ -368,23 +382,33 @@ class CustomizedFlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
             query = q
             key, value = kv.unbind(dim=1)
         else:
-            assert (q is not None and k is not None and q is not None), "q, k, v should not be None"
-            assert (q.device == k.device and k.device == v.device), "the devices of q, k and v should be same"
+            assert (
+                q is not None and k is not None and q is not None
+            ), "q, k, v should not be None"
+            assert (
+                q.device == k.device and k.device == v.device
+            ), "the devices of q, k and v should be same"
             query, key, value = q, k, v
 
         device = query.device
         gen = torch.Generator(device)
 
         if softmax_scale is None:
-            softmax_scale = key.shape[-1]**(-0.5)
+            softmax_scale = key.shape[-1] ** (-0.5)
 
-        assert (cu_seqlens is not None), "cu_seqlens should not be None, when using varlen flash attention"
+        assert (
+            cu_seqlens is not None
+        ), "cu_seqlens should not be None, when using varlen flash attention"
         cu_seqlens = cu_seqlens[1:].tolist()
         seqlen = min(max_seqlen, 2048)
-        attention_mask = (torch.triu(
-            torch.ones([seqlen, seqlen], dtype=torch.bool, device=device),
-            diagonal=1,
-        ) if causal else None)
+        attention_mask = (
+            torch.triu(
+                torch.ones([seqlen, seqlen], dtype=torch.bool, device=device),
+                diagonal=1,
+            )
+            if causal
+            else None
+        )
         out = torch.empty_like(query)
         (
             dropout_mask,
@@ -559,22 +583,30 @@ class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
             query = q
             key, value = kv.unbind(dim=1)
         else:
-            assert (q is not None and k is not None and q is not None), "q, k, v should not be None"
-            assert (q.device == k.device and k.device == v.device), "the devices of q, k and v should be same"
+            assert (
+                q is not None and k is not None and q is not None
+            ), "q, k, v should not be None"
+            assert (
+                q.device == k.device and k.device == v.device
+            ), "the devices of q, k and v should be same"
             query, key, value = q, k, v
 
         device = query.device
         gen = torch.Generator(device)
 
         if softmax_scale is None:
-            softmax_scale = key.shape[-1]**(-0.5)
+            softmax_scale = key.shape[-1] ** (-0.5)
 
-        assert (cu_seqlens is not None), "cu_seqlens should not be None, when using varlen flash attention"
+        assert (
+            cu_seqlens is not None
+        ), "cu_seqlens should not be None, when using varlen flash attention"
 
         batch_size = len(cu_seqlens) - 1
         head_num = query.shape[1]
         out = torch.empty_like(query)
-        softmax_lse = torch.empty([batch_size, head_num, max_seqlen], dtype=torch.float32, device=device)
+        softmax_lse = torch.empty(
+            [batch_size, head_num, max_seqlen], dtype=torch.float32, device=device
+        )
         out = torch.empty_like(query)
 
         ext.fa_varlen_fwd(
@@ -713,14 +745,18 @@ class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
         gen = torch.Generator(device=q.device)
 
         if softmax_scale is None:
-            softmax_scale = kv.shape[-1]**(-0.5)
+            softmax_scale = kv.shape[-1] ** (-0.5)
 
         seqlen_q = min(q.shape[1], 2048)
         seqlen_kv = min(kv.shape[1], 2048)
-        attention_mask = (torch.triu(
-            torch.ones([seqlen_q, seqlen_kv], dtype=torch.bool, device=q.device),
-            diagonal=1,
-        ) if causal else None)
+        attention_mask = (
+            torch.triu(
+                torch.ones([seqlen_q, seqlen_kv], dtype=torch.bool, device=q.device),
+                diagonal=1,
+            )
+            if causal
+            else None
+        )
         head_num = q.shape[2]
         input_layout = "BSND"
         out = torch.empty_like(q)
@@ -813,13 +849,15 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
         gen = torch.Generator(device=q.device)
 
         if softmax_scale is None:
-            softmax_scale = kv.shape[-1]**(-0.5)
+            softmax_scale = kv.shape[-1] ** (-0.5)
 
         batch_size = q.shape[0]
         seqlen_q = q.shape[1]
         head_num = q.shape[2]
         out = torch.empty_like(q)
-        softmax_lse = torch.empty([batch_size, head_num, seqlen_q], dtype=torch.float32, device=q.device)
+        softmax_lse = torch.empty(
+            [batch_size, head_num, seqlen_q], dtype=torch.float32, device=q.device
+        )
 
         ext.fa_fwd(
             out,
@@ -900,19 +938,24 @@ class CustomizedFlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
         gen = torch.Generator(device=q.device)
 
         if softmax_scale is None:
-            softmax_scale = kv.shape[-1]**(-0.5)
+            softmax_scale = kv.shape[-1] ** (-0.5)
 
-        assert (cu_seqlens_q is not None and cu_seqlens_k
-                is not None), "cu_seqlens_q and cu_seqlens_k should not be None, when using varlen flash attention"
+        assert (
+            cu_seqlens_q is not None and cu_seqlens_k is not None
+        ), "cu_seqlens_q and cu_seqlens_k should not be None, when using varlen flash attention"
         cu_seqlens_q = cu_seqlens_q[1:].tolist()
         cu_seqlens_k = cu_seqlens_k[1:].tolist()
 
         seqlen_q = min(max_seqlen_q, 2048)
         seqlen_k = min(max_seqlen_k, 2048)
-        attention_mask = (torch.triu(
-            torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
-            diagonal=1,
-        ) if causal else None)
+        attention_mask = (
+            torch.triu(
+                torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
+                diagonal=1,
+            )
+            if causal
+            else None
+        )
         out = torch.empty_like(q)
         (
             dropout_mask,
@@ -1021,15 +1064,18 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
         gen = torch.Generator(device=device)
 
         if softmax_scale is None:
-            softmax_scale = kv.shape[-1]**(-0.5)
+            softmax_scale = kv.shape[-1] ** (-0.5)
 
-        assert (cu_seqlens_q is not None and cu_seqlens_k
-                is not None), "cu_seqlens_q and cu_seqlens_k should not be None, when using varlen flash attention"
+        assert (
+            cu_seqlens_q is not None and cu_seqlens_k is not None
+        ), "cu_seqlens_q and cu_seqlens_k should not be None, when using varlen flash attention"
 
         batch_size = len(cu_seqlens_q) - 1
         head_num = q.shape[1]
         out = torch.empty_like(q)
-        softmax_lse = torch.empty([batch_size, head_num, max_seqlen_q], dtype=torch.float32, device=device)
+        softmax_lse = torch.empty(
+            [batch_size, head_num, max_seqlen_q], dtype=torch.float32, device=device
+        )
         ext.fa_varlen_fwd(
             out,
             softmax_lse,

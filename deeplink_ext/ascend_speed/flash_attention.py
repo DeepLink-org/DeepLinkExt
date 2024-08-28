@@ -11,9 +11,13 @@ __all__ = ["FlashSelfAttention"]
 class FlashSelfAttention(torch.autograd.Function):
 
     @staticmethod
-    def forward(ctx, q, k, v, attention_mask, dropout_p, softmax_scale, head_num, input_layout):
+    def forward(
+        ctx, q, k, v, attention_mask, dropout_p, softmax_scale, head_num, input_layout
+    ):
         out = torch.empty_like(q)
-        assert (q.device == k.device and k.device == v.device), "the devices of q, k and v are not same"
+        assert (
+            q.device == k.device and k.device == v.device
+        ), "the devices of q, k and v are not same"
         gen = torch.Generator(device=q.device)
         (
             dropout_mask,

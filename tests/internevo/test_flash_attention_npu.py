@@ -25,9 +25,11 @@ def test_flash_attn_qkvpacked_func_mha():
         device="npu",
     )
 
-    qkv_cpu = copy_to_cpu([
-        qkv_gpu,
-    ])
+    qkv_cpu = copy_to_cpu(
+        [
+            qkv_gpu,
+        ]
+    )
 
     ouput_forward_cpu, grads_cpu = calculate_fwd_and_bwd(
         flash_attn_qkvpacked_func_torch,

@@ -14,19 +14,19 @@ __all__ = [
 
 
 def flash_attn_func(
-        q,
-        k,
-        v,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
-        window_size=(-1, -1),
-        alibi_slopes=None,
-        deterministic=False,
-        return_attn_probs=False,
+    q,
+    k,
+    v,
+    dropout_p=0.0,
+    softmax_scale=None,
+    causal=False,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    return_attn_probs=False,
 ):
     if softmax_scale is None:
-        softmax_scale = q.shape[-1]**(-0.5)
+        softmax_scale = q.shape[-1] ** (-0.5)
 
     seqlen_q = q.shape[1]
     seqlen_k = k.shape[1]
@@ -40,10 +40,14 @@ def flash_attn_func(
     seqlen_q = min(seqlen_q, 2048)
     seqlen_k = min(seqlen_k, 2048)
 
-    attention_mask = (torch.triu(
-        torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
-        diagonal=1,
-    ) if causal else None)
+    attention_mask = (
+        torch.triu(
+            torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
+            diagonal=1,
+        )
+        if causal
+        else None
+    )
 
     out = torch_npu.npu_fusion_attention(
         q,
@@ -62,23 +66,25 @@ def flash_attn_func(
     return out
 
 
-def flash_attn_varlen_func(q,
-                           k,
-                           v,
-                           cu_seqlens_q,
-                           cu_seqlens_k,
-                           max_seqlen_q,
-                           max_seqlen_k,
-                           dropout_p=0.0,
-                           softmax_scale=None,
-                           causal=False,
-                           window_size=(-1, -1),
-                           alibi_slopes=None,
-                           deterministic=False,
-                           return_attn_probs=False,
-                           block_table=None):
+def flash_attn_varlen_func(
+    q,
+    k,
+    v,
+    cu_seqlens_q,
+    cu_seqlens_k,
+    max_seqlen_q,
+    max_seqlen_k,
+    dropout_p=0.0,
+    softmax_scale=None,
+    causal=False,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    return_attn_probs=False,
+    block_table=None,
+):
     if softmax_scale is None:
-        softmax_scale = q.shape[-1]**(-0.5)
+        softmax_scale = q.shape[-1] ** (-0.5)
     head_num = q.shape[-2]
 
     cu_seqlens_q = cu_seqlens_q[1:].tolist()
@@ -91,10 +97,14 @@ def flash_attn_varlen_func(q,
     else:
         sparse_mode = 2
 
-    attention_mask = (torch.triu(
-        torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
-        diagonal=1,
-    ) if causal else None)
+    attention_mask = (
+        torch.triu(
+            torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
+            diagonal=1,
+        )
+        if causal
+        else None
+    )
 
     out = torch_npu.npu_fusion_attention(
         q,
@@ -115,17 +125,17 @@ def flash_attn_varlen_func(q,
 
 
 def flash_attn_qkvpacked_func(
-        qkv,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
-        window_size=(-1, -1),
-        alibi_slopes=None,
-        deterministic=False,
-        return_attn_probs=False,
+    qkv,
+    dropout_p=0.0,
+    softmax_scale=None,
+    causal=False,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    return_attn_probs=False,
 ):
     if softmax_scale is None:
-        softmax_scale = qkv.shape[-1]**(-0.5)
+        softmax_scale = qkv.shape[-1] ** (-0.5)
     q = qkv[:, :, 0]
     k = qkv[:, :, 1]
     v = qkv[:, :, 2]
@@ -140,10 +150,14 @@ def flash_attn_qkvpacked_func(
 
     seqlen_qkv = min(qkv.shape[1], 2048)
 
-    attention_mask = (torch.triu(
-        torch.ones([seqlen_qkv, seqlen_qkv], dtype=torch.bool, device=q.device),
-        diagonal=1,
-    ) if causal else None)
+    attention_mask = (
+        torch.triu(
+            torch.ones([seqlen_qkv, seqlen_qkv], dtype=torch.bool, device=q.device),
+            diagonal=1,
+        )
+        if causal
+        else None
+    )
 
     out = torch_npu.npu_fusion_attention(
         q,
@@ -163,18 +177,18 @@ def flash_attn_qkvpacked_func(
 
 
 def flash_attn_kvpacked_func(
-        q,
-        kv,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
-        window_size=(-1, -1),
-        alibi_slopes=None,
-        deterministic=False,
-        return_attn_probs=False,
+    q,
+    kv,
+    dropout_p=0.0,
+    softmax_scale=None,
+    causal=False,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    return_attn_probs=False,
 ):
     if softmax_scale is None:
-        softmax_scale = q.shape[-1]**(-0.5)
+        softmax_scale = q.shape[-1] ** (-0.5)
     k = kv[:, :, 0]
     v = kv[:, :, 1]
 
@@ -190,10 +204,14 @@ def flash_attn_kvpacked_func(
     seqlen_q = min(s0, 2048)
     seqlen_k = min(s1, 2048)
 
-    attention_mask = (torch.triu(
-        torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
-        diagonal=1,
-    ) if causal else None)
+    attention_mask = (
+        torch.triu(
+            torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
+            diagonal=1,
+        )
+        if causal
+        else None
+    )
 
     out = torch_npu.npu_fusion_attention(
         q,
@@ -213,19 +231,19 @@ def flash_attn_kvpacked_func(
 
 
 def flash_attn_varlen_qkvpacked_func(
-        qkv,
-        cu_seqlens,
-        max_seqlen,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
-        window_size=(-1, -1),
-        alibi_slopes=None,
-        deterministic=False,
-        return_attn_probs=False,
+    qkv,
+    cu_seqlens,
+    max_seqlen,
+    dropout_p=0.0,
+    softmax_scale=None,
+    causal=False,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    return_attn_probs=False,
 ):
     if softmax_scale is None:
-        softmax_scale = qkv.shape[-1]**(-0.5)
+        softmax_scale = qkv.shape[-1] ** (-0.5)
     q = qkv[:, 0]
     k = qkv[:, 1]
     v = qkv[:, 2]
@@ -237,10 +255,14 @@ def flash_attn_varlen_qkvpacked_func(
     cu_seqlens_q = cu_seqlens[1:].tolist()
     cu_seqlens_k = cu_seqlens[1:].tolist()
     seqlen = min(max_seqlen, 2048)
-    attention_mask = (torch.triu(
-        torch.ones([seqlen, seqlen], dtype=torch.bool, device=q.device),
-        diagonal=1,
-    ) if causal else None)
+    attention_mask = (
+        torch.triu(
+            torch.ones([seqlen, seqlen], dtype=torch.bool, device=q.device),
+            diagonal=1,
+        )
+        if causal
+        else None
+    )
     out = torch_npu.npu_fusion_attention(
         q,
         k,
@@ -260,22 +282,22 @@ def flash_attn_varlen_qkvpacked_func(
 
 
 def flash_attn_varlen_kvpacked_func(
-        q,
-        kv,
-        cu_seqlens_q,
-        cu_seqlens_k,
-        max_seqlen_q,
-        max_seqlen_k,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
-        window_size=(-1, -1),
-        alibi_slopes=None,
-        deterministic=False,
-        return_attn_probs=False,
+    q,
+    kv,
+    cu_seqlens_q,
+    cu_seqlens_k,
+    max_seqlen_q,
+    max_seqlen_k,
+    dropout_p=0.0,
+    softmax_scale=None,
+    causal=False,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    return_attn_probs=False,
 ):
     if softmax_scale is None:
-        softmax_scale = q.shape[-1]**(-0.5)
+        softmax_scale = q.shape[-1] ** (-0.5)
     k = kv[:, 0]
     v = kv[:, 1]
     n = q.shape[1]
@@ -289,10 +311,14 @@ def flash_attn_varlen_kvpacked_func(
     else:
         sparse_mode = 0
 
-    attention_mask = (torch.triu(
-        torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
-        diagonal=1,
-    ) if causal else None)
+    attention_mask = (
+        torch.triu(
+            torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
+            diagonal=1,
+        )
+        if causal
+        else None
+    )
     out = torch_npu.npu_fusion_attention(
         q,
         k,

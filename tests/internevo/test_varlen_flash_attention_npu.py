@@ -33,12 +33,16 @@ def test_flash_attn_varlen_qkvpacked_func_mha():
         requires_grad=True,
         device="npu",
     )
-    qkv_cpu = copy_to_cpu([
-        qkv_gpu,
-    ])
+    qkv_cpu = copy_to_cpu(
+        [
+            qkv_gpu,
+        ]
+    )
 
     cu_seqlens_cpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32)
-    cu_seqlens_gpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32, device="npu")
+    cu_seqlens_gpu = torch.tensor(
+        [0, 32, 64, 128, 256], dtype=torch.int32, device="npu"
+    )
     max_seqlen = 128
 
     ouput_forward_cpu, grads_cpu = calculate_fwd_and_bwd(
@@ -72,12 +76,16 @@ def test_flash_attn_varlen_qkvpacked_func_mha_long_max_seqlen():
         requires_grad=True,
         device="npu",
     )
-    qkv_cpu = copy_to_cpu([
-        qkv_gpu,
-    ])
+    qkv_cpu = copy_to_cpu(
+        [
+            qkv_gpu,
+        ]
+    )
 
     cu_seqlens_cpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32)
-    cu_seqlens_gpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32, device="npu")
+    cu_seqlens_gpu = torch.tensor(
+        cu_seqlens_max_length_4096, dtype=torch.int32, device="npu"
+    )
     # the maximum sequence length is 4096
     max_seqlen = 4096
 
@@ -122,8 +130,12 @@ def test_flash_attn_varlen_kvpacked_func_gqa():
 
     cu_seqlens_q_cpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32)
     cu_seqlens_k_cpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32)
-    cu_seqlens_q_gpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32, device="npu")
-    cu_seqlens_k_gpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32, device="npu")
+    cu_seqlens_q_gpu = torch.tensor(
+        [0, 32, 64, 128, 256], dtype=torch.int32, device="npu"
+    )
+    cu_seqlens_k_gpu = torch.tensor(
+        [0, 32, 64, 128, 256], dtype=torch.int32, device="npu"
+    )
     max_seqlen_q = 128
     max_seqlen_k = 128
 
@@ -175,8 +187,12 @@ def test_flash_attn_varlen_kvpacked_func_gqa_long_max_seqlen():
 
     cu_seqlens_q_cpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32)
     cu_seqlens_k_cpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32)
-    cu_seqlens_q_gpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32, device="npu")
-    cu_seqlens_k_gpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32, device="npu")
+    cu_seqlens_q_gpu = torch.tensor(
+        cu_seqlens_max_length_4096, dtype=torch.int32, device="npu"
+    )
+    cu_seqlens_k_gpu = torch.tensor(
+        cu_seqlens_max_length_4096, dtype=torch.int32, device="npu"
+    )
     # the maximum sequence length is 4096
     max_seqlen_q = 4096
     max_seqlen_k = 4096
@@ -234,8 +250,12 @@ def test_flash_attn_varlen_func_gqa():
 
     cu_seqlens_q_cpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32)
     cu_seqlens_k_cpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32)
-    cu_seqlens_q_gpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32, device="npu")
-    cu_seqlens_k_gpu = torch.tensor([0, 32, 64, 128, 256], dtype=torch.int32, device="npu")
+    cu_seqlens_q_gpu = torch.tensor(
+        [0, 32, 64, 128, 256], dtype=torch.int32, device="npu"
+    )
+    cu_seqlens_k_gpu = torch.tensor(
+        [0, 32, 64, 128, 256], dtype=torch.int32, device="npu"
+    )
     max_seqlen_q = 128
     max_seqlen_k = 128
 
@@ -295,8 +315,12 @@ def test_flash_attn_varlen_func_gqa_long_max_seqlen():
 
     cu_seqlens_q_cpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32)
     cu_seqlens_k_cpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32)
-    cu_seqlens_q_gpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32, device="npu")
-    cu_seqlens_k_gpu = torch.tensor(cu_seqlens_max_length_4096, dtype=torch.int32, device="npu")
+    cu_seqlens_q_gpu = torch.tensor(
+        cu_seqlens_max_length_4096, dtype=torch.int32, device="npu"
+    )
+    cu_seqlens_k_gpu = torch.tensor(
+        cu_seqlens_max_length_4096, dtype=torch.int32, device="npu"
+    )
     # the maximum sequence length is 4096
     max_seqlen_q = 4096
     max_seqlen_k = 4096

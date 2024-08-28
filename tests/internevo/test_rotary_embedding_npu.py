@@ -12,7 +12,9 @@ def test_ApplyRotaryEmb():
     in_place_options = [False, True]
     for input_dtype in input_dtype_list:
         for in_place in in_place_options:
-            input_ref = torch.randn(1, 64, 32, 64, dtype=input_dtype, device="npu", requires_grad=True)
+            input_ref = torch.randn(
+                1, 64, 32, 64, dtype=input_dtype, device="npu", requires_grad=True
+            )
             input_ext = input_ref.clone().detach().requires_grad_()
             cos = torch.randn(64, 32, dtype=input_dtype, device="npu")
             sin = torch.randn(64, 32, dtype=input_dtype, device="npu")

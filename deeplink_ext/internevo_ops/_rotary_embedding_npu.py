@@ -67,8 +67,13 @@ class ApplyRotaryEmb(torch.autograd.Function):
         assert seqlen <= rotary_seqlen
         assert sin.shape == (rotary_seqlen, rotary_dim // 2)
 
-        out = _apply_rotary(x[..., :rotary_dim], rearrange(cos[:seqlen], "s d -> s 1 d"),
-                            rearrange(sin[:seqlen], "s d -> s 1 d"), False, interleaved)
+        out = _apply_rotary(
+            x[..., :rotary_dim],
+            rearrange(cos[:seqlen], "s d -> s 1 d"),
+            rearrange(sin[:seqlen], "s d -> s 1 d"),
+            False,
+            interleaved,
+        )
 
         ctx.save_for_backward(cos, sin)
         ctx.interleaved = interleaved

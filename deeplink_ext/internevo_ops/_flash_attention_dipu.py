@@ -36,7 +36,7 @@ class FlashAttnQKVPackedFunc(torch.autograd.Function):
         return_softmax,
     ):
         if softmax_scale is None:
-            softmax_scale = qkv.shape[-1]**(-0.5)
+            softmax_scale = qkv.shape[-1] ** (-0.5)
 
         device = qkv.device
         gen = torch.Generator(device)
@@ -44,7 +44,9 @@ class FlashAttnQKVPackedFunc(torch.autograd.Function):
         batch_size = qkv.shape[0]
         seqlen_q = qkv.shape[1]
         head_num = qkv.shape[3]
-        softmax_lse = torch.empty([batch_size, head_num, seqlen_q], dtype=torch.float32, device=device)
+        softmax_lse = torch.empty(
+            [batch_size, head_num, seqlen_q], dtype=torch.float32, device=device
+        )
         out = torch.empty_like(qkv[:, :, 0])
 
         ext.fa_fwd(
@@ -120,16 +122,20 @@ class CustomizedFlashAttnQKVPackedFunc(torch.autograd.Function):
         return_softmax,
     ):
         if softmax_scale is None:
-            softmax_scale = qkv.shape[-1]**(-0.5)
+            softmax_scale = qkv.shape[-1] ** (-0.5)
 
         device = qkv.device
         gen = torch.Generator(device)
 
         seqlen_qkv = min(qkv.shape[1], 2048)
-        attention_mask = (torch.triu(
-            torch.ones([seqlen_qkv, seqlen_qkv], dtype=torch.bool, device=device),
-            diagonal=1,
-        ) if causal else None)
+        attention_mask = (
+            torch.triu(
+                torch.ones([seqlen_qkv, seqlen_qkv], dtype=torch.bool, device=device),
+                diagonal=1,
+            )
+            if causal
+            else None
+        )
 
         head_num = qkv.shape[-2]
         input_layout = "BSND"
@@ -214,14 +220,14 @@ class CustomizedFlashAttnQKVPackedFunc(torch.autograd.Function):
 
 
 def flash_attn_qkvpacked_func(
-        qkv,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
-        window_size=(-1, -1),
-        alibi_slopes=None,
-        deterministic=False,
-        return_attn_probs=False,
+    qkv,
+    dropout_p=0.0,
+    softmax_scale=None,
+    causal=False,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    return_attn_probs=False,
 ):
     if torch_dipu.dipu.vendor_type == "NPU":
         return CustomizedFlashAttnQKVPackedFunc.apply(
@@ -263,7 +269,7 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
         return_softmax,
     ):
         if softmax_scale is None:
-            softmax_scale = q.shape[-1]**(-0.5)
+            softmax_scale = q.shape[-1] ** (-0.5)
 
         device = q.device
         gen = torch.Generator(device)
@@ -271,7 +277,9 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
         batch_size = q.shape[0]
         seqlen_q = q.shape[1]
         head_num = q.shape[2]
-        softmax_lse = torch.empty([batch_size, head_num, seqlen_q], dtype=torch.float32, device=device)
+        softmax_lse = torch.empty(
+            [batch_size, head_num, seqlen_q], dtype=torch.float32, device=device
+        )
         out = torch.empty_like(q)
 
         ext.fa_fwd(
@@ -351,17 +359,21 @@ class CustomizedFlashAttnKVPackedFunc(torch.autograd.Function):
         return_softmax,
     ):
         if softmax_scale is None:
-            softmax_scale = q.shape[-1]**(-0.5)
+            softmax_scale = q.shape[-1] ** (-0.5)
 
         device = q.device
         gen = torch.Generator(device)
 
         seqlen_q = min(q.shape[1], 2048)
         seqlen_kv = min(kv.shape[1], 2048)
-        attention_mask = (torch.triu(
-            torch.ones([seqlen_q, seqlen_kv], dtype=torch.bool, device=device),
-            diagonal=1,
-        ) if causal else None)
+        attention_mask = (
+            torch.triu(
+                torch.ones([seqlen_q, seqlen_kv], dtype=torch.bool, device=device),
+                diagonal=1,
+            )
+            if causal
+            else None
+        )
 
         head_num = q.shape[-2]
         input_layout = "BSND"
@@ -449,15 +461,15 @@ class CustomizedFlashAttnKVPackedFunc(torch.autograd.Function):
 
 
 def flash_attn_kvpacked_func(
-        q,
-        kv,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
-        window_size=(-1, -1),
-        alibi_slopes=None,
-        deterministic=False,
-        return_attn_probs=False,
+    q,
+    kv,
+    dropout_p=0.0,
+    softmax_scale=None,
+    causal=False,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    return_attn_probs=False,
 ):
     if torch_dipu.dipu.vendor_type == "NPU":
         return CustomizedFlashAttnKVPackedFunc.apply(
@@ -502,7 +514,7 @@ class FlashAttnFunc(torch.autograd.Function):
         return_softmax,
     ):
         if softmax_scale is None:
-            softmax_scale = q.shape[-1]**(-0.5)
+            softmax_scale = q.shape[-1] ** (-0.5)
 
         device = q.device
         gen = torch.Generator(device)
@@ -510,7 +522,9 @@ class FlashAttnFunc(torch.autograd.Function):
         batch_size = q.shape[0]
         seqlen_q = q.shape[1]
         head_num = q.shape[2]
-        softmax_lse = torch.empty([batch_size, head_num, seqlen_q], dtype=torch.float32, device=device)
+        softmax_lse = torch.empty(
+            [batch_size, head_num, seqlen_q], dtype=torch.float32, device=device
+        )
         out = torch.empty_like(q)
 
         ext.fa_fwd(
@@ -594,17 +608,21 @@ class CustomizedFlashAttnFunc(torch.autograd.Function):
         return_softmax,
     ):
         if softmax_scale is None:
-            softmax_scale = q.shape[-1]**(-0.5)
+            softmax_scale = q.shape[-1] ** (-0.5)
 
         device = q.device
         gen = torch.Generator(device)
 
         seqlen_q = min(q.shape[1], 2048)
         seqlen_k = min(k.shape[1], 2048)
-        attention_mask = (torch.triu(
-            torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=device),
-            diagonal=1,
-        ) if causal else None)
+        attention_mask = (
+            torch.triu(
+                torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=device),
+                diagonal=1,
+            )
+            if causal
+            else None
+        )
 
         head_num = q.shape[-2]
         input_layout = "BSND"
@@ -695,16 +713,16 @@ class CustomizedFlashAttnFunc(torch.autograd.Function):
 
 
 def flash_attn_func(
-        q,
-        k,
-        v,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
-        window_size=(-1, -1),
-        alibi_slopes=None,
-        deterministic=False,
-        return_attn_probs=False,
+    q,
+    k,
+    v,
+    dropout_p=0.0,
+    softmax_scale=None,
+    causal=False,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    return_attn_probs=False,
 ):
     if torch_dipu.dipu.vendor_type == "NPU":
         return CustomizedFlashAttnFunc.apply(
@@ -751,14 +769,16 @@ class FlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
         return_softmax,
     ):
         if softmax_scale is None:
-            softmax_scale = qkv.shape[-1]**(-0.5)
+            softmax_scale = qkv.shape[-1] ** (-0.5)
 
         device = qkv.device
         gen = torch.Generator(device)
 
         batch_size = len(cu_seqlens) - 1
         head_num = qkv.shape[2]
-        softmax_lse = torch.empty([batch_size, head_num, max_seqlen], dtype=torch.float32, device=device)
+        softmax_lse = torch.empty(
+            [batch_size, head_num, max_seqlen], dtype=torch.float32, device=device
+        )
         out = torch.empty_like(qkv[:, 0])
 
         ext.fa_varlen_fwd(
@@ -846,17 +866,21 @@ class CustomizedFlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
         return_softmax,
     ):
         if softmax_scale is None:
-            softmax_scale = qkv.shape[-1]**(-0.5)
+            softmax_scale = qkv.shape[-1] ** (-0.5)
 
         device = qkv.device
         gen = torch.Generator(device)
 
         cu_seqlens = cu_seqlens[1:].tolist()
         seqlen = min(max_seqlen, 2048)
-        attention_mask = (torch.triu(
-            torch.ones([seqlen, seqlen], dtype=torch.bool, device=device),
-            diagonal=1,
-        ) if causal else None)
+        attention_mask = (
+            torch.triu(
+                torch.ones([seqlen, seqlen], dtype=torch.bool, device=device),
+                diagonal=1,
+            )
+            if causal
+            else None
+        )
 
         out = torch.empty_like(qkv[:, 0])
         (
@@ -943,16 +967,16 @@ class CustomizedFlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
 
 
 def flash_attn_varlen_qkvpacked_func(
-        qkv,
-        cu_seqlens,
-        max_seqlen,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
-        window_size=(-1, -1),
-        alibi_slopes=None,
-        deterministic=False,
-        return_attn_probs=False,
+    qkv,
+    cu_seqlens,
+    max_seqlen,
+    dropout_p=0.0,
+    softmax_scale=None,
+    causal=False,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    return_attn_probs=False,
 ):
     if torch_dipu.dipu.vendor_type == "NPU":
         return CustomizedFlashAttnVarlenQKVPackedFunc.apply(
@@ -1002,14 +1026,16 @@ class FlashAttnVarlenKVPackedFunc(torch.autograd.Function):
         return_softmax,
     ):
         if softmax_scale is None:
-            softmax_scale = q.shape[-1]**(-0.5)
+            softmax_scale = q.shape[-1] ** (-0.5)
 
         device = q.device
         gen = torch.Generator(device)
 
         batch_size = len(cu_seqlens_q) - 1
         head_num = q.shape[1]
-        softmax_lse = torch.empty([batch_size, head_num, max_seqlen_q], dtype=torch.float32, device=device)
+        softmax_lse = torch.empty(
+            [batch_size, head_num, max_seqlen_q], dtype=torch.float32, device=device
+        )
         out = torch.empty_like(q)
 
         ext.fa_varlen_fwd(
@@ -1105,7 +1131,7 @@ class CustomizedFlashAttnVarlenKVPackedFunc(torch.autograd.Function):
         return_softmax,
     ):
         if softmax_scale is None:
-            softmax_scale = q.shape[-1]**(-0.5)
+            softmax_scale = q.shape[-1] ** (-0.5)
 
         device = q.device
         gen = torch.Generator(device)
@@ -1114,10 +1140,14 @@ class CustomizedFlashAttnVarlenKVPackedFunc(torch.autograd.Function):
         cu_seqlens_k = cu_seqlens_k[1:].tolist()
         seqlen_q = min(max_seqlen_q, 2048)
         seqlen_k = min(max_seqlen_k, 2048)
-        attention_mask = (torch.triu(
-            torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=device),
-            diagonal=1,
-        ) if causal else None)
+        attention_mask = (
+            torch.triu(
+                torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=device),
+                diagonal=1,
+            )
+            if causal
+            else None
+        )
 
         out = torch.empty_like(q)
         (
@@ -1209,19 +1239,19 @@ class CustomizedFlashAttnVarlenKVPackedFunc(torch.autograd.Function):
 
 
 def flash_attn_varlen_kvpacked_func(
-        q,
-        kv,
-        cu_seqlens_q,
-        cu_seqlens_k,
-        max_seqlen_q,
-        max_seqlen_k,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
-        window_size=(-1, -1),
-        alibi_slopes=None,
-        deterministic=False,
-        return_attn_probs=False,
+    q,
+    kv,
+    cu_seqlens_q,
+    cu_seqlens_k,
+    max_seqlen_q,
+    max_seqlen_k,
+    dropout_p=0.0,
+    softmax_scale=None,
+    causal=False,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    return_attn_probs=False,
 ):
     if torch_dipu.dipu.vendor_type == "NPU":
         return CustomizedFlashAttnVarlenKVPackedFunc.apply(
@@ -1279,14 +1309,16 @@ class FlashAttnVarlenFunc(torch.autograd.Function):
         block_table,
     ):
         if softmax_scale is None:
-            softmax_scale = q.shape[-1]**(-0.5)
+            softmax_scale = q.shape[-1] ** (-0.5)
 
         device = q.device
         gen = torch.Generator(device)
 
         batch_size = len(cu_seqlens_q) - 1
         head_num = q.shape[1]
-        softmax_lse = torch.empty([batch_size, head_num, max_seqlen_q], dtype=torch.float32, device=device)
+        softmax_lse = torch.empty(
+            [batch_size, head_num, max_seqlen_q], dtype=torch.float32, device=device
+        )
         out = torch.empty_like(q)
 
         ext.fa_varlen_fwd(
@@ -1403,7 +1435,7 @@ class CustomizedFlashAttnVarlenFunc(torch.autograd.Function):
         block_table,
     ):
         if softmax_scale is None:
-            softmax_scale = q.shape[-1]**(-0.5)
+            softmax_scale = q.shape[-1] ** (-0.5)
 
         device = q.device
         gen = torch.Generator(device)
@@ -1412,10 +1444,14 @@ class CustomizedFlashAttnVarlenFunc(torch.autograd.Function):
         cu_seqlens_k = cu_seqlens_k[1:].tolist()
         seqlen_q = min(max_seqlen_q, 2048)
         seqlen_k = min(max_seqlen_k, 2048)
-        attention_mask = (torch.triu(
-            torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=device),
-            diagonal=1,
-        ) if causal else None)
+        attention_mask = (
+            torch.triu(
+                torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=device),
+                diagonal=1,
+            )
+            if causal
+            else None
+        )
 
         out = torch.empty_like(q)
         (
@@ -1526,21 +1562,21 @@ class CustomizedFlashAttnVarlenFunc(torch.autograd.Function):
 
 
 def flash_attn_varlen_func(
-        q,
-        k,
-        v,
-        cu_seqlens_q,
-        cu_seqlens_k,
-        max_seqlen_q,
-        max_seqlen_k,
-        dropout_p=0.0,
-        softmax_scale=None,
-        causal=False,
-        window_size=(-1, -1),
-        alibi_slopes=None,
-        deterministic=False,
-        return_attn_probs=False,
-        block_table=None,
+    q,
+    k,
+    v,
+    cu_seqlens_q,
+    cu_seqlens_k,
+    max_seqlen_q,
+    max_seqlen_k,
+    dropout_p=0.0,
+    softmax_scale=None,
+    causal=False,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    return_attn_probs=False,
+    block_table=None,
 ):
     if torch_dipu.dipu.vendor_type == "NPU":
         return CustomizedFlashAttnVarlenFunc.apply(

@@ -24,9 +24,11 @@ def test_self_attention_qkv_mha():
         device="npu",
     )
 
-    qkv_cpu = copy_to_cpu([
-        qkv_gpu,
-    ])
+    qkv_cpu = copy_to_cpu(
+        [
+            qkv_gpu,
+        ]
+    )
     ouput_forward_cpu, grads_cpu = call_module(
         SelfAttention(),
         qkv_cpu[0],

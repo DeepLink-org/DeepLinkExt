@@ -70,12 +70,16 @@ class FlashSelfAttention(nn.Module):
                 query = q
                 key, value = kv.unbind(dim=2)
             else:
-                assert (q is not None and k is not None and q is not None), "q, k, v should not be None"
-                assert (q.device == k.device and k.device == v.device), "the devices of q, k and v should be same"
+                assert (
+                    q is not None and k is not None and q is not None
+                ), "q, k, v should not be None"
+                assert (
+                    q.device == k.device and k.device == v.device
+                ), "the devices of q, k and v should be same"
                 query, key, value = q, k, v
 
             if softmax_scale is None:
-                softmax_scale = query.shape[-1]**(-0.5)
+                softmax_scale = query.shape[-1] ** (-0.5)
             head_num = query.shape[-2]
 
             seqlen_q = min(query.shape[1], 2048)
@@ -86,17 +90,23 @@ class FlashSelfAttention(nn.Module):
             else:
                 sparse_mode = 2
 
-            attention_mask = (torch.triu(
-                torch.ones([seqlen_q, seqlen_kv], dtype=torch.bool, device=query.device),
-                diagonal=1,
-            ) if causal else None)
+            attention_mask = (
+                torch.triu(
+                    torch.ones(
+                        [seqlen_q, seqlen_kv], dtype=torch.bool, device=query.device
+                    ),
+                    diagonal=1,
+                )
+                if causal
+                else None
+            )
 
             out = torch_npu.npu_fusion_attention(
                 query,
                 key,
                 value,
                 head_num,
-                'BSND',
+                "BSND",
                 atten_mask=attention_mask,
                 scale=softmax_scale,
                 keep_prob=1 - dropout_p,
@@ -116,8 +126,12 @@ class FlashSelfAttention(nn.Module):
                 query = q
                 key, value = kv.unbind(dim=1)
             else:
-                assert (q is not None and k is not None and q is not None), "q, k, v should not be None"
-                assert (q.device == k.device and k.device == v.device), "the devices of q, k and v should be same"
+                assert (
+                    q is not None and k is not None and q is not None
+                ), "q, k, v should not be None"
+                assert (
+                    q.device == k.device and k.device == v.device
+                ), "the devices of q, k and v should be same"
                 query, key, value = q, k, v
 
             cu_seqlens = next(
@@ -130,16 +144,22 @@ class FlashSelfAttention(nn.Module):
             )
 
             if softmax_scale is None:
-                softmax_scale = query.shape[-1]**(-0.5)
+                softmax_scale = query.shape[-1] ** (-0.5)
             head_num = query.shape[-2]
 
-            assert (cu_seqlens is not None), "cu_seqlens should not be None, when using varlen flash attention"
+            assert (
+                cu_seqlens is not None
+            ), "cu_seqlens should not be None, when using varlen flash attention"
             cu_seqlens = cu_seqlens[1:].tolist()
             seqlen = min(max_seqlen, 2048)
-            attention_mask = (torch.triu(
-                torch.ones([seqlen, seqlen], dtype=torch.bool, device=query.device),
-                diagonal=1,
-            ) if causal else None)
+            attention_mask = (
+                torch.triu(
+                    torch.ones([seqlen, seqlen], dtype=torch.bool, device=query.device),
+                    diagonal=1,
+                )
+                if causal
+                else None
+            )
 
             if max_seqlen < 2048:
                 sparse_mode = 0
@@ -151,7 +171,7 @@ class FlashSelfAttention(nn.Module):
                 key,
                 value,
                 head_num,
-                'TND',
+                "TND",
                 atten_mask=attention_mask,
                 scale=softmax_scale,
                 pre_tockens=query.shape[0],
@@ -187,7 +207,7 @@ class FlashCrossAttention(nn.Module):
         if padded:
             # padded
             if self.softmax_scale is None:
-                self.softmax_scale = q.shape[-1]**(-0.5)
+                self.softmax_scale = q.shape[-1] ** (-0.5)
             k = kv[:, :, 0]
             v = kv[:, :, 1]
 
@@ -203,10 +223,14 @@ class FlashCrossAttention(nn.Module):
             seqlen_q = min(s0, 2048)
             seqlen_k = min(s1, 2048)
 
-            attention_mask = (torch.triu(
-                torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
-                diagonal=1,
-            ) if causal else None)
+            attention_mask = (
+                torch.triu(
+                    torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
+                    diagonal=1,
+                )
+                if causal
+                else None
+            )
 
             out = torch_npu.npu_fusion_attention(
                 q,
@@ -227,7 +251,7 @@ class FlashCrossAttention(nn.Module):
         else:
             # unpadded
             if self.softmax_scale is None:
-                self.softmax_scale = q.shape[-1]**(-0.5)
+                self.softmax_scale = q.shape[-1] ** (-0.5)
             k = kv[:, 0]
             v = kv[:, 1]
             n = q.shape[1]
@@ -241,10 +265,14 @@ class FlashCrossAttention(nn.Module):
             else:
                 sparse_mode = 0
 
-            attention_mask = (torch.triu(
-                torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
-                diagonal=1,
-            ) if causal else None)
+            attention_mask = (
+                torch.triu(
+                    torch.ones([seqlen_q, seqlen_k], dtype=torch.bool, device=q.device),
+                    diagonal=1,
+                )
+                if causal
+                else None
+            )
             out = torch_npu.npu_fusion_attention(
                 q,
                 k,

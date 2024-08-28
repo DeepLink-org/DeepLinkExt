@@ -30,7 +30,9 @@ def fused_adamw(
     See :class:`~torch.optim.AdamW` for details.
     """
     if maximize is True:
-        raise RuntimeError("Deeplink Adamw with fused=True does not support maximize=True!")
+        raise RuntimeError(
+            "Deeplink Adamw with fused=True does not support maximize=True!"
+        )
 
     for i, param in enumerate(params):
         grad = grads[i]
@@ -60,15 +62,15 @@ def fused_adamw(
 class AdamW(Optimizer):
 
     def __init__(
-            self,
-            params,
-            lr=1e-3,
-            betas=(0.9, 0.999),
-            eps=1e-8,
-            weight_decay=1e-2,
-            amsgrad=False,
-            *,
-            maximize: bool = False,
+        self,
+        params,
+        lr=1e-3,
+        betas=(0.9, 0.999),
+        eps=1e-8,
+        weight_decay=1e-2,
+        amsgrad=False,
+        *,
+        maximize: bool = False,
     ):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -130,12 +132,18 @@ class AdamW(Optimizer):
                 # State initialization
                 if len(state) == 0:
                     # Exponential moving average of gradient values
-                    state["exp_avg"] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                    state["exp_avg"] = torch.zeros_like(
+                        p, memory_format=torch.preserve_format
+                    )
                     # Exponential moving average of squared gradient values
-                    state["exp_avg_sq"] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                    state["exp_avg_sq"] = torch.zeros_like(
+                        p, memory_format=torch.preserve_format
+                    )
                     if amsgrad:
                         # Maintains max of all exp. moving avg. of sq. grad. values
-                        state["max_exp_avg_sq"] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                        state["max_exp_avg_sq"] = torch.zeros_like(
+                            p, memory_format=torch.preserve_format
+                        )
 
                 exp_avgs.append(state["exp_avg"])
                 exp_avg_sqs.append(state["exp_avg_sq"])

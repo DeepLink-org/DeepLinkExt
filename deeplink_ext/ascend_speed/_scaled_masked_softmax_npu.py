@@ -22,7 +22,8 @@ class ScaledMaskedSoftmax(torch.autograd.Function):
         out, mask = ctx.saved_tensors
         grad_input = torch.empty_like(grad_output)
 
-        grad_input = torch_npu.npu_scaled_masked_softmax_backward(grad_output, out, mask, ctx.scale,
-                                                                  ctx.fixed_triu_mask)
+        grad_input = torch_npu.npu_scaled_masked_softmax_backward(
+            grad_output, out, mask, ctx.scale, ctx.fixed_triu_mask
+        )
 
         return grad_input, None, None, None

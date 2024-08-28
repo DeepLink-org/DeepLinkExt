@@ -19,8 +19,7 @@ def test_MixedFusedRMSNorm():
         # hidden_states_ext = hidden_states_ext.to('npu')
 
         output_ref, grad_ref = call_module(
-            MixedRMSNormTorch(list(hidden_states_ref.shape)[-1], 1e-5)
-            .to(weight_dtype),
+            MixedRMSNormTorch(list(hidden_states_ref.shape)[-1], 1e-5).to(weight_dtype),
             hidden_states_ref,
         )
 
@@ -29,15 +28,14 @@ def test_MixedFusedRMSNorm():
         # output_ext.backward(torch.ones_like(hidden_states_ext).npu())
         # grad_ext = [hidden_states_ext.grad]
 
-
         output_ext, grad_ext = call_module(
             MixedFusedRMSNorm(list(hidden_states_ext.shape)[-1], 1e-5)
             .npu()
             .to(weight_dtype),
             hidden_states_ext,
         )
-        print(f'grad_ref is None ? {grad_ref[0] is None}')
-        print(f'grad_ext is None ? {grad_ext[0] is None}')
+        print(f"grad_ref is None ? {grad_ref[0] is None}")
+        print(f"grad_ext is None ? {grad_ext[0] is None}")
 
         assert allclose(
             output_ref, output_ext, rtol=1e-05, atol=1e-08
@@ -45,5 +43,6 @@ def test_MixedFusedRMSNorm():
         assert allclose(
             grad_ref, grad_ext, rtol=1e-2, atol=1e-2
         ), f"When input dtype is {input_dtype} and weight dtype is {weight_dtype}, MixedRMSNorm fails to pass the backward test!"
+
 
 test_MixedFusedRMSNorm()
