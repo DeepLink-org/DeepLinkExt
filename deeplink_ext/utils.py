@@ -12,8 +12,8 @@ class PlatformType(enum.Enum):
 def deeplink_ext_get_platform_type():
     platform_type = os.environ.get('DEEPLINK_EXT_PLATFORM_TYPE')
     if platform_type is None:
-        print(f'[deeplink_ext] Now using torch_npu backend...')
-        return PlatformType.TORCH_NPU
+        print(f'[deeplink_ext] Now using torch_dipu as default backend...')
+        return PlatformType.TORCH_DIPU
     else:
         if platform_type.upper() == "TORCH_DIPU":
             return PlatformType.TORCH_DIPU
