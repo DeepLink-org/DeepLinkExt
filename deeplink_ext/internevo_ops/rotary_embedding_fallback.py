@@ -2,9 +2,6 @@
 
 import torch
 from einops import rearrange
-import deeplink_ext.cpp_extensions as ext
-
-assert hasattr(ext, "apply_rotary")
 
 __all__ = ["ApplyRotaryEmbTorch"]
 
