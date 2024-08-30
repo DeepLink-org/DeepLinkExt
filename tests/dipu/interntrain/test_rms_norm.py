@@ -34,3 +34,6 @@ def test_MixedFusedRMSNorm():
         assert allclose(
             grad_ref, grad_ext, rtol=1e-2, atol=1e-2
         ), f"When input dtype is {input_dtype} and weight dtype is {weight_dtype}, MixedRMSNorm fails to pass the backward test!"
+
+
+test_MixedFusedRMSNorm()

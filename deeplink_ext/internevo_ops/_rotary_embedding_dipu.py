@@ -2,42 +2,17 @@
 
 import torch
 from einops import rearrange
+import deeplink_ext.cpp_extensions as ext
 
-__all__ = ["ApplyRotaryEmbTorch"]
+assert hasattr(ext, "apply_rotary")
 
-
-def _torch_apply_rotary_func(
-    x1: torch.Tensor,
-    x2: torch.Tensor,
-    cos: torch.Tensor,
-    sin: torch.Tensor,
-    out1: torch.Tensor,
-    out2: torch.Tensor,
-    conj: bool = False,
-):
-    assert (
-        x1.device == x2.device == cos.device == sin.device
-    ), "All inputs must be on the same device"
-    assert (
-        x1.dtype == x2.dtype == cos.dtype == sin.dtype
-    ), "All inputs must have the same dtype"
-    assert x1.size() == x2.size(), "Input x1 and x2 must have the same sizes"
-    assert cos.size() == sin.size(), "Input cos and sin must have the same sizes"
-
-    x1, x2, cos, sin = x1.float(), x2.float(), cos.float(), sin.float()
-
-    if conj:
-        out1.copy_(x1 * cos + x2 * sin)
-        out2.copy_(-x1 * sin + x2 * cos)
-    else:
-        out1.copy_(x1 * cos - x2 * sin)
-        out2.copy_(x1 * sin + x2 * cos)
+__all__ = ["ApplyRotaryEmb"]
 
 
 # adpated from https://github.com/Dao-AILab/flash-attention/blob/main/flash_attn/layers/rotary.py#L35
-class ApplyRotaryEmbTorch(torch.autograd.Function):
+class ApplyRotaryEmb(torch.autograd.Function):
     """
-    ApplyRotaryEmbTorch
+    ApplyRotaryEmb
     """
 
     @staticmethod
@@ -65,30 +40,18 @@ class ApplyRotaryEmbTorch(torch.autograd.Function):
         assert seqlen <= rotary_seqlen
         assert sin.shape == (rotary_seqlen, rotary_dim // 2)
 
-        x_ro = x[..., :rotary_dim]
-        x1, x2 = (
-            (x_ro[..., ::2], x_ro[..., 1::2]) if interleaved else x_ro.chunk(2, dim=-1)
-        )
-
         if in_place:
-            out, o1, o2 = x, x1, x2
+            out = x
         else:
             out = torch.empty_like(x)
-            out_ro = out[..., :rotary_dim]
-            o1, o2 = (
-                (out_ro[..., ::2], out_ro[..., 1::2])
-                if interleaved
-                else out_ro.chunk(2, dim=-1)
-            )
 
-        _torch_apply_rotary_func(
-            x1,
-            x2,
+        ext.apply_rotary(
+            out[..., :rotary_dim],
+            x[..., :rotary_dim],
             rearrange(cos[:seqlen], "s d -> s 1 d"),
             rearrange(sin[:seqlen], "s d -> s 1 d"),
-            o1,
-            o2,
             False,
+            interleaved,
         )
 
         if rotary_dim < head_dim and not in_place:
@@ -107,32 +70,18 @@ class ApplyRotaryEmbTorch(torch.autograd.Function):
         rotary_dim = cos.shape[-1]
         rotary_dim *= 2
 
-        do_ro = do[..., :rotary_dim]
-        do1, do2 = (
-            (do_ro[..., ::2], do_ro[..., 1::2])
-            if ctx.interleaved
-            else do_ro.chunk(2, dim=-1)
-        )
-
         if ctx.in_place:
-            dx, dx1, dx2 = do, do1, do2
+            dx = do
         else:
             dx = torch.empty_like(do)
-            dx_ro = dx[..., :rotary_dim]
-            dx1, dx2 = (
-                (dx_ro[..., ::2], dx_ro[..., 1::2])
-                if ctx.interleaved
-                else dx_ro.chunk(2, dim=-1)
-            )
 
-        _torch_apply_rotary_func(
-            do1,
-            do2,
+        ext.apply_rotary(
+            dx[..., :rotary_dim],
+            do[..., :rotary_dim],
             rearrange(cos[:seqlen], "s d -> s 1 d"),
             rearrange(sin[:seqlen], "s d -> s 1 d"),
-            dx1,
-            dx2,
             True,
+            ctx.interleaved,
         )
 
         if rotary_dim < head_dim and not ctx.in_place:

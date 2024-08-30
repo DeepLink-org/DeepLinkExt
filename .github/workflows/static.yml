@@ -107,4 +107,10 @@ jobs:
         run: |
           source /mnt/cache/share/platform/cienv/dipu_latest_ci
           cd ${DEEPLINK_PATH}/${{ github.run_number }}/DeepLinkExt
-          python -m pytest tests
+
+          export PYTHONPATH=$PWD:$PYTHONPATH
+          export DEEPLINK_EXT_PLATFORM_TYPE=torch_dipu
+          python -m pytest tests/dipu
+
+          export DEEPLINK_EXT_PLATFORM_TYPE=torch_npu
+          python -m pytest tests/npu
