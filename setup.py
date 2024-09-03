@@ -39,6 +39,9 @@ def get_ext():
     ext_name = "deeplink_ext.cpp_extensions"
     # 包含所有算子文件
     op_files = glob.glob("./csrc/*.cpp")
+    op_files += glob.glob("./csrc/common/*.cpp")
+    op_files += glob.glob("./csrc/mx/*.cpp")
+    op_files += glob.glob("./csrc/npu/*.cpp")
     include_dirs = []
     system_include_dirs = include_paths()
     define_macros = []

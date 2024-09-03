@@ -28,6 +28,16 @@
 #include "diopi_helper.h"
 #include "pybind_type_cast.h"
 
+
+#include "extension_helper.h"
+
+void customed_op_impl(at::Tensor& a, at::Tensor& b);
+// 3. dispatch by device
+void customed_op_impl(at::Tensor& a, at::Tensor& b) {
+  std::printf("== dispatch customed_op kernel\n");
+  DISPATCH_DEVICE_IMPL(customed_op_impl, a, b);
+}
+
 namespace dipu::dipu_ext {
 
 void extAdamW(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
@@ -397,11 +407,20 @@ void extRotaryEmbeddingV2(at::Tensor& query, at::Tensor& key,
   callDiopi(diopiRotaryEmbeddingV2, query, key, cos, sin, dim);
 }
 
+// 2. definition of customed op
+void customed_op(at::Tensor& a, at::Tensor& b) {
+  std::printf("== call customed_op\n");
+  customed_op_impl(a, b);
+}
+
 // 判断是否有对应的 diopi 实现:
 //   如果有, 则直接 pybind 上去;
 //   否则不注册, 等到 python 层处理.
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  // 1. pybind export cpp API to python
+  m.def("customed_op", &customed_op, "customed_op test");
+
   // Check if weak symbol defined
   if (&diopiAdamW != nullptr) {
     m.def("adamw", &extAdamW, "deeplink ext_adamw");
