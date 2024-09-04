@@ -3,7 +3,8 @@ import torch
 
 from deeplink_ext.utils import PlatformType, deeplink_ext_get_platform_type
 
-@pytest.fixture(scope='session', autouse=True)
+
+@pytest.fixture(scope="session", autouse=True)
 def import_module():
     platform = deeplink_ext_get_platform_type()
     if platform == PlatformType.TORCH_NPU:

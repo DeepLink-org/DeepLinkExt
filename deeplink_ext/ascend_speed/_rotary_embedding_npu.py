@@ -27,4 +27,8 @@ class RotaryEmbedding(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         out, cos, sin = ctx.saved_tensors
-        return torch_npu.npu_rotary_mul_backward(grad_output, out, cos, sin)[0], None, None
+        return (
+            torch_npu.npu_rotary_mul_backward(grad_output, out, cos, sin)[0],
+            None,
+            None,
+        )
