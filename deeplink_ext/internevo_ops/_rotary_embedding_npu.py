@@ -7,6 +7,35 @@ from einops import rearrange
 __all__ = ["ApplyRotaryEmb"]
 
 
+def _unsqueeze_to_4d(x: torch.Tensor):
+    while x.dim() < 4:
+        x = x.unsqueeze(0)
+    return x
+
+
+def _apply_rotary(x: torch.Tensor, cos, sin, confj, interleaved):
+    assert interleaved == False, "interleaved not support by torch_npu"
+
+    x_view = _unsqueeze_to_4d(x)
+    cos_view = _unsqueeze_to_4d(cos)
+    sin_view = _unsqueeze_to_4d(sin)
+
+    cos_cat = torch.cat([cos_view, cos_view], -1)
+    sin_cat = torch.cat([sin_view, sin_view], -1)
+
+    if confj:
+        sin_cat.neg_()
+
+    x_view_chunks = x_view.chunk(2, -1)
+    x_view_new = torch.cat([-x_view_chunks[1], x_view_chunks[0]], -1)
+
+    cos_x = torch.mul(cos_cat, x_view)
+    sin_x = torch.mul(sin_cat, x_view_new)
+    out = cos_x + sin_x
+
+    return out
+
+
 # adpated from https://github.com/Dao-AILab/flash-attention/blob/main/flash_attn/layers/rotary.py#L35
 class ApplyRotaryEmb(torch.autograd.Function):
     """
@@ -38,38 +67,45 @@ class ApplyRotaryEmb(torch.autograd.Function):
         assert seqlen <= rotary_seqlen
         assert sin.shape == (rotary_seqlen, rotary_dim // 2)
 
-        re_cos = rearrange(cos[:seqlen], "s d -> s 1 d")
-        re_sin = rearrange(sin[:seqlen], "s d -> s 1 d")
+        out = _apply_rotary(
+            x[..., :rotary_dim],
+            rearrange(cos[:seqlen], "s d -> s 1 d"),
+            rearrange(sin[:seqlen], "s d -> s 1 d"),
+            False,
+            interleaved,
+        )
 
-        cat_cos = torch.cat([re_cos, re_cos], -1)
-        cat_sin = torch.cat([re_sin, re_sin], -1)
-
-        rot = torch_npu.npu_rotary_mul(x[..., :rotary_dim], cat_cos, cat_sin)
-        ctx.save_for_backward(cat_cos, cat_sin)
+        ctx.save_for_backward(cos, sin)
         ctx.interleaved = interleaved
         ctx.in_place = in_place
+
         if in_place:
-            x[..., :rotary_dim].copy_(rot)
+            x[..., :rotary_dim].copy_(out[..., :rotary_dim])
             return x
         else:
-            out = x.detach().clone()
-            if rotary_dim < head_dim and not in_place:
+            if rotary_dim < head_dim:
                 out[..., rotary_dim:].copy_(x[..., rotary_dim:])
             return out
 
     @staticmethod
     def backward(ctx, do):
-        cat_cos, cat_sin = ctx.saved_tensors
+        cos, sin = ctx.saved_tensors
         *_, seqlen, _, head_dim = do.shape
-        rotary_dim = cat_cos.shape[-1]
+        rotary_dim = cos.shape[-1]
+        rotary_dim *= 2
 
-        dx_out = torch_npu.npu_rotary_mul(
-            do[..., :rotary_dim], cat_cos, torch.neg(cat_sin)
+        out = _apply_rotary(
+            do[..., :rotary_dim],
+            rearrange(cos[:seqlen], "s d -> s 1 d"),
+            rearrange(sin[:seqlen], "s d -> s 1 d"),
+            True,
+            ctx.interleaved,
         )
+
         if ctx.in_place:
-            do[..., :rotary_dim].copy_(dx_out)
+            do[..., :rotary_dim].copy_(out[..., :rotary_dim])
             return do, None, None, None, None
         else:
-            dx = do.detach().clone()
-            dx[..., :rotary_dim].copy_(dx_out)
-            return dx, None, None, None, None
+            if rotary_dim < head_dim:
+                out[..., rotary_dim:].copy(do[..., rotary_dim:])
+            return out, None, None, None, None
