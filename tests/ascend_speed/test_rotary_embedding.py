@@ -1,7 +1,7 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-from tests.core import call_func, allclose
+from tests.core import call_autograd_func, allclose
 
 from deeplink_ext.ascend_speed.rotary_embedding import RotaryEmbedding
 
@@ -21,10 +21,10 @@ def test_ApplyRotaryEmb():
         sin = torch.randn(4096, 1, 1, 64, dtype=input_dtype, device="cuda")
         sin = torch.cat((sin, sin), dim=-1)
 
-        output_ref, grad_ref = call_func(
+        output_ref, grad_ref = call_autograd_func(
             RotaryEmbeddingTorch, "cuda", input_dtype, input_ref, cos, sin
         )
-        output_ext, grad_ext = call_func(
+        output_ext, grad_ext = call_autograd_func(
             RotaryEmbedding, "cuda", input_dtype, input_ext, cos, sin
         )
         assert allclose(

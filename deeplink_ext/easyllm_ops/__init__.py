@@ -29,20 +29,14 @@ except Exception as e:
     )
 
 try:
-    # from .rms_norm import MixedFusedRMSNorm
-    # Due to the accuracy problem of the npu fused operator, a torch combination is used as an alternative.
-    from .rms_norm_fallback import MixedRMSNormTorch as MixedFusedRMSNorm
+    from .rms_norm import rms_norm
 except:
     print(
         _not_impl.format(op_name="RMSNorm"),
     )
-    from .rms_norm_fallback import MixedRMSNormTorch as MixedFusedRMSNorm
+    from .rms_norm_fallback import rms_norm_torch as rms_norm
 
-try:
-    from .rotary_embedding import ApplyRotaryEmb
-except:
-    print(_not_impl.format(op_name="rotary embedding"))
-    from .rotary_embedding_fallback import ApplyRotaryEmbTorch as ApplyRotaryEmb
+from .bert_padding import pad_input, unpad_input, index_first_axis
 
 __all__ = [
     "AdamW",
@@ -52,6 +46,8 @@ __all__ = [
     "flash_attn_varlen_qkvpacked_func",
     "flash_attn_varlen_kvpacked_func",
     "flash_attn_varlen_func",
-    "MixedFusedRMSNorm",
-    "ApplyRotaryEmb",
+    "rms_norm",
+    "pad_input",
+    "unpad_input",
+    "index_first_axis",
 ]

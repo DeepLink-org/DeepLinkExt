@@ -1,13 +1,19 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-import typing
+from typing import Callable, Any
 
-__all__ = ["call_module", "call_func", "copy_to_cpu", "allclose"]
+__all__ = [
+    "calculate_fwd_and_bwd",
+    "call_module",
+    "call_autograd_func",
+    "copy_to_cpu",
+    "allclose",
+]
 
 
-def call_module(module: torch.nn.Module, *forward_args):
-    output_forward = module(*forward_args)
+def calculate_fwd_and_bwd(func: Callable[..., Any], *args: tuple, **kwargs: dict):
+    output_forward = func(*args, **kwargs)
     grads = []
     if torch.is_tensor(output_forward):
         output_forward.backward(torch.ones_like(output_forward))
@@ -18,13 +24,19 @@ def call_module(module: torch.nn.Module, *forward_args):
         raise RuntimeError(
             "the result of forward is not a tensor or list or tuple of tensor"
         )
-    for arg in forward_args:
+    for arg in args:
         if torch.is_tensor(arg) and arg.requires_grad:
             grads.append(arg.grad)
     return output_forward, grads
 
 
-def call_func(f: torch.autograd.Function, device, dtype, *args: list):
+def call_module(module: torch.nn.Module, *args: tuple, **kwargs: dict):
+    return calculate_fwd_and_bwd(module, *args, **kwargs)
+
+
+def call_autograd_func(
+    autograd_func: torch.autograd.Function, device, dtype, *args: tuple, **kwargs: dict
+):
     class Module(torch.nn.Module):
         def __init__(self, func):
             super(Module, self).__init__()
@@ -33,7 +45,7 @@ def call_func(f: torch.autograd.Function, device, dtype, *args: list):
         def forward(self, *args):
             return self.func.apply(*args)
 
-    return call_module(Module(f).to(device).to(dtype), *args)
+    return call_module(Module(autograd_func).to(device).to(dtype), *args, **kwargs)
 
 
 def copy_to_cpu(tensors: list[torch.Tensor], dtype=None):

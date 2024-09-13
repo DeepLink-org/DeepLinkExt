@@ -4,10 +4,10 @@ from deeplink_ext.utils import PlatformType, deeplink_ext_get_platform_type
 
 platform_type = deeplink_ext_get_platform_type()
 if platform_type == PlatformType.TORCH_NPU:
-    from ._rms_norm_npu import RMSNorm
+    from ._flash_attention_npu import FlashSelfAttention, FlashCrossAttention
 elif platform_type == PlatformType.TORCH_DIPU:
-    from ._rms_norm_dipu import RMSNorm
+    from ._flash_attention_dipu import FlashSelfAttention, FlashCrossAttention
 else:
     raise ImportError
 
-__all__ = ["RMSNorm"]
+__all__ = ["FlashSelfAttention", "FlashCrossAttention"]
