@@ -17,7 +17,9 @@ except Exception as e:
 
 
 try:
-    from .rms_norm import MixedFusedRMSNorm
+    # from .rms_norm import MixedFusedRMSNorm
+    # Due to the accuracy problem of the npu fused operator, a torch combination is used as an alternative.
+    from .rms_norm_fallback import MixedRMSNormTorch as MixedFusedRMSNorm
 except:
     print(
         _not_impl.format(op_name="RMSNorm"),
