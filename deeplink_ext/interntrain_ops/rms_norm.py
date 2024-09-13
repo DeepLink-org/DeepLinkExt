@@ -7,7 +7,8 @@ if platform_type == PlatformType.TORCH_NPU:
     # from ._mixed_rms_norm_npu import MixedFusedRMSNorm
     from .rms_norm_fallback import MixedRMSNormTorch as MixedFusedRMSNorm
 elif platform_type == PlatformType.TORCH_DIPU:
-    from ._mixed_rms_norm_dipu import MixedFusedRMSNorm
+    # from ._mixed_rms_norm_dipu import MixedFusedRMSNorm
+    from .rms_norm_fallback import MixedRMSNormTorch as MixedFusedRMSNorm
 else:
     raise ImportError
 
