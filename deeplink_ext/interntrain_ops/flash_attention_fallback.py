@@ -30,12 +30,12 @@ def multi_head_attention_func(
             torch.full(
                 (seqlen, seqlen),
                 float("-inf"),
-                dtype=scores.dtype,
+                dtype=torch.float32,
                 device=scores.device,
             ),
             1,
         )
-        scores.add_(causal_mask)
+        scores.add_(causal_mask.to(torch.bfloat16))
     attention = torch.softmax(scores, dim=-1, dtype=v.dtype)
     attention_drop = drop(attention)
     return torch.einsum("bhts,bshd->bthd", attention_drop, v)

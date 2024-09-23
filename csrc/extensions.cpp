@@ -5,6 +5,11 @@
 #include <tuple>
 #include <utility>
 
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <torch/torch.h>
+
 #include <ATen/core/ATen_fwd.h>
 #include <ATen/core/Generator.h>
 #include <ATen/core/TensorBody.h>
@@ -30,11 +35,128 @@
 
 namespace dipu::dipu_ext {
 
+int dumpOpArgLevel() {
+  static const char* env_ptr = std::getenv("DIPU_DUMP_OP_ARGS");
+  static int level = env_ptr ? std::atoi(env_ptr) : 0;
+  return level;
+}
+
+template <typename T>
+std::string dumpArgs(const T& t) {
+    std::stringstream stream;
+    stream << t;
+    return stream.str();
+}
+
+template <>
+std::string dumpArgs(const at::Tensor& t) {
+    std::stringstream stream;
+    if (t.defined()) {
+        stream << "numel: " << t.numel() << ", size:" << t.sizes()
+        <<  ", strides:" << t.strides()
+        << ", is_view: " << t.is_view() << ", dtype: " << t.dtype()
+        << ", device:" << t.device() << ", layout:" << t.layout()
+        << ", requires_grad: " << (t.requires_grad() ? "true" : "false")
+        << ", pinned_memory: " << (t.is_pinned() ? "true" : "false")
+        << ", memory_format: " << t.suggest_memory_format()
+        << ", data_ptr: " << t.data_ptr()
+        << ", storage_data_ptr: " << t.storage().data_ptr().get()
+        << ", storage_offset: " << t.storage_offset() << std::endl;
+    } else {
+        stream << "undefined\n";
+    }
+    return stream.str();
+}
+
+template <>
+std::string dumpArgs(const c10::optional<at::Tensor>& opt_t) {
+    std::stringstream stream;
+    if (opt_t.has_value()) {
+        stream << "optional Tensor: " << dumpArgs(opt_t.value());
+    } else {
+        stream << "optional Tensor: undefined\n";
+    }
+    return stream.str();
+}
+
+template <>
+std::string dumpArgs(const at::Generator& gen) {
+    std::stringstream stream;
+    stream << "at::Generator information\n";
+    return stream.str();
+}
+
+template <>
+std::string dumpArgs(const int32_t& value) {
+    std::stringstream stream;
+    stream << "int32_t: " << value;
+    return stream.str();
+}
+
+template <>
+std::string dumpArgs(const float& value) {
+    std::stringstream stream;
+    stream << "float: " << value;
+    return stream.str();
+}
+
+template <>
+std::string dumpArgs(const bool& value) {
+    std::stringstream stream;
+    stream << "bool: " << (value ? "true" : "false");
+    return stream.str();
+}
+
+template <>
+std::string dumpArgs(const at::Scalar& t) {
+    std::stringstream stream;
+    stream << t;
+    return stream.str();
+}
+
+template <>
+std::string dumpArgs(const at::IntArrayRef& t) {
+    std::stringstream stream;
+    stream << "[";
+    for (long i : t) {
+        stream << i << ",";
+    }
+    stream << "]";
+    return stream.str();
+}
+
 void extAdamW(at::Tensor& param, at::Tensor& exp_avg, at::Tensor& exp_avg_sq,
               c10::optional<at::Tensor>& max_exp_avg_sq_opt, at::Tensor& grad,
               float lr, float beta1, float beta2, float epsilon,
               float weight_decay, int64_t step, bool amsgrad) {
+  if (dumpOpArgLevel() > 1) {
+    std::ofstream outfile("/mnt/cache/shanhang/newhome/project/InternEvo/fused.txt", std::ios::app);
+
+    // 检查文件是否成功打开
+    if (!outfile.is_open()) {
+        std::cerr << "Error opening file for appending!" << std::endl;
+    }
+
+    // 向文件写入数据
+    outfile << "--[extAdamW]:          diopiAdamW" << std::endl;
+    outfile << "param: " << dumpArgs(param) << std::endl;
+    outfile << "exp_avg: " << dumpArgs(exp_avg) << std::endl;
+    outfile << "exp_avg_sq: " << dumpArgs(exp_avg_sq) << std::endl;
+    outfile << "max_exp_avg_sq_opt: " << dumpArgs(max_exp_avg_sq_opt) << std::endl;
+    outfile << "grad: " << dumpArgs(grad) << std::endl;
+    outfile << "lr: " << dumpArgs(lr) << std::endl;
+    outfile << "beta1: " << dumpArgs(beta1) << std::endl;
+    outfile << "beta2: " << dumpArgs(beta2) << std::endl;
+    outfile << "epsilon: " << dumpArgs(epsilon) << std::endl;
+    outfile << "weight_decay: " << dumpArgs(weight_decay) << std::endl;
+    outfile << "step: " << dumpArgs(step) << std::endl;
+    outfile << "amsgrad: " << dumpArgs(amsgrad) << std::endl;
+
+    // 关闭文件
+    outfile.close();
+  }
   // the diopiAdamW func has no "maximize" param
+
   callDiopi(diopiAdamW, param, grad, exp_avg, exp_avg_sq, max_exp_avg_sq_opt,
             lr, beta1, beta2, epsilon, weight_decay, step, amsgrad);
 }
@@ -44,6 +166,27 @@ void extRmsNorm(at::Tensor& output, at::Tensor& inv_rms,
                 const at::IntArrayRef& normalized_shape,
                 const at::Tensor& weight,
                 const c10::optional<at::Tensor>& bias_opt, double eps) {
+  if (dumpOpArgLevel() > 1) {
+    std::ofstream outfile("/mnt/cache/shanhang/newhome/project/InternEvo/fused.txt", std::ios::app);
+
+    // 检查文件是否成功打开
+    if (!outfile.is_open()) {
+        std::cerr << "Error opening file for appending!" << std::endl;
+    }
+
+    // 向文件写入数据
+    outfile << "--[extRmsNorm]:          diopiRMSNorm" << std::endl;
+    outfile << "output: " << dumpArgs(output) << std::endl;
+    outfile << "inv_rms: " << dumpArgs(inv_rms) << std::endl;
+    outfile << "input: " << dumpArgs(input) << std::endl;
+    outfile << "normalized_shape: " << dumpArgs(normalized_shape) << std::endl;
+    outfile << "weight: " << dumpArgs(weight) << std::endl;
+    outfile << "bias_opt: " << dumpArgs(bias_opt) << std::endl;
+    outfile << "eps: " << dumpArgs(eps) << std::endl;
+
+    // 关闭文件
+    outfile.close();
+  }
   callDiopi(diopiRMSNorm, output, inv_rms, input, normalized_shape, weight,
             bias_opt, eps);
 }
@@ -55,6 +198,30 @@ void extRmsNormBackward(at::Tensor& grad_input, at::Tensor& grad_weight,
                         const c10::optional<at::Tensor>& bias_opt,
                         const at::Tensor& inv_rms,
                         const at::IntArrayRef& normalized_shape, double eps) {
+  if (dumpOpArgLevel() > 1) {
+    std::ofstream outfile("/mnt/cache/shanhang/newhome/project/InternEvo/fused.txt", std::ios::app);
+
+    // 检查文件是否成功打开
+    if (!outfile.is_open()) {
+        std::cerr << "Error opening file for appending!" << std::endl;
+    }
+
+    // 向文件写入数据
+    outfile << "--[extRmsNormBackward]:          diopiRMSNormBackward" << std::endl;
+    outfile << "grad_input: " << dumpArgs(grad_input) << std::endl;
+    outfile << "grad_weight: " << dumpArgs(grad_weight) << std::endl;
+    outfile << "grad_bias_opt: " << dumpArgs(grad_bias_opt) << std::endl;
+    outfile << "grad_output: " << dumpArgs(grad_output) << std::endl;
+    outfile << "input: " << dumpArgs(input) << std::endl;
+    outfile << "weight: " << dumpArgs(weight) << std::endl;
+    outfile << "bias_opt: " << dumpArgs(bias_opt) << std::endl;
+    outfile << "inv_rms: " << dumpArgs(inv_rms) << std::endl;
+    outfile << "normalized_shape: " << dumpArgs(normalized_shape) << std::endl;
+    outfile << "eps: " << dumpArgs(eps) << std::endl;
+
+    // 关闭文件
+    outfile.close();
+  }
   callDiopi(diopiRMSNormBackward, grad_input, grad_weight, grad_bias_opt,
             grad_output, input, weight, bias_opt, inv_rms, normalized_shape,
             eps);
@@ -63,6 +230,26 @@ void extRmsNormBackward(at::Tensor& grad_input, at::Tensor& grad_weight,
 void extApplyRotary(at::Tensor& output, const at::Tensor& input,
                     const at::Tensor& cos, const at::Tensor& sin,
                     const bool conj, const bool interleaved) {
+  if (dumpOpArgLevel() > 1) {
+    std::ofstream outfile("/mnt/cache/shanhang/newhome/project/InternEvo/fused.txt", std::ios::app);
+
+    // 检查文件是否成功打开
+    if (!outfile.is_open()) {
+        std::cerr << "Error opening file for appending!" << std::endl;
+    }
+
+    // 向文件写入数据
+    outfile << "--[extApplyRotary]:          diopiRotaryEmbedding" << std::endl;
+    outfile << "output: " << dumpArgs(output) << std::endl;
+    outfile << "input: " << dumpArgs(input) << std::endl;
+    outfile << "cos: " << dumpArgs(cos) << std::endl;
+    outfile << "sin: " << dumpArgs(sin) << std::endl;
+    outfile << "conj: " << dumpArgs(conj) << std::endl;
+    outfile << "interleaved: " << dumpArgs(interleaved) << std::endl;
+
+    // 关闭文件
+    outfile.close();
+  }
   callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj, interleaved);
 }
 
@@ -165,12 +352,52 @@ auto extMultiHeadAttentionVarLenBackward(
                          std::move(grad_v));
 }
 
+inline at::Tensor toCpuTensorWithoutDiopiCopy(const at::Tensor& in) {
+    if (in.is_cpu()) {
+        return in;
+    }
+
+    at::Tensor out = at::empty_strided(in.sizes(), in.strides(),
+                                       in.options().device(c10::Device("cpu")));
+    if (in.nbytes() > 0) {
+        dipu::getCurrentDIPUStream().synchronize();
+        dipu::devapis::memCopyD2H(out.storage().nbytes(), out.data_ptr(),
+                                  in.data_ptr());
+    }
+    return out;
+}
+
 void extFlashAttention(at::Tensor& out, at::Tensor& softmax_lse,
                        at::Generator& gen, const at::Tensor& q,
                        const at::Tensor& k, const at::Tensor& v,
                        const c10::optional<at::Tensor>& alibi_slopes_opt,
                        float p_dropout, float softmax_scale, bool is_causal,
                        int32_t window_size_left, int32_t window_size_right) {
+  if (dumpOpArgLevel() > 1) {
+    std::ofstream outfile("/mnt/cache/shanhang/newhome/project/InternEvo/fused.txt", std::ios::app);
+
+    // 检查文件是否成功打开
+    if (!outfile.is_open()) {
+        std::cerr << "Error opening file for appending!" << std::endl;
+    }
+
+    // 向文件写入数据
+    outfile << "--[extFlashAttention]:          diopiFlashAttention" << std::endl;
+    outfile << "out: " << dumpArgs(out) << std::endl;
+    outfile << "softmax_lse: " << dumpArgs(softmax_lse) << std::endl;
+    outfile << "q: " << dumpArgs(q) << std::endl;
+    outfile << "k: " << dumpArgs(k) << std::endl;
+    outfile << "v: " << dumpArgs(v) << std::endl;
+    outfile << "p_dropout: " << dumpArgs(p_dropout) << std::endl;
+    outfile << "softmax_scale: " << dumpArgs(softmax_scale) << std::endl;
+    outfile << "is_causal: " << dumpArgs(is_causal) << std::endl;
+    outfile << "window_size_left: " << dumpArgs(window_size_left) << std::endl;
+    outfile << "window_size_right: " << dumpArgs(window_size_right) << std::endl;
+
+    // 关闭文件
+    outfile.close();
+  }
+
   callDiopi(diopiFlashAttention, out, softmax_lse, gen, q, k, v,
             alibi_slopes_opt, p_dropout, softmax_scale, is_causal,
             window_size_left, window_size_right);
@@ -183,6 +410,34 @@ void extFlashAttentionBackward(
     const c10::optional<at::Tensor>& alibi_slopes_opt, const at::Tensor& out,
     const at::Tensor& softmax_lse, float p_dropout, float softmax_scale,
     bool is_causal, int32_t window_size_left, int32_t window_size_right) {
+  if (dumpOpArgLevel() > 1) {
+
+    std::ofstream outfile("/mnt/cache/shanhang/newhome/project/InternEvo/fused.txt", std::ios::app);
+
+    // 检查文件是否成功打开
+    if (!outfile.is_open()) {
+        std::cerr << "Error opening file for appending!" << std::endl;
+    }
+
+    outfile << "--[extFlashAttentionBackward]:          diopiFlashAttentionBackward" << std::endl;
+    outfile << "grad_q: " << dumpArgs(grad_q) << std::endl;
+    outfile << "grad_k: " << dumpArgs(grad_k) << std::endl;
+    outfile << "grad_v: " << dumpArgs(grad_v) << std::endl;
+    outfile << "grad_out: " << dumpArgs(grad_out) << std::endl;
+    outfile << "q: " << dumpArgs(q) << std::endl;
+    outfile << "k: " << dumpArgs(k) << std::endl;
+    outfile << "v: " << dumpArgs(v) << std::endl;
+    outfile << "out: " << dumpArgs(out) << std::endl;
+    outfile << "softmax_lse: " << dumpArgs(softmax_lse) << std::endl;
+    outfile << "p_dropout: " << dumpArgs(p_dropout) << std::endl;
+    outfile << "softmax_scale: " << dumpArgs(softmax_scale) << std::endl;
+    outfile << "is_causal: " << dumpArgs(is_causal) << std::endl;
+    outfile << "window_size_left: " << dumpArgs(window_size_left) << std::endl;
+    outfile << "window_size_right: " << dumpArgs(window_size_right) << std::endl;
+
+    outfile.close();
+  }
+
   callDiopi(diopiFlashAttentionBackward, grad_q, grad_k, grad_v, grad_out, gen,
             q, k, v, alibi_slopes_opt, out, softmax_lse, p_dropout,
             softmax_scale, is_causal, window_size_left, window_size_right);
@@ -195,6 +450,33 @@ void extFlashAttentionVarLen(
     const c10::optional<at::Tensor>& alibi_slopes_opt, int32_t max_seqlen_q,
     int32_t max_seqlen_kv, float p_dropout, float softmax_scale, bool is_causal,
     int32_t window_size_left, int32_t window_size_right) {
+  std::ofstream outfile("/mnt/cache/shanhang/newhome/project/InternEvo/fused.txt", std::ios::app);
+
+  // 检查文件是否成功打开
+  if (!outfile.is_open()) {
+      std::cerr << "Error opening file for appending!" << std::endl;
+  }
+
+  // 向文件写入数据
+  outfile << "--[extFlashAttentionVarLen]:          diopiFlashAttentionVarLen" << std::endl;
+  outfile << "out: " << dumpArgs(out) << std::endl;
+  outfile << "softmax_lse: " << dumpArgs(softmax_lse) << std::endl;
+  outfile << "q: " << dumpArgs(q) << std::endl;
+  outfile << "k: " << dumpArgs(k) << std::endl;
+  outfile << "v: " << dumpArgs(v) << std::endl;
+  outfile << "cum_seq_q: " << dumpArgs(cum_seq_q) << std::endl;
+  outfile << "cum_seq_kv: " << dumpArgs(cum_seq_kv) << std::endl;
+  outfile << "max_seqlen_q: " << dumpArgs(max_seqlen_q) << std::endl;
+  outfile << "max_seqlen_kv: " << dumpArgs(max_seqlen_kv) << std::endl;
+  outfile << "p_dropout: " << dumpArgs(p_dropout) << std::endl;
+  outfile << "softmax_scale: " << dumpArgs(softmax_scale) << std::endl;
+  outfile << "is_causal: " << dumpArgs(is_causal) << std::endl;
+  outfile << "window_size_left: " << dumpArgs(window_size_left) << std::endl;
+  outfile << "window_size_right: " << dumpArgs(window_size_right) << std::endl;
+
+  // 关闭文件
+  outfile.close();
+
   callDiopi(diopiFlashAttentionVarLen, out, softmax_lse, gen, q, k, v,
             cum_seq_q, cum_seq_kv, alibi_slopes_opt, max_seqlen_q,
             max_seqlen_kv, p_dropout, softmax_scale, is_causal,
@@ -210,6 +492,35 @@ void extFlashAttentionVarLenBackward(
     const at::Tensor& softmax_lse, int32_t max_seqlen_q, int32_t max_seqlen_kv,
     float p_dropout, float softmax_scale, bool is_causal,
     int32_t window_size_left, int32_t window_size_right) {
+  std::ofstream outfile("/mnt/cache/shanhang/newhome/project/InternEvo/fused.txt", std::ios::app);
+
+  // 检查文件是否成功打开
+  if (!outfile.is_open()) {
+      std::cerr << "Error opening file for appending!" << std::endl;
+  }
+
+  outfile << "--[extFlashAttentionVarLenBackward]:          diopiFlashAttentionVarLenBackward" << std::endl;
+  outfile << "grad_q: " << dumpArgs(grad_q) << std::endl;
+  outfile << "grad_k: " << dumpArgs(grad_k) << std::endl;
+  outfile << "grad_v: " << dumpArgs(grad_v) << std::endl;
+  outfile << "grad_out: " << dumpArgs(grad_out) << std::endl;
+  outfile << "q: " << dumpArgs(q) << std::endl;
+  outfile << "k: " << dumpArgs(k) << std::endl;
+  outfile << "v: " << dumpArgs(v) << std::endl;
+  outfile << "cum_seq_q: " << dumpArgs(cum_seq_q) << std::endl;
+  outfile << "cum_seq_kv: " << dumpArgs(cum_seq_kv) << std::endl;
+  outfile << "out: " << dumpArgs(out) << std::endl;
+  outfile << "softmax_lse: " << dumpArgs(softmax_lse) << std::endl;
+  outfile << "max_seqlen_q: " << dumpArgs(max_seqlen_q) << std::endl;
+  outfile << "max_seqlen_kv: " << dumpArgs(max_seqlen_kv) << std::endl;
+  outfile << "p_dropout: " << dumpArgs(p_dropout) << std::endl;
+  outfile << "softmax_scale: " << dumpArgs(softmax_scale) << std::endl;
+  outfile << "is_causal: " << dumpArgs(is_causal) << std::endl;
+  outfile << "window_size_left: " << dumpArgs(window_size_left) << std::endl;
+  outfile << "window_size_right: " << dumpArgs(window_size_right) << std::endl;
+
+  outfile.close();
+
   callDiopi(diopiFlashAttentionVarLenBackward, grad_q, grad_k, grad_v, grad_out,
             gen, q, k, v, cum_seq_q, cum_seq_kv, alibi_slopes_opt, out,
             softmax_lse, max_seqlen_q, max_seqlen_kv, p_dropout, softmax_scale,

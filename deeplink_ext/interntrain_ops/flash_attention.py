@@ -1140,6 +1140,54 @@ class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
         )
         return dq, dkv, None, None, None, None, None, None, None
 
+def _unpack_qkv_before_attn(
+    cur_input: torch.Tensor, cu_seqlens: torch.Tensor, padding_v: int = 0
+):
+    """
+    qkv: the shape is (packed_length, three, head_num, head_dim)
+    kv: the shape is (packed_length, two, head_num, head_dim)
+    q/k/v: the shape is (packed_length, head_num, head_dim)
+
+    Return:
+    output: the shape is (micro_bsz, seq_len, three, head_num, head_dim) for qkv
+                        (micro_bsz, seq_len, two, head_num, head_dim) for kv
+                        (micro_bsz, seq_len, head_num, head_dim) for q/k/v
+    """
+    sequences = []
+    for i in range(len(cu_seqlens) - 1):
+        sequences.append(cur_input[cu_seqlens[i] : cu_seqlens[i + 1]])
+
+    padded_sequences = torch.nn.utils.rnn.pad_sequence(
+        sequences, batch_first=True, padding_value=padding_v
+    )
+
+    return padded_sequences
+
+def _pack_output_after_attn(
+    cur_input: torch.Tensor,
+    cu_seqlens: torch.Tensor,
+    packed_length: int,
+    padding_v: int = 0,
+):
+    """
+    cur_input: the shape is (micro_bsz, max_seq_len, head_num, head_dim)
+
+    Return:
+    output: the shape is (packed_length, head_num, head_dim)
+    """
+    output_shape = [packed_length, *cur_input.shape[-2:]]
+
+    output = torch.full(
+        output_shape,
+        fill_value=padding_v,
+        device=cur_input.device,
+        dtype=cur_input.dtype,
+    )
+    for i in range(len(cu_seqlens) - 1):
+        length = cu_seqlens[i + 1] - cu_seqlens[i]
+        output[cu_seqlens[i] : cu_seqlens[i + 1]] = cur_input[i, 0:length]
+
+    return output
 
 class FlashSelfAttention(nn.Module):
     """Performs self-attention with support for both padded and unpadded sequences.
@@ -1244,18 +1292,24 @@ class FlashSelfAttention(nn.Module):
                     causal if causal is not None else self.causal,
                 )
             else:
-                return FlashAttentionVarlenQKVPackedFunc.apply(
+                # print("q.shape:", q.shape)
+                # print("kv.shape:",kv.shape)
+                packed_length = q.size(dim=0)
+                q = _unpack_qkv_before_attn(q, cu_seqlens=cu_seqlens)
+                kv = _unpack_qkv_before_attn(kv, cu_seqlens=cu_seqlens)
+                # print("after unpack q.shape:", q.shape)
+                # print("after unpack kv.shape:",kv.shape)
+                output = FlashAttentionQKVPackedFunc.apply(
                     qkv,
                     q,
                     k,
                     v,
                     kv,
-                    cu_seqlens,
-                    max_seqlen,
                     dropout_p,
                     softmax_scale,
                     causal if causal is not None else self.causal,
                 )
+                return _pack_output_after_attn(output, cu_seqlens, packed_length)
 
 
 class FlashCrossAttention(nn.Module):
