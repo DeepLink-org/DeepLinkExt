@@ -2,7 +2,7 @@
 
 import torch
 import torch_npu
-from einops import rearrange, repeat
+from einops import repeat
 from mindspeed.ops.npu_rotary_position_embedding import npu_rotary_position_embedding
 
 __all__ = ["ApplyRotaryEmb"]
@@ -40,12 +40,11 @@ class ApplyRotaryEmb(torch.autograd.Function):
         assert sin.shape == (rotary_seqlen, rotary_dim // 2)
 
         if interleaved:
-            cos = repeat(cos[:seqlen].unsqueeze(0).unsqueeze(2), "... d -> ... (d 2)")
-            sin = repeat(sin[:seqlen].unsqueeze(0).unsqueeze(2), "... d -> ... (d 2)")
+            cos = repeat(cos[:seqlen], "... d -> 1 ... 1 (d 2)")
+            sin = repeat(sin[:seqlen], "... d -> 1 ... 1 (d 2)")
         else:
-            # "s d -> 1 s 1 d"
-            cos = cos[:seqlen].unsqueeze(0).unsqueeze(2).repeat(1, 1, 1, 2)
-            sin = sin[:seqlen].unsqueeze(0).unsqueeze(2).repeat(1, 1, 1, 2)
+            cos = repeat(cos[:seqlen], "... d -> 1 ... 1 (2 d)")
+            sin = repeat(sin[:seqlen], "... d -> 1 ... 1 (2 d)")
         ctx.save_for_backward(cos, sin)
         ctx.interleaved = interleaved
         ctx.in_place = in_place
