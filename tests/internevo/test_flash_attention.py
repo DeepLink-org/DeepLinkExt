@@ -3,12 +3,12 @@
 import torch
 from tests.core import copy_to_cpu, allclose, calculate_fwd_and_bwd
 
-from deeplink_ext.internevo_ops.flash_attention_fallback import (
+from deeplink_ext.ops.flash_attention.internevo_flash_attention_fallback import (
     flash_attn_qkvpacked_func_torch,
     flash_attn_kvpacked_func_torch,
     flash_attn_func_torch,
 )
-from deeplink_ext.internevo_ops.flash_attention import (
+from deeplink_ext.ops.flash_attention.internevo_flash_attention import (
     flash_attn_qkvpacked_func,
     flash_attn_kvpacked_func,
     flash_attn_func,

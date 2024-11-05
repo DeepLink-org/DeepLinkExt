@@ -3,11 +3,11 @@
 import torch
 from tests.core import allclose, call_module
 
-from deeplink_ext.interntrain_ops.flash_attention import (
+from deeplink_ext.ops.flash_attention.interntrain_flash_attention import (
     FlashSelfAttention,
     FlashCrossAttention,
 )
-from deeplink_ext.interntrain_ops.flash_attention_fallback import (
+from deeplink_ext.ops.flash_attention.interntrain_flash_attention_fallback import (
     SelfAttention,
     CrossAttention,
 )
