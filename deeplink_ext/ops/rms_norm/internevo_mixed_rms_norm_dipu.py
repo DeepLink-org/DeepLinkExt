@@ -14,7 +14,6 @@ __all__ = ["MixedFusedRMSNorm"]
 # as output tensor's dtype while FusedLayerNorm uses input tensor's dtype for output tensor's dtype.
 # See: `layer_norm_affine` and `layer_norm_affine_mixed_dtypes` in "csrc/layer_norm_cuda.cpp"
 class _MixedFusedRMSNormFunction(torch.autograd.Function):
-
     @staticmethod
     def forward(ctx, hidden_states, weight, eps, normalized_shape):
         # ascend currently does not support dtype of hidden_states with higher precision than weight.
@@ -94,7 +93,6 @@ class _MixedFusedRMSNormFunction(torch.autograd.Function):
 
 
 class MixedFusedRMSNorm(torch.nn.Module):
-
     def __init__(self, normalized_shape, eps=1e-5, add_unit_offset=False):
         # TODO: Further optimization when there are device and dtype available.
         # factory_kwargs = {"device": device, "dtype": dtype}

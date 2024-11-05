@@ -7,7 +7,6 @@ __all__ = ["ScaledMaskedSoftmax"]
 
 
 class ScaledMaskedSoftmax(torch.autograd.Function):
-
     @staticmethod
     def forward(ctx, input, mask, scale, fixed_triu_mask):
         out = torch_npu.npu_scaled_masked_softmax(input, mask, scale, fixed_triu_mask)

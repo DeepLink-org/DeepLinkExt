@@ -16,7 +16,6 @@ __all__ = ["FlashSelfAttention", "FlashCrossAttention"]
 
 
 class CustomizedFlashAttentionQKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -206,7 +205,6 @@ class CustomizedFlashAttentionQKVPackedFunc(torch.autograd.Function):
 
 
 class FlashAttentionQKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -359,7 +357,6 @@ class FlashAttentionQKVPackedFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -560,7 +557,6 @@ class CustomizedFlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
 
 
 class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -738,7 +734,6 @@ class FlashAttentionVarlenQKVPackedFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
         assert q.device == kv.device, "the devices of q and kv should be same"
@@ -842,7 +837,6 @@ class CustomizedFlashAttentionKVPackedFunc(torch.autograd.Function):
 
 
 class FlashAttentionKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(ctx, q, kv, dropout_p, softmax_scale, causal):
         assert q.device == kv.device, "the devices of q and kv should be same"
@@ -920,7 +914,6 @@ class FlashAttentionKVPackedFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -1045,7 +1038,6 @@ class CustomizedFlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
 
 
 class FlashAttentionVarlenKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -1266,7 +1258,6 @@ class FlashSelfAttention(nn.Module):
 
 
 class FlashCrossAttention(nn.Module):
-
     def __init__(self, causal=False, softmax_scale=None, attention_dropout=0.0):
         super().__init__()
         self.causal = causal

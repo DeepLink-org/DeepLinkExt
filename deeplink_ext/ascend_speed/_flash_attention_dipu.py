@@ -9,7 +9,6 @@ __all__ = ["FlashSelfAttention"]
 
 
 class FlashSelfAttention(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx, q, k, v, attention_mask, dropout_p, softmax_scale, head_num, input_layout

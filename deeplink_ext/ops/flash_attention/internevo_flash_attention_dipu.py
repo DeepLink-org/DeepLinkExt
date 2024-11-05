@@ -22,7 +22,6 @@ __all__ = [
 
 
 class FlashAttnQKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -108,7 +107,6 @@ class FlashAttnQKVPackedFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttnQKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -254,7 +252,6 @@ def flash_attn_qkvpacked_func(
 
 
 class FlashAttnKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -344,7 +341,6 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttnKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -498,7 +494,6 @@ def flash_attn_kvpacked_func(
 
 
 class FlashAttnFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -592,7 +587,6 @@ class FlashAttnFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttnFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -753,7 +747,6 @@ def flash_attn_func(
 
 
 class FlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -850,7 +843,6 @@ class FlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -1007,7 +999,6 @@ def flash_attn_varlen_qkvpacked_func(
 
 
 class FlashAttnVarlenKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -1112,7 +1103,6 @@ class FlashAttnVarlenKVPackedFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttnVarlenKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -1288,7 +1278,6 @@ def flash_attn_varlen_kvpacked_func(
 
 
 class FlashAttnVarlenFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -1414,7 +1403,6 @@ class FlashAttnVarlenFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttnVarlenFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,

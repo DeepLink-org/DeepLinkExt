@@ -1,6 +1,6 @@
 # Copyright (c) 2024, DeepLink.
 
-from deeplink_ext.ascend_speed.rms_norm import RMSNorm
+from .easyllm_rms_norm_dipu import RMSNorm
 
 __all__ = ["rms_norm"]
 
