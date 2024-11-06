@@ -6,7 +6,7 @@ platform_type = deeplink_ext_get_platform_type()
 if platform_type == PlatformType.TORCH_DIPU:
     # from ._mixed_rms_norm_dipu import MixedFusedRMSNorm
     # Due to the accuracy problem of the npu fused operator, a torch combination is used as an alternative.
-    from .interntrain_rms_norm_fallback import MixedRMSNormTorch as MixedFusedRMSNorm
+    from .internevo_rms_norm_fallback import MixedRMSNormTorch as MixedFusedRMSNorm
 else:
     raise ImportError
 
