@@ -1292,13 +1292,9 @@ class FlashSelfAttention(nn.Module):
                     causal if causal is not None else self.causal,
                 )
             else:
-                # print("q.shape:", q.shape)
-                # print("kv.shape:",kv.shape)
                 packed_length = q.size(dim=0)
                 q = _unpack_qkv_before_attn(q, cu_seqlens=cu_seqlens)
                 kv = _unpack_qkv_before_attn(kv, cu_seqlens=cu_seqlens)
-                # print("after unpack q.shape:", q.shape)
-                # print("after unpack kv.shape:",kv.shape)
                 output = FlashAttentionQKVPackedFunc.apply(
                     qkv,
                     q,
