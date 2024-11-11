@@ -4,12 +4,8 @@ import torch
 import torch_dipu
 import deeplink_ext.cpp_extensions as ext
 
-if torch_dipu.dipu.vendor_type == "NPU":
-    assert hasattr(ext, "custom_fa_fwd") and hasattr(ext, "custom_fa_bwd")
-    assert hasattr(ext, "custom_fa_varlen_fwd") and hasattr(ext, "custom_fa_varlen_bwd")
-else:
-    assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
-    assert hasattr(ext, "fa_varlen_fwd") and hasattr(ext, "fa_varlen_bwd")
+assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
+assert hasattr(ext, "fa_varlen_fwd") and hasattr(ext, "fa_varlen_bwd")
 
 __all__ = [
     "flash_attn_qkvpacked_func",

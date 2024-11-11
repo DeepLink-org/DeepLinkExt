@@ -13,6 +13,8 @@ from deeplink_ext.ops.flash_attention import (
     flash_attn_varlen_qkvpacked_func,
     flash_attn_varlen_kvpacked_func,
     flash_attn_varlen_func,
+    FlashCrossAttention,
+    FlashSelfAttention,
 )
 
 from deeplink_ext.ops.rms_norm import MixedFusedRMSNorm
