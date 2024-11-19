@@ -11,3 +11,4 @@ except:
 from .rms_norm_utils import import_RMSNorm, patch_RMSNorm
 
 MixedFusedRMSNorm = import_RMSNorm()
+patch_RMSNorm(MixedFusedRMSNorm)
