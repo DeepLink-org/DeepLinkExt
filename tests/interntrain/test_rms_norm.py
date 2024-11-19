@@ -2,8 +2,8 @@
 
 import torch
 from tests.core import call_module, allclose
-from deeplink_ext.interntrain_ops.rms_norm import MixedFusedRMSNorm
-from deeplink_ext.interntrain_ops.rms_norm_fallback import MixedRMSNormTorch
+from deeplink_ext.ops.rms_norm.internevo_rms_norm import MixedFusedRMSNorm
+from deeplink_ext.ops.rms_norm.internevo_rms_norm_fallback import MixedRMSNormTorch
 
 
 def test_MixedFusedRMSNorm():

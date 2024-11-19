@@ -60,10 +60,11 @@ void extRmsNormBackward(at::Tensor& grad_input, at::Tensor& grad_weight,
             eps);
 }
 
-void extApplyRotary(at::Tensor& output, const at::Tensor& input,
+void extApplyRotary(const at::Tensor& input1, const at::Tensor& input2,
                     const at::Tensor& cos, const at::Tensor& sin,
-                    const bool conj, const bool interleaved) {
-  callDiopi(diopiRotaryEmbedding, output, input, cos, sin, conj, interleaved);
+                    at::Tensor& output1, at::Tensor& output2,
+                    const bool conj) {
+  callDiopi(diopiApplyRotary, output1, output2, input1, input2, cos, sin, conj, false);
 }
 
 auto extMultiHeadAttention(at::Tensor& q, at::Tensor& k, at::Tensor& v,
@@ -443,7 +444,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("rms_norm_backward", &extRmsNormBackward,
           "deeplink ext_rms_norm_backward");
   }
-  if (&diopiRotaryEmbedding != nullptr) {
+  if (&diopiApplyRotary != nullptr) {
     m.def("apply_rotary", &extApplyRotary, "deeplink ext_apply_rotary");
   }
   if (&diopiMultiHeadAttention != nullptr) {

@@ -3,11 +3,11 @@
 import torch
 from tests.core import call_autograd_func, allclose
 
-from deeplink_ext.interntrain_ops.rotary_embedding import (
+from deeplink_ext.ops.rotary_embedding.interntrain_rotary_embedding import (
     ApplyRotaryEmb,
     ApplyRotaryEmbQKV_,
 )
-from deeplink_ext.interntrain_ops.rotary_embedding_fallback import (
+from deeplink_ext.ops.rotary_embedding.interntrain_rotary_embedding_fallback import (
     ApplyRotaryEmbTorch,
     ApplyRotaryEmbQKV_Torch,
 )

@@ -4,12 +4,8 @@ import torch
 import torch_dipu
 import deeplink_ext.cpp_extensions as ext
 
-if torch_dipu.dipu.vendor_type == "NPU":
-    assert hasattr(ext, "custom_fa_fwd") and hasattr(ext, "custom_fa_bwd")
-    assert hasattr(ext, "custom_fa_varlen_fwd") and hasattr(ext, "custom_fa_varlen_bwd")
-else:
-    assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
-    assert hasattr(ext, "fa_varlen_fwd") and hasattr(ext, "fa_varlen_bwd")
+assert hasattr(ext, "fa_fwd") and hasattr(ext, "fa_bwd")
+assert hasattr(ext, "fa_varlen_fwd") and hasattr(ext, "fa_varlen_bwd")
 
 __all__ = [
     "flash_attn_qkvpacked_func",
@@ -22,7 +18,6 @@ __all__ = [
 
 
 class FlashAttnQKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -108,7 +103,6 @@ class FlashAttnQKVPackedFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttnQKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -254,7 +248,6 @@ def flash_attn_qkvpacked_func(
 
 
 class FlashAttnKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -344,7 +337,6 @@ class FlashAttnKVPackedFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttnKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -498,7 +490,6 @@ def flash_attn_kvpacked_func(
 
 
 class FlashAttnFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -592,7 +583,6 @@ class FlashAttnFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttnFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -753,7 +743,6 @@ def flash_attn_func(
 
 
 class FlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -850,7 +839,6 @@ class FlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -1007,7 +995,6 @@ def flash_attn_varlen_qkvpacked_func(
 
 
 class FlashAttnVarlenKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -1112,7 +1099,6 @@ class FlashAttnVarlenKVPackedFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttnVarlenKVPackedFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -1288,7 +1274,6 @@ def flash_attn_varlen_kvpacked_func(
 
 
 class FlashAttnVarlenFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,
@@ -1414,7 +1399,6 @@ class FlashAttnVarlenFunc(torch.autograd.Function):
 
 
 class CustomizedFlashAttnVarlenFunc(torch.autograd.Function):
-
     @staticmethod
     def forward(
         ctx,

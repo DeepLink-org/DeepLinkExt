@@ -5,7 +5,7 @@
 import torch
 from einops import rearrange
 
-__all__ = ["ApplyRotaryEmbTorch", "ApplyRotaryEmbQKV_Torch"]
+__all__ = ["ApplyRotaryEmbTorch", "ApplyRotaryEmbQKV_Torch","_torch_apply_rotary_func"]
 
 
 def _torch_apply_rotary_func(

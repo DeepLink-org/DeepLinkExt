@@ -1,22 +1,19 @@
 # Copyright (c) 2024, DeepLink.
+# Copyright (c) 2024, InternEvo.
 
 import torch
-import torch_npu
 from einops import rearrange
+import deeplink_ext.cpp_extensions as ext
 
-__all__ = ["ApplyRotaryEmb", "ApplyRotaryEmbQKV_"]
+assert hasattr(ext, "apply_rotary")
+from deeplink_ext.cpp_extensions import apply_rotary
+
+__all__ = ["ApplyRotaryEmb", "ApplyRotaryEmbQKV_","apply_rotary"]
 
 
 class ApplyRotaryEmb(torch.autograd.Function):
     """
-    Apply rotary positional embedding to input tensor x.
-    Args:
-        x (Tensor): Input tensor x is of shape [seq_length, ... , dim]
-        cos (Tensor): Input tensor cos is of shape [seq_length, ..., dim]
-        sin (Tensor): Input tensor sin is of shape [seq_length, ..., dim]
-
-    Returns:
-        Tensor: The input tensor after applying RoPE
+    ApplyRotaryEmb
     """
 
     @staticmethod
@@ -35,35 +32,49 @@ class ApplyRotaryEmb(torch.autograd.Function):
         assert rotary_dim <= headdim
         assert seqlen <= rotary_seqlen
         assert sin.shape == (rotary_seqlen, rotary_dim // 2)
+        x_ro = x[..., :rotary_dim]
+        x1, x2 = x_ro.chunk(2, dim=-1)
         out = torch.empty_like(x)
-
+        out_ro = out[..., :rotary_dim]
+        o1, o2 = out_ro.chunk(2, dim=-1)
         re_cos = rearrange(cos[:seqlen], "s d -> s 1 d")
         re_sin = rearrange(sin[:seqlen], "s d -> s 1 d")
-
-        cat_cos = torch.cat([re_cos, re_cos], -1)
-        cat_sin = torch.cat([re_sin, re_sin], -1)
-
-        rot = torch_npu.npu_rotary_mul(x[..., :rotary_dim], cat_cos, cat_sin)
-        out[..., :rotary_dim].copy_(rot)
+        apply_rotary(
+            x1,
+            x2,
+            re_cos,
+            re_sin,
+            o1,
+            o2,
+            False,
+        )
         if rotary_dim < headdim:
             out[..., rotary_dim:].copy_(x[..., rotary_dim:])
-
-        ctx.save_for_backward(cat_cos, cat_sin)
+        ctx.save_for_backward(re_cos, re_sin)
         ctx.interleaved = interleaved
         return out
 
     @staticmethod
     def backward(ctx, do):
-        cat_cos, cat_sin = ctx.saved_tensors
+        re_cos, re_sin = ctx.saved_tensors
         headdim = do.shape[-1]
-        rotary_dim = cat_cos.shape[-1]
-
+        rotary_dim = re_cos.shape[-1]
+        rotary_dim *= 2
+        do_ro = do[..., :rotary_dim]
+        do1, do2 = do_ro.chunk(2, dim=-1)
         dx = torch.empty_like(do)
-        dx_rot = torch_npu.npu_rotary_mul(
-            do[..., :rotary_dim], cat_cos, torch.neg(cat_sin)
-        )
-        dx.copy_(dx_rot)
+        dx_ro = dx[..., :rotary_dim]
+        dx1, dx2 = dx_ro.chunk(2, dim=-1)
 
+        apply_rotary(
+            do1,
+            do2,
+            re_cos,
+            re_sin,
+            dx1,
+            dx2,
+            True,
+        )
         if rotary_dim < headdim:
             dx[..., rotary_dim:].copy_(do[..., rotary_dim:])
         return dx, None, None, None
@@ -108,6 +119,7 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
             if len(qkv.shape) == 4
             else qkv[:, :, 0, :, :rotary_dim]
         )
+        q1, q2 = q_ro.chunk(2, dim=-1)
         re_cos = (
             rearrange(cos, "s d -> s 1 d")
             if len(qkv.shape) == 4
@@ -118,16 +130,22 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
             if len(qkv.shape) == 4
             else rearrange(sin[:seqlen], "s d -> s 1 d")
         )
-        cat_cos = torch.cat([re_cos, re_cos], -1)
-        cat_sin = torch.cat([re_sin, re_sin], -1)
-        q_out = torch_npu.npu_rotary_mul(q_ro, cat_cos, cat_sin)
-        q_ro.copy_(q_out)
+        apply_rotary(
+            q1,
+            q2,
+            re_cos,
+            re_sin,
+            q1,
+            q2,
+            False
+        )
 
         k_ro = (
             qkv[:, 1, :, :rotary_dim]
             if len(qkv.shape) == 4
             else qkv[:, :, 1, :, :rotary_dim]
         )
+        k1, k2 = k_ro.chunk(2, dim=-1)
         re_cos_k = (
             rearrange(cos_k, "s d -> s 1 d")
             if len(qkv.shape) == 4
@@ -138,34 +156,56 @@ class ApplyRotaryEmbQKV_(torch.autograd.Function):
             if len(qkv.shape) == 4
             else rearrange(sin_k[:seqlen], "s d -> s 1 d")
         )
-        cat_cos_k = torch.cat([re_cos_k, re_cos_k], -1)
-        cat_sin_k = torch.cat([re_sin_k, re_sin_k], -1)
-        k_out = torch_npu.npu_rotary_mul(k_ro, cat_cos_k, cat_sin_k)
-        k_ro.copy_(k_out)
+        apply_rotary(
+            k1,
+            k2,
+            re_cos_k,
+            re_sin_k,
+            k1,
+            k2,
+            False
+        )
 
-        ctx.save_for_backward(cat_cos, cat_sin, cat_cos_k, cat_sin_k)
+        ctx.save_for_backward(re_cos, re_sin, re_cos_k, re_sin_k)
         ctx.interleaved = interleaved
         return qkv
 
     @staticmethod
     def backward(ctx, dqkv):
-        cat_cos, cat_sin, cat_cos_k, cat_sin_k = ctx.saved_tensors
-        rotary_dim = cat_cos.shape[-1]
+        re_cos, re_sin, re_cos_k, re_sin_k = ctx.saved_tensors
+        rotary_dim = re_cos.shape[-1]
+        rotary_dim *= 2
 
         dq_ro = (
             dqkv[:, 0, :, :rotary_dim]
             if len(dqkv.shape) == 4
             else dqkv[:, :, 0, :, :rotary_dim]
         )
-        dq_out = torch_npu.npu_rotary_mul(dq_ro, cat_cos, torch.neg(cat_sin))
-        dq_ro.copy_(dq_out)
+        dq1, dq2 = dq_ro.chunk(2, dim=-1)
+        _torch_apply_rotary_func(dq1, dq2, re_cos, re_sin, dq1, dq2, True)
+        apply_rotary(
+            dq1,
+            dq2,
+            re_cos,
+            re_sin,
+            dq1,
+            dq2,
+            True
+        )
 
         dk_ro = (
             dqkv[:, 1, :, :rotary_dim]
             if len(dqkv.shape) == 4
             else dqkv[:, :, 1, :, :rotary_dim]
         )
-        dk_out = torch_npu.npu_rotary_mul(dk_ro, cat_cos_k, torch.neg(cat_sin_k))
-        dk_ro.copy_(dk_out)
-
+        dk1, dk2 = dk_ro.chunk(2, dim=-1)
+        apply_rotary(
+            dk1,
+            dk2,
+            re_cos_k,
+            re_sin_k,
+            dk1,
+            dk2,
+            True
+        )
         return dqkv, None, None, None, None, None

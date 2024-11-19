@@ -3,7 +3,7 @@
 import copy
 import torch
 from torch import nn
-from deeplink_ext.interntrain_ops.adamw import AdamW
+from deeplink_ext.ops.adamw import AdamW
 
 
 def test_AdamW():

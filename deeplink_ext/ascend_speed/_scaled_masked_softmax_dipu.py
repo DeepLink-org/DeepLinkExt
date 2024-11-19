@@ -11,7 +11,6 @@ __all__ = ["ScaledMaskedSoftmax"]
 
 
 class ScaledMaskedSoftmax(torch.autograd.Function):
-
     @staticmethod
     def forward(ctx, input, mask, scale, fixed_triu_mask):
         out = torch.empty_like(input)

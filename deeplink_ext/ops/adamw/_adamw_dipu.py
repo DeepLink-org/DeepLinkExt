@@ -60,7 +60,6 @@ def fused_adamw(
 
 
 class AdamW(Optimizer):
-
     def __init__(
         self,
         params,

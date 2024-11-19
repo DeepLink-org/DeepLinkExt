@@ -2,8 +2,8 @@
 
 import torch
 from tests.core import calculate_fwd_and_bwd, allclose
-from deeplink_ext.easyllm_ops.rms_norm import rms_norm
-from deeplink_ext.easyllm_ops.rms_norm_fallback import rms_norm_torch
+from deeplink_ext.ops.rms_norm.easyllm_rms_norm import rms_norm
+from deeplink_ext.ops.rms_norm.easyllm_rms_norm_fallback import rms_norm_torch
 
 
 def test_rms_norm():

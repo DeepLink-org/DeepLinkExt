@@ -2,8 +2,10 @@
 
 import torch
 from tests.core import call_autograd_func, allclose
-from deeplink_ext.internevo_ops.rotary_embedding import ApplyRotaryEmb
-from deeplink_ext.internevo_ops.rotary_embedding_fallback import ApplyRotaryEmbTorch
+from deeplink_ext.ops.rotary_embedding.internevo_rotary_embedding import ApplyRotaryEmb
+from deeplink_ext.ops.rotary_embedding.internevo_rotary_embedding_fallback import (
+    ApplyRotaryEmbTorch,
+)
 
 
 def test_ApplyRotaryEmb():
