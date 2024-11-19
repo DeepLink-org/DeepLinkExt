@@ -9,9 +9,6 @@ def _init():
     platform_type = deeplink_ext_get_platform_type()
     if platform_type == PlatformType.TORCH_DIPU:
         import torch_dipu
-    elif platform_type == PlatformType.TORCH_NPU:
-        warnings.warn("DeepLinkExt using torch_npu ...", ImportWarning)
-        import torch_npu
     else:
         raise ImportError
 

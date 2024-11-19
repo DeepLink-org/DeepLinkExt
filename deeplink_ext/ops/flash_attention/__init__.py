@@ -1,32 +1,25 @@
 _not_impl = "[deeplink_ext] {op_name} is not implemented in diopi. Falling back to the slower torch implementation."
 
-try:
-    from .internevo_flash_attention import (
-        flash_attn_qkvpacked_func,
-        flash_attn_kvpacked_func,
-        flash_attn_func,
-        flash_attn_varlen_qkvpacked_func,
-        flash_attn_varlen_kvpacked_func,
-        flash_attn_varlen_func,
-    )
-except Exception as e:
-    print(_not_impl.format(op_name="flash attention"))
-    from .internevo_flash_attention_fallback import (
-        flash_attn_qkvpacked_func_torch as flash_attn_qkvpacked_func,
-        flash_attn_kvpacked_func_torch as flash_attn_kvpacked_func,
-        flash_attn_func_torch as flash_attn_func,
-        flash_attn_varlen_qkvpacked_func_torch as flash_attn_varlen_qkvpacked_func,
-        flash_attn_varlen_kvpacked_func_torch as flash_attn_varlen_kvpacked_func,
-        flash_attn_varlen_func_torch as flash_attn_varlen_func,
-    )
+from .flash_attn_utils import import_flash_attn_modules, import_flash_attn_funcs
 
-try:
-    from .interntrain_flash_attention import FlashSelfAttention, FlashCrossAttention
-except Exception as e:
-    print(_not_impl.format(op_name="flash attention"))
-    from .interntrain_flash_attention_fallback import (
-        SelfAttention as FlashSelfAttention,
-    )
-    from .interntrain_flash_attention_fallback import (
-        CrossAttention as FlashCrossAttention,
-    )
+FlashSelfAttention, FlashCrossAttention = import_flash_attn_modules()
+(
+    flash_attn_qkvpacked_func,
+    flash_attn_kvpacked_func,
+    flash_attn_func,
+    flash_attn_varlen_qkvpacked_func,
+    flash_attn_varlen_kvpacked_func,
+    flash_attn_varlen_func,
+) = import_flash_attn_funcs()
+
+from .flash_attn_utils import patch_mha, patch_flash_attn_funcs
+
+patch_mha(FlashSelfAttention, FlashCrossAttention)
+patch_flash_attn_funcs(
+    flash_attn_qkvpacked_func,
+    flash_attn_kvpacked_func,
+    flash_attn_func,
+    flash_attn_varlen_qkvpacked_func,
+    flash_attn_varlen_kvpacked_func,
+    flash_attn_varlen_func,
+)

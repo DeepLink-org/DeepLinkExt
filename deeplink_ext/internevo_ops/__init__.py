@@ -19,7 +19,7 @@ from deeplink_ext.ops.flash_attention import (
 
 from deeplink_ext.ops.rms_norm import MixedFusedRMSNorm
 
-from deeplink_ext.ops.rotary_embedding import ApplyRotaryEmb
+from deeplink_ext.ops.rotary_embedding import ApplyRotaryEmb, ApplyRotaryEmbQKV_, apply_rotary
 
 __all__ = [
     "AdamW",
@@ -31,4 +31,6 @@ __all__ = [
     "flash_attn_varlen_func",
     "MixedFusedRMSNorm",
     "ApplyRotaryEmb",
+    "ApplyRotaryEmbQKV_",
+    "apply_rotary",
 ]

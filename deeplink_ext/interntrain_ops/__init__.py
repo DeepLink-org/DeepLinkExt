@@ -10,7 +10,7 @@ except Exception as e:
 
 from deeplink_ext.ops.flash_attention import FlashSelfAttention, FlashCrossAttention
 from deeplink_ext.ops.rms_norm import MixedFusedRMSNorm
-from deeplink_ext.ops.rotary_embedding import ApplyRotaryEmb, ApplyRotaryEmbQKV_
+from deeplink_ext.ops.rotary_embedding import ApplyRotaryEmb, ApplyRotaryEmbQKV_, apply_rotary
 
 
 __all__ = [
@@ -20,4 +20,5 @@ __all__ = [
     "MixedFusedRMSNorm",
     "ApplyRotaryEmb",
     "ApplyRotaryEmbQKV_",
+    "apply_rotary",
 ]
