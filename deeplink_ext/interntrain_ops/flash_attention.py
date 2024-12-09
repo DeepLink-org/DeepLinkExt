@@ -1292,20 +1292,18 @@ class FlashSelfAttention(nn.Module):
                     causal if causal is not None else self.causal,
                 )
             else:
-                packed_length = q.size(dim=0)
-                q = _unpack_qkv_before_attn(q, cu_seqlens=cu_seqlens)
-                kv = _unpack_qkv_before_attn(kv, cu_seqlens=cu_seqlens)
-                output = FlashAttentionQKVPackedFunc.apply(
+                return FlashAttentionVarlenQKVPackedFunc.apply(
                     qkv,
                     q,
                     k,
                     v,
                     kv,
+                    cu_seqlens,
+                    max_seqlen,
                     dropout_p,
                     softmax_scale,
                     causal if causal is not None else self.causal,
                 )
-                return _pack_output_after_attn(output, cu_seqlens, packed_length)
 
 
 class FlashCrossAttention(nn.Module):
