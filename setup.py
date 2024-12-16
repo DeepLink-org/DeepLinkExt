@@ -1,7 +1,8 @@
 # Copyright (c) 2024, DeepLink.
 
 from setuptools import find_packages, setup, Extension
-from torch.utils.cpp_extension import BuildExtension, include_paths, library_paths
+from torch.utils.cpp_extension import BuildExtension, CppExtension, include_paths, library_paths
+
 import glob
 import os
 import subprocess
@@ -86,3 +87,16 @@ setup(
     cmdclass={"build_ext": BuildExtensionWithCompdb},
     install_requires=["einops"],
 )
+
+
+setup(
+    name='deeplink_ext_ops',
+    ext_modules=[
+        CppExtension(
+            name='deeplink_ext_ops',
+            sources=glob.glob("./csrc/*.cpp"),
+            extra_compile_args=[' -g ']),
+    ],
+    cmdclass={
+        'build_ext': BuildExtension
+    })
