@@ -41,7 +41,7 @@ def test_ApplyRotaryEmb():
                     in_place,
                 )
                 assert allclose(
-                    output_ref, output_ext, rtol=1e-2, atol=5e-2
+                    output_ref, output_ext
                 ), f"When input dtype is {input_dtype} and in_place is {in_place}, ApplyRotaryEmb fails to pass the forward test!"
                 assert allclose(
                     grad_ref, grad_ext
