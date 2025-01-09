@@ -1,7 +1,6 @@
 # Copyright (c) 2024, DeepLink.
 
 import torch
-import torch_npu
 from einops import repeat
 from mindspeed.ops.npu_rotary_position_embedding import npu_rotary_position_embedding
 
@@ -45,9 +44,11 @@ class ApplyRotaryEmb(torch.autograd.Function):
         else:
             cos = repeat(cos[:seqlen], "... d -> 1 ... 1 (2 d)")
             sin = repeat(sin[:seqlen], "... d -> 1 ... 1 (2 d)")
+
         ctx.save_for_backward(cos, sin)
         ctx.interleaved = interleaved
         ctx.in_place = in_place
+
         if interleaved:
             x_ro = x[..., :rotary_dim]
             out_ro = npu_rotary_position_embedding(x_ro, cos, sin, 1)
@@ -62,7 +63,7 @@ class ApplyRotaryEmb(torch.autograd.Function):
             return out_ro
         else:
             x_ro = x[..., :rotary_dim]
-            out_ro = torch_npu.npu_rotary_mul(x_ro, cos, sin)
+            out_ro = npu_rotary_position_embedding(x_ro, cos, sin, 0)
             if in_place:
                 x[..., :rotary_dim].copy_(out_ro)
                 return x
@@ -78,6 +79,7 @@ class ApplyRotaryEmb(torch.autograd.Function):
         cos, sin = ctx.saved_tensors
         rotary_dim = cos.shape[-1]
         head_dim = grad_out.shape[-1]
+
         if ctx.interleaved:
             grad_out_ro = grad_out[..., :rotary_dim]
             grad_input_ro = npu_rotary_position_embedding(
@@ -94,7 +96,9 @@ class ApplyRotaryEmb(torch.autograd.Function):
             return grad_input_ro, None, None, None, None
         else:
             grad_out_ro = grad_out[..., :rotary_dim]
-            grad_input_ro = torch_npu.npu_rotary_mul(grad_out_ro, cos, torch.neg(sin))
+            grad_input_ro = npu_rotary_position_embedding(
+                grad_out_ro, cos, torch.neg(sin), 0
+            )
             if ctx.in_place:
                 grad_out[..., :rotary_dim].copy_(grad_input_ro)
                 return grad_out, None, None, None, None
