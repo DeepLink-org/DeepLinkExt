@@ -12,12 +12,8 @@ __all__ = [
     "flash_attn_varlen_kvpacked_func",
 ]
 
+# construct a global attention mask for npu
 _GLOBAL_ATTN_MASK = None
-
-
-def set_attention_mask(attn_mask):
-    global _GLOBAL_ATTN_MASK
-    _GLOBAL_ATTN_MASK = attn_mask
 
 
 def get_attention_mask(seqlen, causal, window_size):
@@ -73,8 +69,7 @@ def flash_attn_func(
     seqlen_k = k.shape[1]
     head_num = q.shape[-2]
 
-    assert seqlen_q == seqlen_k
-    set_attention_mask(None)
+    assert seqlen_q == seqlen_k, "Npu currently only supports seqlen_q = seqlen_k."
     attention_mask = get_attention_mask(seqlen_q, causal, window_size)
     sparse_mode = 0 if attention_mask is None or seqlen_q <= 2048 else 4
 
@@ -125,8 +120,9 @@ def flash_attn_varlen_func(
     cu_seqlens_q = cu_seqlens_q[1:].tolist()
     cu_seqlens_k = cu_seqlens_k[1:].tolist()
 
-    assert max_seqlen_q == max_seqlen_k
-    set_attention_mask(None)
+    assert (
+        max_seqlen_q == max_seqlen_k
+    ), "Npu currently only supports max_seqlen_q = max_seqlen_k."
     attention_mask = get_attention_mask(max_seqlen_q, causal, window_size)
     sparse_mode = 0 if attention_mask is None or max_seqlen_q <= 2048 else 4
 
@@ -173,7 +169,6 @@ def flash_attn_qkvpacked_func(
     seqlen_qkv = qkv.shape[1]
     head_num = q.shape[-2]
 
-    set_attention_mask(None)
     attention_mask = get_attention_mask(seqlen_qkv, causal, window_size)
     sparse_mode = 0 if attention_mask is None or seqlen_qkv <= 2048 else 4
 
@@ -220,8 +215,7 @@ def flash_attn_kvpacked_func(
     seqlen_kv = kv.shape[1]
     head_num = q.shape[-2]
 
-    assert seqlen_q == seqlen_kv
-    set_attention_mask(None)
+    assert seqlen_q == seqlen_kv, "Npu currently only supports seqlen_q = seqlen_kv."
     attention_mask = get_attention_mask(seqlen_q, causal, window_size)
     sparse_mode = 0 if attention_mask is None or seqlen_q <= 2048 else 4
 
@@ -270,7 +264,6 @@ def flash_attn_varlen_qkvpacked_func(
     cu_seqlens_q = cu_seqlens[1:].tolist()
     cu_seqlens_k = cu_seqlens[1:].tolist()
 
-    set_attention_mask(None)
     attention_mask = get_attention_mask(max_seqlen, causal, window_size)
     sparse_mode = 0 if attention_mask is None or max_seqlen <= 2048 else 4
 
@@ -321,8 +314,9 @@ def flash_attn_varlen_kvpacked_func(
     cu_seqlens_q = cu_seqlens_q[1:].tolist()
     cu_seqlens_k = cu_seqlens_k[1:].tolist()
 
-    assert max_seqlen_q == max_seqlen_k
-    set_attention_mask(None)
+    assert (
+        max_seqlen_q == max_seqlen_k
+    ), "Npu currently only supports max_seqlen_q = max_seqlen_k."
     attention_mask = get_attention_mask(max_seqlen_q, causal, window_size)
     sparse_mode = 0 if attention_mask is None or max_seqlen_q <= 2048 else 4
 
