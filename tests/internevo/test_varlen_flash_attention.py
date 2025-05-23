@@ -14,6 +14,15 @@ from deeplink_ext.internevo_ops.flash_attention import (
     flash_attn_varlen_func,
 )
 
+def clear_global_attn_mask_for_npu():
+    # clear the global attention mask set by the latest test case
+    from deeplink_ext.utils import PlatformType, deeplink_ext_get_platform_type
+    platform_type = deeplink_ext_get_platform_type()
+    if platform_type == PlatformType.TORCH_NPU:
+        import deeplink_ext.internevo_ops._flash_attention_npu
+        deeplink_ext.internevo_ops._flash_attention_npu._GLOBAL_ATTN_MASK = None
+    else:
+        pass
 
 # fmt: off
 # latest sequence length is 20206-16110=4096
@@ -65,6 +74,7 @@ def test_flash_attn_varlen_qkvpacked_func_mha():
 
     assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
     assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-2)
+    clear_global_attn_mask_for_npu()
 
 
 def test_flash_attn_varlen_qkvpacked_func_mha_long_max_seqlen():
@@ -109,6 +119,7 @@ def test_flash_attn_varlen_qkvpacked_func_mha_long_max_seqlen():
 
     assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
     assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-2)
+    clear_global_attn_mask_for_npu()
 
 
 def test_flash_attn_varlen_kvpacked_func_gqa():
@@ -165,6 +176,7 @@ def test_flash_attn_varlen_kvpacked_func_gqa():
 
     assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
     assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-2)
+    clear_global_attn_mask_for_npu()
 
 
 def test_flash_attn_varlen_kvpacked_func_gqa_long_max_seqlen():
@@ -223,6 +235,7 @@ def test_flash_attn_varlen_kvpacked_func_gqa_long_max_seqlen():
 
     assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
     assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-2)
+    clear_global_attn_mask_for_npu()
 
 
 def test_flash_attn_varlen_func_gqa():
@@ -287,6 +300,7 @@ def test_flash_attn_varlen_func_gqa():
 
     assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
     assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-2)
+    clear_global_attn_mask_for_npu()
 
 
 def test_flash_attn_varlen_func_gqa_long_max_seqlen():
@@ -353,3 +367,4 @@ def test_flash_attn_varlen_func_gqa_long_max_seqlen():
 
     assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-5, atol=1e-5)
     assert allclose(grads_cpu, grads_gpu, rtol=1e-5, atol=1e-2)
+    clear_global_attn_mask_for_npu()

@@ -14,6 +14,15 @@ from deeplink_ext.internevo_ops.flash_attention import (
     flash_attn_func,
 )
 
+def clear_global_attn_mask_for_npu():
+    # clear the global attention mask set by the latest test case
+    from deeplink_ext.utils import PlatformType, deeplink_ext_get_platform_type
+    platform_type = deeplink_ext_get_platform_type()
+    if platform_type == PlatformType.TORCH_NPU:
+        import deeplink_ext.internevo_ops._flash_attention_npu
+        deeplink_ext.internevo_ops._flash_attention_npu._GLOBAL_ATTN_MASK = None
+    else:
+        pass
 
 def test_flash_attn_qkvpacked_func_mha():
     batch, seqlen, num_heads, headdim = [8, 32, 32, 64]
@@ -46,6 +55,7 @@ def test_flash_attn_qkvpacked_func_mha():
 
     assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-3, atol=1e-3)
     assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
+    clear_global_attn_mask_for_npu()
 
 
 def test_flash_attn_kvpacked_func_gqa():
@@ -83,6 +93,7 @@ def test_flash_attn_kvpacked_func_gqa():
 
     assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-3, atol=1e-3)
     assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
+    clear_global_attn_mask_for_npu()
 
 
 def test_flash_attn_func_gqa():
@@ -128,3 +139,4 @@ def test_flash_attn_func_gqa():
 
     assert allclose(ouput_forward_cpu, ouput_forward_gpu, rtol=1e-3, atol=1e-3)
     assert allclose(grads_cpu, grads_gpu, rtol=1e-3, atol=1e-3)
+    clear_global_attn_mask_for_npu()
